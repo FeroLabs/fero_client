@@ -2,7 +2,7 @@ import os
 import re
 import requests
 from pathlib import Path
-from types import Optional, Union
+from typing import Optional, Union
 from . import FeroError
 
 FERO_CONF_FILE = ".fero"
