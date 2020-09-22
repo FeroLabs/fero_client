@@ -1,4 +1,20 @@
+import fero
+import pandas as pd
 from marshmallow import Schema, fields
+from typing import Union
+
+from fero import FeroError
+
+
+class Prediction:
+    def __init__(self, data: dict):
+        self._data = data
+
+    def __dict__(self):
+        return self._data
+
+    def to_series(data) -> pd.Series:
+        pass
 
 
 class AnalysisSchema(Schema):
@@ -60,3 +76,28 @@ class Analysis:
         return f"<Analysis name={self.name}>"
 
     __str__ = __repr__
+
+    def has_trained_model(self) -> bool:
+        return self.latest_completed_model is not None
+
+    def make_prediction(self, prediction_data: Union[pd.Series, dict]) -> Prediction:
+        if not self.has_trained_model:
+            raise fero.FeroError("No model has been trained on this analysis.")
+
+        if isinstance(prediction_data, pd.Series):
+            prediction_data = dict(prediction_data)
+
+        prediction_request = {"values": prediction_data}
+        prediction_results = self._client.post(
+            f"/api/revision_models/{str(self.latest_completed_model)}/predict/",
+            prediction_request,
+        )
+
+        if prediction_results.get("status") != "SUCCESS":
+            raise FeroError(
+                prediction_results.get(
+                    "message", "The prediction failed for unknown reasons."
+                )
+            )
+
+        return Prediction(prediction_results.get("data", {}))

@@ -4,6 +4,7 @@ import requests
 from pathlib import Path
 from typing import Optional, Union
 from . import FeroError
+from .analysis import Analysis
 
 FERO_CONF_FILE = ".fero"
 
@@ -119,3 +120,26 @@ class Fero:
             return self._get_token_as_user()
 
         return None
+
+    def get_analysis(self, name: str) -> Analysis:
+
+        analysis_data_request = requests.get(
+            f"{self._hostname}/api/analyses",
+            params={"name": name},
+            headers={"Authorization": f"JWT {self._fero_token}"},
+        )
+
+        analysis_data = analysis_data_request.json()
+
+        if analysis_data.get("count") != 1:
+            return None
+
+        return Analysis(self, analysis_data["results"][0])
+
+    def post(self, url: str, data: dict) -> dict:
+
+        return requests.post(
+            f"{self._hostname}{url}",
+            json=data,
+            headers={"Authorization": f"JWT {self._fero_token}"},
+        ).json()
