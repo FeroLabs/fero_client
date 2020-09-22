@@ -11,7 +11,7 @@ FERO_CONF_FILE = ".fero"
 class Fero:
     def __init__(
         self,
-        hostname: Optional[str] = "https://app.ferolabs.com/",
+        hostname: Optional[str] = "https://app.ferolabs.com",
         username: Optional[str] = None,
         password: Optional[str] = None,
         fero_token: Optional[str] = None,
@@ -38,8 +38,12 @@ class Fero:
         :type fero_token: Optional[str], optional
         :raises FeroError: Raised if a token cannot be obtained
         """
+        self._fero_token = None
         self._fero_conf_content = None
-        self._hostname = hostname
+        self._password = None
+        self._username = None
+
+        self._hostname = hostname.rstrip("/")
 
         if fero_token:
             self._fero_token = fero_token
@@ -47,13 +51,13 @@ class Fero:
         if username and password:
             self._username = username
             self._password = password
-            self._fero_token = self._get_token_as_user(username, password)
+            self._fero_token = self._get_token_as_user()
 
         if self._fero_token is None:
             self._fero_token = self._get_token_string_from_local()
 
         if self._fero_token is None:
-            self._fero_token = self._jwt_from_local_user_pass
+            self._fero_token = self._jwt_from_local_user_pass()
 
         if self._fero_token is None:
             raise FeroError("Could not login into Fero")
@@ -70,8 +74,7 @@ class Fero:
         """Checks the local system for the JWT token string"""
         if "FERO_TOKEN" in os.environ:
             return os.environ.get("FERO_TOKEN")
-
-        jwt_match = re.match(r"^FERO_JWT_TOKEN=([^\n]+)\n", self.fero_conf_contents)
+        jwt_match = re.search(r"FERO_TOKEN=([^\n]+)\n", self.fero_conf_contents)
         return jwt_match.group(1) if jwt_match else None
 
     def _get_fero_conf_contents(self) -> str:
@@ -101,11 +104,11 @@ class Fero:
 
         if self._username is None or self._password is None:
 
-            username_match = re.match(
-                r"^FERO_USERNAME=([^\n]+)\n", self.fero_conf_contents
+            username_match = re.search(
+                r"FERO_USERNAME=([^\n]+)\n", self.fero_conf_contents
             )
-            password_match = re.match(
-                r"^FERO_PASSWORD=([^\n]+)\n", self.fero_conf_contents
+            password_match = re.search(
+                r"FERO_PASSWORD=([^\n]+)\n", self.fero_conf_contents
             )
 
             if username_match and password_match:
