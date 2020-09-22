@@ -1,20 +1,9 @@
 import fero
 import pandas as pd
 from marshmallow import Schema, fields
-from typing import Union
+from typing import Union, List
 
 from fero import FeroError
-
-
-class Prediction:
-    def __init__(self, data: dict):
-        self._data = data
-
-    def __dict__(self):
-        return self._data
-
-    def to_series(data) -> pd.Series:
-        pass
 
 
 class AnalysisSchema(Schema):
@@ -77,27 +66,54 @@ class Analysis:
 
     __str__ = __repr__
 
+    def _results_to_df(self, results: List[dict]) -> pd.DataFrame:
+        pass
+
+    @staticmethod
+    def _flatten_result(result: dict, prediction_row: dict) -> dict:
+        flat_result = {}
+
+        for target, values in result["data"].items():
+            flat_result.update(
+                {
+                    f"{target}_low": values["value"]["low"][0],
+                    f"{target}_mid": values["value"]["mid"][0],
+                    f"{target}_high": values["value"]["high"][0],
+                }
+            )
+        flat_result.update(prediction_row)
+        return flat_result
+
     def has_trained_model(self) -> bool:
         return self.latest_completed_model is not None
 
-    def make_prediction(self, prediction_data: Union[pd.Series, dict]) -> Prediction:
+    def make_prediction(
+        self, prediction_data: Union[pd.DataFrame, List[dict]]
+    ) -> Union[pd.DataFrame, List[dict]]:
         if not self.has_trained_model:
             raise fero.FeroError("No model has been trained on this analysis.")
 
-        if isinstance(prediction_data, pd.Series):
-            prediction_data = dict(prediction_data)
+        is_df = isinstance(prediction_data, pd.DataFrame)
 
-        prediction_request = {"values": prediction_data}
-        prediction_results = self._client.post(
-            f"/api/revision_models/{str(self.latest_completed_model)}/predict/",
-            prediction_request,
-        )
+        if is_df:
+            prediction_data = [dict(row) for row in prediction_data.iterrows()]
 
-        if prediction_results.get("status") != "SUCCESS":
-            raise FeroError(
-                prediction_results.get(
-                    "message", "The prediction failed for unknown reasons."
-                )
+        prediction_results = []
+        for row in prediction_data:
+
+            prediction_request = {"values": row}
+            prediction_result = self._client.post(
+                f"/api/revision_models/{str(self.latest_completed_model)}/predict/",
+                prediction_request,
             )
 
-        return Prediction(prediction_results.get("data", {}))
+            if prediction_result.get("status") != "SUCCESS":
+                raise FeroError(
+                    prediction_results.get(
+                        "message", "The prediction failed for unknown reasons."
+                    )
+                )
+
+            prediction_results.append(self._flatten_result(prediction_result, row))
+
+        return pd.DataFrame(prediction_results) if is_df else prediction_results
