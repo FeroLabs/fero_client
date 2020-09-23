@@ -85,14 +85,14 @@ def test_has_trained_model_true(analysis_data, patched_fero_client):
     """Test that has_trained_model is true if there is a latest revision model"""
 
     analysis = Analysis(patched_fero_client, analysis_data)
-    assert analysis.has_trained_model() == True
+    assert analysis.has_trained_model() is True
 
 
 def test_has_trained_model_false(analysis_data, patched_fero_client):
     """Test that has_trained_model is true if there is no revision model"""
     analysis_data["latest_completed_model"] = None
     analysis = Analysis(patched_fero_client, analysis_data)
-    assert analysis.has_trained_model() == False
+    assert analysis.has_trained_model() is False
 
 
 def test_make_prediction_dictionaries(
@@ -244,11 +244,11 @@ def test_make_prediction_dataframe_duplicate_cols(
 
 
 def test_make_prediction_prediction_failure(
-    analysis_data, patched_fero_client, prediction_data, prediction_result_data
+    analysis_data, patched_fero_client, prediction_data
 ):
     """Test that  a FeroError is raised if a prediction fails"""
 
-    with pytest.raises(FeroError) as e:
+    with pytest.raises(FeroError):
         patched_fero_client.post.return_value = {
             "status": "FAILED",
             "message": "Something broke!",

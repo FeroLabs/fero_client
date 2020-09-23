@@ -1,0 +1,26 @@
+orbs:
+  python: circleci/python@1.0.0
+version: 2.1
+
+jobs:
+  lint-and-test:
+    executor: python/default
+    steps:
+      - checkout
+      - python/install-packages:
+          pkg-manager: pip
+          pip-dependency-file: dev-requirements.txt
+      - run:
+          name: Flake8
+          command: flake8 .
+      - run:
+          name: Black Format check
+          command: black --check .
+      - run:
+          name: Test
+          command: pytest tests
+        
+workflows:
+  main:
+    jobs:
+      - lint-and-test

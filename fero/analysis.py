@@ -108,8 +108,21 @@ class Analysis:
     def make_prediction(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
     ) -> Union[pd.DataFrame, List[dict]]:
+        """Makes a prediction from the provided data using the most recent trained model for the analysis.
+
+        `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
+        to make a prediction of what the targets of the Analysis will be.  The results are returned as either a data frame
+        or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
+        Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
+
+        :param prediction_data:  Either a data frame or list of dictionaries specifying values to be used in the model.
+        :type prediction_data: Union[pd.DataFrame, List[dict]]
+        :raises FeroError: Raised if no model has been trained or the server returns an error message
+        :return: A data frame or list of dictionaries depending on how the function was called
+        :rtype: Union[pd.DataFrame, List[dict]]
+        """
         if not self.has_trained_model:
-            raise fero.FeroError("No model has been trained on this analysis.")
+            raise FeroError("No model has been trained on this analysis.")
 
         is_df = isinstance(prediction_data, pd.DataFrame)
 

@@ -1,5 +1,2 @@
-class FeroError(Exception):
-    pass
-
-
-from .client import Fero
+from .exceptions import FeroError  # noqa
+from .client import Fero  # noqa
