@@ -70,21 +70,39 @@ class Analysis:
         pass
 
     @staticmethod
-    def _flatten_result(result: dict, prediction_row: dict) -> dict:
-        flat_result = {}
+    def _make_col_name(col_name: str, cols: List[str]) -> str:
+        c = 0
+        og_col_name = col_name
+        while col_name in cols:
+            col_name = f"{og_col_name}.{c}"
+            c += 1
 
+        return col_name
+
+    def _flatten_result(self, result: dict, prediction_row: dict) -> dict:
+        """Flattens nested results returned by the api into a single dict and combines it with the provided data"""
+        flat_result = {}
+        cols = prediction_row.keys()
         for target, values in result["data"].items():
+            low_col = self._make_col_name(f"{target}_low", cols)
+            mid_col = self._make_col_name(f"{target}_mid", cols)
+            high_col = self._make_col_name(f"{target}_high", cols)
             flat_result.update(
                 {
-                    f"{target}_low": values["value"]["low"][0],
-                    f"{target}_mid": values["value"]["mid"][0],
-                    f"{target}_high": values["value"]["high"][0],
+                    low_col: values["value"]["low"][0],
+                    mid_col: values["value"]["mid"][0],
+                    high_col: values["value"]["high"][0],
                 }
             )
         flat_result.update(prediction_row)
         return flat_result
 
     def has_trained_model(self) -> bool:
+        """Checks whether this analysis has a trained model associated with it.
+
+        :return: True if there is a model, False otherwise
+        :rtype: bool
+        """
         return self.latest_completed_model is not None
 
     def make_prediction(
@@ -96,7 +114,7 @@ class Analysis:
         is_df = isinstance(prediction_data, pd.DataFrame)
 
         if is_df:
-            prediction_data = [dict(row) for row in prediction_data.iterrows()]
+            prediction_data = [dict(row) for _, row in prediction_data.iterrows()]
 
         prediction_results = []
         for row in prediction_data:
@@ -106,10 +124,9 @@ class Analysis:
                 f"/api/revision_models/{str(self.latest_completed_model)}/predict/",
                 prediction_request,
             )
-
             if prediction_result.get("status") != "SUCCESS":
                 raise FeroError(
-                    prediction_results.get(
+                    prediction_result.get(
                         "message", "The prediction failed for unknown reasons."
                     )
                 )
