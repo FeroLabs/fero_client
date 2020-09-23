@@ -1,0 +1,2 @@
+class FeroError(Exception):
+    pass
