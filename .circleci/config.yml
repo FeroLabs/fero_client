@@ -19,8 +19,32 @@ jobs:
       - run:
           name: Test
           command: pytest tests
+
+  build-and-deploy:
+    executor: python/default
+    steps:
+      - checkout
+      - python/install-packages:
+        pkg-manager: pip
+        pip-dependency-file: dev-requirements.txt
+      - run:
+          name: Verify Git tag and version
+          command: python setup.py verify
+      - python/dist
+      - run:
+          name: Publish to Pypi
+          command: twine upload dist/*
+
         
 workflows:
   main:
     jobs:
       - lint-and-test
+      - build-deploy
+        requires:
+          - lint-and-test
+        filters:
+          tags:
+            only: /v[0-9]+(\.[0-9]+)*/
+        branches:
+          ignore: /.*/
