@@ -2,7 +2,7 @@ import os
 import re
 import requests
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Union, List
 from . import FeroError
 from .analysis import Analysis
 
@@ -121,25 +121,66 @@ class Fero:
 
         return None
 
-    def get_analysis(self, name: str) -> Analysis:
+    @staticmethod
+    def _handle_response(response: requests.Response) -> Union[dict, bytes]:
+        """Check and decode a request response and raise a relevant error if needed"""
+        if 200 <= response.status_code < 300:
+            if response.headers.get("content-type") == "application/json":
+                return response.json()
+            else:
+                return response.content
+        elif response.status_code == 404:
+            raise FeroError("The requested resource was not found.")
+        elif response.status_code in [401, 403]:
+            raise FeroError("You are not authorized to access this resourced.")
+        else:
+            raise FeroError(
+                f"There was an issue connecting to Fero. - Status Code: {response.status_code}"
+            )
 
-        analysis_data_request = requests.get(
-            f"{self._hostname}/api/analyses",
-            params={"name": name},
-            headers={"Authorization": f"JWT {self._fero_token}"},
+    def search_analyses(self, name: str = None) -> List[Analysis]:
+        """Searches available analyses by name and returns a list of matching objects.
+
+        :param name: Name of analysis to filter by.
+        :type name: str, optional
+        :return: a list of analyses
+        :rtype: List[Analysis]
+        """
+        params = {}
+        if name is not None:
+            params["name"] = name
+        analysis_data = self.get("/api/analyses/", params=params)
+        return [Analysis(self, a) for a in analysis_data["results"]]
+
+    def get_analysis(self, uuid: str) -> Analysis:
+        """Gets a Fero Analysis using the UUID.
+
+        :param uuid: UUID of the analysis
+        :type uuid: str
+        :return: An Analysis object
+        :rtype: Analysis
+        """
+        analysis_data = self.get(f"/api/analyses/{uuid}/")
+        return Analysis(self, analysis_data)
+
+    def post(self, url: str, data: dict) -> Union[dict, bytes]:
+        """Do a POST request with headers set."""
+
+        return self._handle_response(
+            requests.post(
+                f"{self._hostname}{url}",
+                json=data,
+                headers={"Authorization": f"JWT {self._fero_token}"},
+            )
         )
 
-        analysis_data = analysis_data_request.json()
+    def get(self, url: str, params=None) -> Union[dict, bytes]:
+        """Do a GET request with headers set."""
 
-        if analysis_data.get("count") != 1:
-            return None
-
-        return Analysis(self, analysis_data["results"][0])
-
-    def post(self, url: str, data: dict) -> dict:
-
-        return requests.post(
-            f"{self._hostname}{url}",
-            json=data,
-            headers={"Authorization": f"JWT {self._fero_token}"},
-        ).json()
+        return self._handle_response(
+            requests.get(
+                f"{self._hostname}{url}",
+                params=params,
+                headers={"Authorization": f"JWT {self._fero_token}"},
+            )
+        )
