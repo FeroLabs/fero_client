@@ -40,7 +40,7 @@ workflows:
   main:
     jobs:
       - lint-and-test
-      - build-deploy
+      - build-deploy:
           requires:
             - lint-and-test
           filters:
