@@ -66,11 +66,9 @@ class Analysis:
 
     __str__ = __repr__
 
-    def _results_to_df(self, results: List[dict]) -> pd.DataFrame:
-        pass
-
     @staticmethod
     def _make_col_name(col_name: str, cols: List[str]) -> str:
+        """Mangles duplicate columns"""
         c = 0
         og_col_name = col_name
         while col_name in cols:
@@ -126,10 +124,12 @@ class Analysis:
 
         is_df = isinstance(prediction_data, pd.DataFrame)
 
+        # convert to dictionary for serialization
         if is_df:
             prediction_data = [dict(row) for _, row in prediction_data.iterrows()]
 
         prediction_results = []
+        # make a prediction for each row
         for row in prediction_data:
 
             prediction_request = {"values": row}
@@ -146,4 +146,5 @@ class Analysis:
 
             prediction_results.append(self._flatten_result(prediction_result, row))
 
+        # convert back to a data frame if need
         return pd.DataFrame(prediction_results) if is_df else prediction_results
