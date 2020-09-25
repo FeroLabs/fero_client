@@ -9,7 +9,7 @@ import pathlib
 here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.md").read_text(encoding="utf-8")
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 
 class VerifyVersionCommand(install):
@@ -45,8 +45,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3 :: Only",
     ],
-    package_dir={"fero": "fero"},
-    packages=find_packages(where="fero"),
+    packages=["fero"],
     python_requires=">=3.5, <4",
     install_requires=["requests", "pandas", "marshmallow"],
     project_urls={
