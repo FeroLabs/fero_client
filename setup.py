@@ -47,7 +47,7 @@ setup(
     ],
     packages=["fero"],
     python_requires=">=3.5, <4",
-    install_requires=["requests", "pandas", "marshmallow"],
+    install_requires=["requests", "pandas", "marshmallow", "tqdm"],
     project_urls={
         "Bug Reports": "https://github.com/pypa/sampleproject/issues",
         "Source": "https://github.com/pypa/sampleproject/",

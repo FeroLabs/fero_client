@@ -2,6 +2,7 @@ import fero
 import pandas as pd
 from marshmallow import Schema, fields
 from typing import Union, List
+from tqdm import tqdm
 
 from fero import FeroError
 
@@ -130,7 +131,7 @@ class Analysis:
 
         prediction_results = []
         # make a prediction for each row
-        for row in prediction_data:
+        for row in tqdm(prediction_data):
 
             prediction_request = {"values": row}
             prediction_result = self._client.post(
