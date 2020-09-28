@@ -12,6 +12,81 @@ def test_analysis(analysis_data, patched_fero_client):
 
 
 @pytest.fixture
+def test_analysis_with_data(test_analysis):
+
+    test_analysis._presentation_data_cache = {
+        "data": [
+            {
+                "id": "regression_simulator",
+                "type": "regression_simulator",
+                "title": "Prediction Simulator",
+                "tab": "Prediction Simulator",
+                "content": {
+                    "factors": [
+                        {
+                            "factor": "Factor 1",
+                            "min": 51.0569817398695,
+                            "median": 148.02718539320762,
+                            "max": 245.75370014648703,
+                            "importances": [0.9184262466993418],
+                            "step": 1.9469671840661755,
+                            "default": 210.17636699824746,
+                            "dtype": "float",
+                        },
+                        {
+                            "factor": "Factor 2",
+                            "min": 51.0569817398695,
+                            "median": 148.02718539320762,
+                            "max": 245.75370014648703,
+                            "importances": [0.9184262466993418],
+                            "step": 1.9469671840661755,
+                            "default": 210.17636699824746,
+                            "dtype": "float",
+                        },
+                        {
+                            "factor": "Factor 3",
+                            "min": 51.0569817398695,
+                            "median": 148.02718539320762,
+                            "max": 245.75370014648703,
+                            "importances": [0.9184262466993418],
+                            "step": 1.9469671840661755,
+                            "default": 210.17636699824746,
+                            "dtype": "float",
+                        },
+                    ],
+                    "targets": [
+                        {
+                            "name": "Target 1",
+                            "default_measured": 774.2382246688347,
+                            "default": {
+                                "low": [734.5873947705951],
+                                "mid": [767.84871403268],
+                                "high": [801.110033294765],
+                            },
+                            "min": 552.3692540713583,
+                            "max": 819.9899001874504,
+                        },
+                        {
+                            "name": "Target 2",
+                            "default_measured": 774.2382246688347,
+                            "default": {
+                                "low": [734.5873947705951],
+                                "mid": [767.84871403268],
+                                "high": [801.110033294765],
+                            },
+                            "min": 552.3692540713583,
+                            "max": 819.9899001874504,
+                        },
+                    ],
+                },
+            }
+        ]
+    }
+
+    return test_analysis
+
+
+@pytest.fixture
 def prediction_data():
     return [
         {"value1": 1.0, "value2": 2, "value3": 3.3},
@@ -218,3 +293,8 @@ def test_make_prediction_prediction_failure(
         }
         analysis = Analysis(patched_fero_client, analysis_data)
         analysis.make_prediction(prediction_data)
+
+
+def test_analysis_factor_names(test_analysis_with_data):
+
+    assert test_analysis_with_data.factor_names == ["Factor 1", "Factor 2", "Factor 3"]
