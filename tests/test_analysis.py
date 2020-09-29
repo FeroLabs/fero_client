@@ -104,7 +104,7 @@ def prediction_result_data():
     return {
         "status": "SUCCESS",
         "data": {
-            "target1": {"value": {"high": [5.0], "low": [1.0], "mid": [3.0]}},
+            "Target 1": {"value": {"high": [5.0], "low": [1.0], "mid": [3.0]}},
             "target2": {"value": {"high": [1.0], "low": [1.0], "mid": [1.0]}},
         },
     }
@@ -159,9 +159,9 @@ def test_make_prediction_dictionaries(
             "value1": 1.0,
             "value2": 2,
             "value3": 3.3,
-            "target1_high": 5.0,
-            "target1_low": 1.0,
-            "target1_mid": 3.0,
+            "Target 1_high": 5.0,
+            "Target 1_low": 1.0,
+            "Target 1_mid": 3.0,
             "target2_high": 1.0,
             "target2_low": 1.0,
             "target2_mid": 1.0,
@@ -170,9 +170,9 @@ def test_make_prediction_dictionaries(
             "value1": 4.0,
             "value2": 5,
             "value3": 6.3,
-            "target1_high": 5.0,
-            "target1_low": 1.0,
-            "target1_mid": 3.0,
+            "Target 1_high": 5.0,
+            "Target 1_low": 1.0,
+            "Target 1_mid": 3.0,
             "target2_high": 1.0,
             "target2_low": 1.0,
             "target2_mid": 1.0,
@@ -211,9 +211,9 @@ def test_make_prediction_dataframe(
                 "value1": 1.0,
                 "value2": 2.0,
                 "value3": 3.3,
-                "target1_high": 5.0,
-                "target1_low": 1.0,
-                "target1_mid": 3.0,
+                "Target 1_high": 5.0,
+                "Target 1_low": 1.0,
+                "Target 1_mid": 3.0,
                 "target2_high": 1.0,
                 "target2_low": 1.0,
                 "target2_mid": 1.0,
@@ -222,9 +222,9 @@ def test_make_prediction_dataframe(
                 "value1": 4.0,
                 "value2": 5.0,
                 "value3": 6.3,
-                "target1_high": 5.0,
-                "target1_low": 1.0,
-                "target1_mid": 3.0,
+                "Target 1_high": 5.0,
+                "Target 1_low": 1.0,
+                "Target 1_mid": 3.0,
                 "target2_high": 1.0,
                 "target2_low": 1.0,
                 "target2_mid": 1.0,
@@ -244,8 +244,8 @@ def test_make_prediction_dataframe_duplicate_cols(
     """Test that make prediction returns managled columns if the column names would overlap"""
 
     dupe_data = [
-        {"value1": 1.0, "value2": 2, "value3": 3.3, "target1_high": 5.5},
-        {"value1": 4.0, "value2": 5, "value3": 6.3, "target1_high": 5.5},
+        {"value1": 1.0, "value2": 2, "value3": 3.3, "Target 1_high": 5.5},
+        {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high": 5.5},
     ]
 
     patched_fero_client.post.return_value = prediction_result_data
@@ -258,25 +258,25 @@ def test_make_prediction_dataframe_duplicate_cols(
             "value1": 1.0,
             "value2": 2,
             "value3": 3.3,
-            "target1_high.0": 5.0,
-            "target1_low": 1.0,
-            "target1_mid": 3.0,
+            "Target 1_high.0": 5.0,
+            "Target 1_low": 1.0,
+            "Target 1_mid": 3.0,
             "target2_high": 1.0,
             "target2_low": 1.0,
             "target2_mid": 1.0,
-            "target1_high": 5.5,
+            "Target 1_high": 5.5,
         },
         {
             "value1": 4.0,
             "value2": 5,
             "value3": 6.3,
-            "target1_high.0": 5.0,
-            "target1_low": 1.0,
-            "target1_mid": 3.0,
+            "Target 1_high.0": 5.0,
+            "Target 1_low": 1.0,
+            "Target 1_mid": 3.0,
             "target2_high": 1.0,
             "target2_low": 1.0,
             "target2_mid": 1.0,
-            "target1_high": 5.5,
+            "Target 1_high": 5.5,
         },
     ]
 
@@ -296,5 +296,182 @@ def test_make_prediction_prediction_failure(
 
 
 def test_analysis_factor_names(test_analysis_with_data):
-
+    """Test that factor names are parsed correctly"""
     assert test_analysis_with_data.factor_names == ["Factor 1", "Factor 2", "Factor 3"]
+
+
+def test_analysis_target_names(test_analysis_with_data):
+    """Test that factor names are parsed correctly"""
+    assert test_analysis_with_data.target_names == ["Target 1", "Target 2"]
+
+
+def test_analysis_make_optimization_min_input(test_analysis_with_data):
+    """Test that make_optimzation makes expected requests and returns a prediction"""
+    pred = test_analysis_with_data.make_optimization(
+        "test",
+        {
+            "goal": "maximize",
+            "factor": {"name": "Target 1", "min": 5.0, "max": 7.0},
+        },
+        [{"name": "Factor 2", "min": 10, "max": 10}],
+    )
+
+
+def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
+    """Test that a FeroError is raised if the goal doesn't include columns in the analysis"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "goal": "maximize",
+                "factor": {"name": "factor 4", "min": 5.0, "max": 7.0},
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_bad_goals(test_analysis_with_data):
+    """Test that a FeroError is raised if the goal field isn't valid"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "goal": "circumambulate",
+                "" "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_wrong_format_goal_factors(test_analysis_with_data):
+    """Test that a FeroError is raised if the factor is malformed"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "goal": "maximize",
+                "factor": {"name": "Factor 1", "smallest": 5.0, "max": 7.0},
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_type_not_cost(test_analysis_with_data):
+    """Test that a FeroError is raised if the goal config is a type, but not cost"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "type": "chad",
+                "goal": "maximize",
+                "cost_function": [
+                    {"name": "Factor 1", "min": 5.0, "max": 7.0, "cost": 1000}
+                ],
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_type_cost_no_cost_function(test_analysis_with_data):
+    """Test that a FeroError is raised if the type is cost but there is no cost_function key"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "type": "COST",
+                "goal": "maximize",
+                "factor": {"name": "Factor 1", "smallest": 5.0, "max": 7.0},
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_type_cost_malformed_cost_function(test_analysis_with_data):
+    """Test that a type COST optimization raises a fero error if the cost functions are malformed"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "type": "COST",
+                "goal": "maximize",
+                "cost_function": [
+                    {"name": "Factor 1", "min": 5.0, "max": 7.0, "price": 1000}
+                ],
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_type_cost_more_than_three(test_analysis_with_data):
+    """Test that a type COST optimization raises a fero error if more than 3 cost functions are specified"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "type": "COST",
+                "goal": "maximize",
+                "cost_function": [
+                    {"name": "Factor 1", "min": 5.0, "max": 7.0, "cost": 1000},
+                    {"name": "Factor 2", "min": 5.0, "max": 7.0, "cost": 1000},
+                    {"name": "Factor 3", "min": 5.0, "max": 7.0, "cost": 1000},
+                    {"name": "Factor 4", "min": 5.0, "max": 7.0, "cost": 1000},
+                ],
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_type_cost_target_in_function(test_analysis_with_data):
+    """Test that a type COST optimization raises a Fero Error if a target is in the cost function"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "type": "COST",
+                "goal": "maximize",
+                "cost_function": [
+                    {"name": "Factor 1", "min": 5.0, "max": 7.0, "cost": 1000},
+                    {"name": "Target 2", "min": 5.0, "max": 7.0, "cost": 1000},
+                ],
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_type_cost_target_not_in_constraints(test_analysis_with_data):
+    """Test that a type COST optimization raises a Fero Error if a target is not a constraint in a cost optimization"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "type": "COST",
+                "goal": "maximize",
+                "cost_function": [
+                    {"name": "Factor 1", "min": 5.0, "max": 7.0, "cost": 1000},
+                ],
+            },
+            [{"name": "Factor 2", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
+    """Test that a FeroError is raised if the constraints are not in the analysis"""
+
+    with pytest.raises(FeroError) as err:
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "goal": "maximize",
+                "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
+            },
+            [{"name": "Target 4", "min": 10, "max": 10}],
+        )

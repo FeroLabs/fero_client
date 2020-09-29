@@ -1,9 +1,11 @@
 import fero
+from fero import FeroError
 import pandas as pd
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, validate, validates_schema, ValidationError
 from typing import Union, List, Optional
 
-from fero import FeroError
+
+VALID_GOALS = ["minimize", "maximize"]
 
 
 class AnalysisSchema(Schema):
@@ -52,10 +54,43 @@ class AnalysisSchema(Schema):
     blueprint_name = fields.String(required=True)
 
 
+class FactorSchema(Schema):
+    name = fields.String(required=True)
+    min = fields.Float(required=True)
+    max = fields.Float(required=True)
+
+
+class CostSchema(FactorSchema):
+    cost = fields.Float(required=True)
+
+
+class BaseGoalSchema(Schema):
+
+    goal = fields.String(validate=validate.OneOf(VALID_GOALS))
+
+
+class StandardOptimizeGoal(BaseGoalSchema):
+
+    factor = fields.Nested(FactorSchema(), required=True)
+
+
+class CostOptimizeGoal(BaseGoalSchema):
+    type = fields.String(validate=validate.OneOf(["COST"]), required=True)
+    cost_functions = fields.Nested(CostSchema, many=True, required=True)
+
+    @validates_schema
+    def max_functions(self, data, **kwargs):
+
+        if len(data["cost_functions"]) > 3:
+            raise ValidationError(
+                {"cost_functions": ["No more than three costs functions allowed"]}
+            )
+
+
 class Prediction:
     def __init__(self, client: "fero.Fero", prediction_request_id: str):
         self._client = client
-        self._
+        self._request_id = prediction_request_id
 
 
 class Analysis:
@@ -214,11 +249,90 @@ class Analysis:
         # convert back to a data frame if need
         return pd.DataFrame(prediction_results) if is_df else prediction_results
 
+    def _get_factor_dtype(self, factor_name: str) -> Union[str, None]:
+        """Returns the dtype of a factor or None if the factor isn't found"""
+        try:
+            goal_data = next(
+                f for f in self._regression_factors if f["factor"] == factor_name
+            )
+            return goal_data["dtype"]
+        except StopIteration:
+            return None
+
+    def _verify_standard_goal(self, goal: dict):
+        """Verifies the goal config relative to the analysis"""
+        goal_name = goal["factor"]["name"]
+
+        # The goal label must be a target or factor
+        if goal_name not in self.target_names + self.factor_names:
+            raise FeroError(f'"{goal_name}" is not a valid goal')
+
+        # If this is a factor makes sure it's not a float
+        if (
+            goal_name not in self.target_names
+            and self._get_factor_dtype(goal_name) != "float"
+        ):
+            raise FeroError("Goal must be a float")
+
+    def _verify_cost_goal(self, goal: dict):
+        """Verify that a cost goal is correct"""
+        for factor in goal["cost_function"]:
+            factor_name = factor["name"]
+            factor_type = self._get_factor_dtype(factor_name)
+            if factor_type is None:
+                raise FeroError(f'"{factor_name}" is not a factor')
+            # Implicitly find missing factors
+            if factor_type != "float":
+                raise FeroError("Cost functions factors must be factors")
+
+    def _verify_constraints(self, constraints: List[dict]):
+        """verify provided constraints are in the analysis"""
+        all_names = self.factor_names + self.target_names
+        for constraint in constraints:
+            constraint_name = constraint["name"]
+            if constraint_name not in all_names:
+                raise FeroError(
+                    f'Constraint "{constraint_name}" is not in this analysis'
+                )
+
+    def _cross_verify_optimization(self, goal: dict, constraints: List[dict]):
+        """Verify the config has the correct combined targets, costs and factors"""
+        is_cost = goal.get("type", None) == "COST"
+
+        cost_factors = []
+        goal_factor = []
+        target_factor = []
+        constraint_factors = []
+        constraint_targets = []
+
+        if is_cost:
+            for factor in goal["cost_function"]:
+                cost_factors.append(factor["name"])
+        else:
+            if goal["factor"]["name"] in self.factor_names:
+                goal_factor.append(goal["goal"])
+            else:
+                target_factor.append(goal["goal"])
+
+        for constraint in constraints:
+            if constraint["name"] in self.factor_names:
+                constraint_factors.append(constraint["name"])
+            else:
+                constraint_targets.append(constraint["name"])
+
+        if len(target_factor + constraint_targets) < 1:
+            raise FeroError("No Targets specified")
+
+        if len(constraint_factors + cost_factors + goal_factor) > 3:
+            raise FeroError(
+                "A maximum of three factors can be specified in an optimization"
+            )
+
     def make_optimization(
         self,
         name: str,
         goal: dict,
-        constrains: dict,
+        constraints: List[dict],
         fixed_factors: Optional[dict] = None,
         include_confidence_intervales: bool = False,
         synchonous: bool = True,
@@ -246,10 +360,10 @@ class Analysis:
         }
 
         Constraints Config
-        {
-            "factor2": {"min": 10, "max": 10}
-            "taget1": {"min": 100, "max": 500}
-        }
+        [
+            {"name": "factor2",  "min": 10, "max": 10}
+            {"name": "target1", "min": 100, "max": 500}
+        ]
 
         :param name: Name for this optimizatino
         :type name: str
@@ -264,3 +378,22 @@ class Analysis:
         :return: [description]
         :rtype: Prediction
         """
+        cost_goal = "type" in goal
+
+        goal_schema = CostOptimizeGoal() if cost_goal else StandardOptimizeGoal()
+        goal_validation = goal_schema.validate(goal)
+        if goal_validation:
+            raise FeroError(f"Error validating goal <f{str(goal_validation)}>")
+
+        constraints_schema = FactorSchema(many=True)
+        constraints_validation = constraints_schema.validate(constraints)
+        if constraints_validation:
+            raise FeroError(f"Error validating goal <f{str(constraints_validation)}>")
+
+        if cost_goal:
+            self._verify_cost_goal(goal)
+        else:
+            self._verify_standard_goal(goal)
+
+        self._verify_constraints(constraints)
+        self._cross_verify_optimization(goal, constraints)
