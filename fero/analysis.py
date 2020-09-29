@@ -1,14 +1,25 @@
+import time
 import fero
 from fero import FeroError
 import pandas as pd
-from marshmallow import Schema, fields, validate, validates_schema, ValidationError
+from marshmallow import (
+    Schema,
+    fields,
+    validate,
+    validates_schema,
+    ValidationError,
+    EXCLUDE,
+)
 from typing import Union, List, Optional
 
 
 VALID_GOALS = ["minimize", "maximize"]
+FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
 
 
 class AnalysisSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
 
     url = fields.String(required=True)
 
@@ -91,6 +102,28 @@ class Prediction:
     def __init__(self, client: "fero.Fero", prediction_request_id: str):
         self._client = client
         self._request_id = prediction_request_id
+        self._data_cache = None
+        self._complete = False
+
+    @property
+    def _data(self):
+
+        # check if it's complete which also pulls data
+        if not self.complete:
+            return None
+
+        return self._data_cache
+
+    @property
+    def complete(self):
+        """Checks if the Prediction is complete"""
+        if not self._complete:
+            self._data_cache = self._client.get(
+                f"/api/prediction_results/{self._request_id}/"
+            )
+            self._complete = self._data_cache["state"] == "C"
+
+        return self._complete
 
 
 class Analysis:
@@ -328,13 +361,148 @@ class Analysis:
                 "A maximum of three factors can be specified in an optimization"
             )
 
+    def _verify_fixed_factors(self, fixed_factors: dict):
+        """Check that the provided fixed factors are in the analysis"""
+        all_columns = self.target_names + self.factor_names
+        for key in fixed_factors.keys():
+            if key not in all_columns:
+                raise FeroError(f'"{key}" is not a valid factor')
+
+    def _get_basis_values(self):
+        """Gets median fixed values from presentation data"""
+        reg_data = next(
+            d
+            for d in self._presentation_data["data"]
+            if d["id"] == "regression_simulator"
+        )
+        # yuck massive ugly json
+        base_values = {f["factor"]: f["median"] for f in reg_data["content"]["factors"]}
+
+        target_values = {
+            t["name"]: t["default"]["mid"][0] for t in reg_data["content"]["targets"]
+        }
+
+        base_values.update(target_values)
+        return base_values
+
+    def _build_optimize_request(
+        self, name, goal, constraints, fixed_factors, include_confidence_intervals
+    ) -> dict:
+
+        is_cost = goal.get("type", None) == "COST"
+        ci_value = "include" if include_confidence_intervals else "exclude"
+        opt_request = {
+            "name": name,
+            "description": "",
+            "prediction_type": "O",
+            # These appear to just be, uhm, here
+        }
+
+        input_data = {
+            "kind": "OptimizationRequest",
+            "version": 1,
+            "objectives": [
+                {
+                    "factor": FERO_COST_FUNCTION if is_cost else goal["factor"]["name"],
+                    "goal": goal["goal"],
+                }
+            ],
+            "basisSpecifiedColumns": [],
+            "linearFunctionDefinitions": {},
+        }
+        basis_values = self._get_basis_values()
+        basis_values.update(fixed_factors)
+        input_data["basisValues"] = basis_values
+
+        factor_bounds = [
+            {
+                "factor": c["name"],
+                "lowerBound": c["min"],
+                "upperBound": c["max"],
+                "dtype": self._get_factor_dtype(c["name"]),
+            }
+            for c in constraints
+            if c["name"] in self.factor_names
+        ]
+
+        target_bounds = [
+            {
+                "factor": c["name"],
+                "lowerBound": c["min"],
+                "upperBound": c["max"],
+                "dtype": "float",
+                "confidenceInterval": ci_value,
+            }
+            for c in constraints
+            if c["name"] in self.target_names
+        ]
+
+        bounds = factor_bounds + target_bounds
+
+        if is_cost:
+            cost_lower_bound = 0
+            cost_upper_bound = 0
+
+            for factor in goal["cost_function"]:
+                cost_lower_bound += factor["min"] * factor["cost"]
+                cost_upper_bound += factor["max"] * factor["cost"]
+
+            bounds.append(
+                {
+                    "factor": FERO_COST_FUNCTION,
+                    "lowerBound": cost_lower_bound,
+                    "upperBound": cost_upper_bound,
+                    "dtype": "function",
+                }
+            )
+
+            input_data["linearFunctionDefinitions"] = {
+                FERO_COST_FUNCTION: {
+                    c["name"]: c["cost"] for c in goal["cost_function"]
+                }
+            }
+
+        else:
+            dtype = self._get_factor_dtype(goal["factor"]["name"])
+            goal_bound = {
+                "factor": goal["factor"]["name"],
+                "lowerBound": goal["factor"]["min"],
+                "upperBound": goal["factor"]["max"],
+                "dtype": dtype if dtype is not None else "float",
+            }
+
+            if dtype is None:
+                goal_bound["confidenceInterval"] = ci_value
+
+            bounds.append(goal_bound)
+
+        input_data["bounds"] = bounds
+        opt_request["input_data"] = input_data
+
+        return opt_request
+
+    def _request_prediction(
+        self, prediction_request: dict, synchonous: bool
+    ) -> Prediction:
+
+        response_data = self._client.post(
+            f"/api/analyses/{str(self.uuid)}/predictions/", prediction_request
+        )
+        prediction = Prediction(self._client, response_data["latest_results"])
+
+        # If synchronous block until the prediction is complete
+        while synchonous and not prediction.complete:
+            time.sleep(0.5)
+
+        return prediction
+
     def make_optimization(
         self,
         name: str,
         goal: dict,
         constraints: List[dict],
         fixed_factors: Optional[dict] = None,
-        include_confidence_intervales: bool = False,
+        include_confidence_intervals: bool = False,
         synchonous: bool = True,
     ) -> Prediction:
         """Perform an optimization using the most recent model for the analysis.
@@ -379,6 +547,8 @@ class Analysis:
         :rtype: Prediction
         """
         cost_goal = "type" in goal
+        if fixed_factors is None:
+            fixed_factors = {}
 
         goal_schema = CostOptimizeGoal() if cost_goal else StandardOptimizeGoal()
         goal_validation = goal_schema.validate(goal)
@@ -397,3 +567,10 @@ class Analysis:
 
         self._verify_constraints(constraints)
         self._cross_verify_optimization(goal, constraints)
+        self._verify_fixed_factors(fixed_factors)
+
+        optimize_request = self._build_optimize_request(
+            name, goal, constraints, fixed_factors, include_confidence_intervals
+        )
+        print(optimize_request)
+        return self._request_prediction(optimize_request, synchonous)
