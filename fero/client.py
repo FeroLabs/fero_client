@@ -16,6 +16,7 @@ class Fero:
         username: Optional[str] = None,
         password: Optional[str] = None,
         fero_token: Optional[str] = None,
+        verify: bool = True,
     ):
         """Creates a base client for communicating with the Fero API.
 
@@ -35,14 +36,17 @@ class Fero:
         :type username: Optional[str], optional
         :param password: password to use to login, defaults to None
         :type password: Optional[str], optional
-        :param fero_token: , defaults to None
+        :param fero_token: JWT token to use, defaults to None
         :type fero_token: Optional[str], optional
+        :param verify: whether requests should verify ssl, defaults to True
+        :type verify: bool
         :raises FeroError: Raised if a token cannot be obtained
         """
         self._fero_token = None
         self._fero_conf_content = None
         self._password = None
         self._username = None
+        self._verify = verify
 
         self._hostname = hostname.rstrip("/")
 
@@ -171,6 +175,7 @@ class Fero:
                 f"{self._hostname}{url}",
                 json=data,
                 headers={"Authorization": f"JWT {self._fero_token}"},
+                verify=self._verify,
             )
         )
 
@@ -182,5 +187,6 @@ class Fero:
                 f"{self._hostname}{url}",
                 params=params,
                 headers={"Authorization": f"JWT {self._fero_token}"},
+                verify=self._verify,
             )
         )

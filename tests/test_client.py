@@ -119,6 +119,7 @@ def test_fero_client_get_wrapper(patch_requests_get):
         "http://test.com/some/url/",
         params={"n": "42"},
         headers={"Authorization": "JWT fakeToken"},
+        verify=True,
     )
 
 
@@ -131,6 +132,7 @@ def test_fero_client_post_wrapper(patch_requests_post):
         "http://test.com/some/url/",
         json={"n": "42"},
         headers={"Authorization": "JWT fakeToken"},
+        verify=True,
     )
 
 

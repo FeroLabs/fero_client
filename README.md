@@ -43,6 +43,12 @@ FERO_USERNAME=fero_user
 FERO_PASSWORD=shouldBeAGoodPassword
 ```
 
+If you're using the `Fero` client to access an on premise installation, both the hostname for the local Fero site can be provided with `hostname="https://local.fero-site"` and an internal CA via `verify="path/to/ca-bundle`. Verify is passed directly to requests so can be completely disabled by passing `False`
+
+```python
+local_client = Fero(hostname="https://fero.self.signed", verify=False)
+```
+
 ## Finding An Analysis
 
 An `Analysis` object is the how Fero exposes ML models to the API. The Fero client provides two different methods to find an `Analysis`. The first is `Fero.get_analysis` which takes a single UUID string and attempts to lookup the analysis by its unique id. The second method is `Fero.search_analyses` which will return a list of available `Analysis` objects. If no keyword arguments are provided, it will return all analyses you have available on the Fero website. Optionally, `name` can be provided to filter to only analyses matching that name.
