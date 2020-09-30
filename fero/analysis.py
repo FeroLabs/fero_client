@@ -125,6 +125,21 @@ class Prediction:
 
         return self._complete
 
+    def get_results(self, format="dataframe") -> Union[pd.DataFrame, List[dict]]:
+
+        if not self.complete:
+            raise FeroError("Prediction is not complete.")
+        data = self._data["results_data"]["data"]["values"]
+        if format == "records":
+            return [
+                {col: val for col, val in zip(data["columns"], row)}
+                for row in data["data"]
+            ]
+        else:
+            return pd.DataFrame(
+                data["data"], columns=data["columns"], index=data["index"]
+            )
+
 
 class Analysis:
 
