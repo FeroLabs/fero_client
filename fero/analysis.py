@@ -129,7 +129,7 @@ class Prediction:
 
         if not self.complete:
             raise FeroError("Prediction is not complete.")
-        data = self._data["results_data"]["data"]["values"]
+        data = self._data["result_data"]["data"]["values"]
         if format == "records":
             return [
                 {col: val for col, val in zip(data["columns"], row)}
@@ -461,6 +461,16 @@ class Analysis:
             for factor in goal["cost_function"]:
                 cost_lower_bound += factor["min"] * factor["cost"]
                 cost_upper_bound += factor["max"] * factor["cost"]
+
+            bounds += [
+                {
+                    "factor": c["name"],
+                    "lowerBound": c["min"],
+                    "upperBound": c["max"],
+                    "dtype": "float",
+                }
+                for c in goal["cost_function"]
+            ]
 
             bounds.append(
                 {

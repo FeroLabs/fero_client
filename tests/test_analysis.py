@@ -179,7 +179,7 @@ def prediction_results_response_started():
 
 @pytest.fixture
 def prediction_results_response_completed(prediction_results_response_started):
-    prediction_results_response_started["results_data"] = {
+    prediction_results_response_started["result_data"] = {
         "status": "SUCCESS",
         "version": 1,
         "data": {
@@ -646,6 +646,18 @@ def test_analysis_make_optimization_cost(
             "upperBound": 700.0,
             "dtype": "float",
             "confidenceInterval": "exclude",
+        },
+        {
+            "factor": "Factor 2",
+            "lowerBound": 70.0,
+            "upperBound": 100.0,
+            "dtype": "float",
+        },
+        {
+            "factor": "Factor 3",
+            "lowerBound": 100.0,
+            "upperBound": 150.0,
+            "dtype": "float",
         },
         {
             "factor": "FERO_COST_FUNCTION",
