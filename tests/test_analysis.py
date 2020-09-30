@@ -438,18 +438,6 @@ def test_analysis_target_names(test_analysis_with_data):
     assert test_analysis_with_data.target_names == ["Target 1", "Target 2"]
 
 
-def test_analysis_make_optimization_min_input(test_analysis_with_data):
-    """Test that make_optimzation makes expected requests and returns a prediction"""
-    pred = test_analysis_with_data.make_optimization(
-        "test",
-        {
-            "goal": "maximize",
-            "factor": {"name": "Target 1", "min": 5.0, "max": 7.0},
-        },
-        [{"name": "Factor 2", "min": 10, "max": 10}],
-    )
-
-
 def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
     """Test that a FeroError is raised if the goal doesn't include columns in the analysis"""
 
@@ -610,20 +598,171 @@ def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
         )
 
 
-def test_analysis_make_optimization_simple_case(test_analysis_with_data):
+def test_analysis_make_optimization_simple_case(
+    test_analysis_with_data, expected_optimization_config
+):
     """Test that make_optimzation makes expected requests and returns a prediction"""
 
     pred = test_analysis_with_data.make_optimization(
-        "test",
+        "test optimization",
         {
             "goal": "maximize",
-            "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
+            "factor": {"name": "Factor 2", "min": 70.0, "max": 100.0},
         },
         [
-            {"name": "Factor 2", "min": 10, "max": 10},
+            {"name": "Factor 1", "min": 60.0, "max": 200.0},
+            {"name": "Target 1", "min": 600.0, "max": 700.0},
+        ],
+        include_confidence_intervals=False,
+    )
+
+    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    test_analysis_with_data._client.post.assert_called_with(
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
+        expected_optimization_config,
+    )
+    test_analysis_with_data._client.get.assert_called()
+
+
+def test_analysis_make_optimization_cost(
+    test_analysis_with_data, expected_optimization_config
+):
+    """Test that make_optimzation makes expected requests and prediction for a cost optimization"""
+
+    expected_optimization_config["input_data"]["objectives"] = [
+        {"factor": "FERO_COST_FUNCTION", "goal": "maximize"}
+    ]
+
+    expected_optimization_config["input_data"]["bounds"] = [
+        {
+            "factor": "Factor 1",
+            "lowerBound": 60.0,
+            "upperBound": 200.0,
+            "dtype": "float",
+        },
+        {
+            "factor": "Target 1",
+            "lowerBound": 600.0,
+            "upperBound": 700.0,
+            "dtype": "float",
+            "confidenceInterval": "exclude",
+        },
+        {
+            "factor": "FERO_COST_FUNCTION",
+            "lowerBound": 2700.00,
+            "upperBound": 4000.0,
+            "dtype": "function",
+        },
+    ]
+
+    expected_optimization_config["input_data"]["linearFunctionDefinitions"] = {
+        "FERO_COST_FUNCTION": {
+            "Factor 2": 10.0,
+            "Factor 3": 20.0,
+        }
+    }
+
+    pred = test_analysis_with_data.make_optimization(
+        "test optimization",
+        {
+            "type": "COST",
+            "goal": "maximize",
+            "cost_function": [
+                {"name": "Factor 2", "min": 70.0, "max": 100.0, "cost": 10.0},
+                {"name": "Factor 3", "min": 100.0, "max": 150.0, "cost": 20.0},
+            ],
+        },
+        [
+            {"name": "Factor 1", "min": 60.0, "max": 200.0},
+            {"name": "Target 1", "min": 600.0, "max": 700.0},
+        ],
+        include_confidence_intervals=False,
+    )
+
+    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    test_analysis_with_data._client.post.assert_called_with(
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
+        expected_optimization_config,
+    )
+
+
+def test_analysis_make_optimization_simple_case_basis_override(
+    test_analysis_with_data, expected_optimization_config
+):
+    """Test that make_optimzation makes expected requests and returns a prediction with basis_value overrides"""
+
+    expected_optimization_config["input_data"]["basisValues"]["Factor 1"] = 150.0
+    pred = test_analysis_with_data.make_optimization(
+        "test optimization",
+        {
+            "goal": "maximize",
+            "factor": {"name": "Factor 2", "min": 70.0, "max": 100.0},
+        },
+        [
+            {"name": "Factor 1", "min": 60.0, "max": 200.0},
+            {"name": "Target 1", "min": 600.0, "max": 700.0},
+        ],
+        fixed_factors={"Factor 1": 150.00},
+        include_confidence_intervals=False,
+    )
+
+    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    test_analysis_with_data._client.post.assert_called_with(
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
+        expected_optimization_config,
+    )
+
+
+def test_analysis_make_optimization_include_confidence(
+    test_analysis_with_data, expected_optimization_config
+):
+    """Test that make_optimzation makes expected requests and returns a prediction with confidence intervals requested"""
+
+    expected_optimization_config["input_data"]["bounds"][1][
+        "confidenceInterval"
+    ] = "include"
+    pred = test_analysis_with_data.make_optimization(
+        "test optimization",
+        {
+            "goal": "maximize",
+            "factor": {"name": "Factor 2", "min": 70.0, "max": 100.0},
+        },
+        [
+            {"name": "Factor 1", "min": 60.0, "max": 200.0},
             {"name": "Target 1", "min": 600.0, "max": 700.0},
         ],
         include_confidence_intervals=True,
     )
 
     assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    test_analysis_with_data._client.post.assert_called_with(
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
+        expected_optimization_config,
+    )
+
+
+def test_analysis_make_optimization_synchronous_false(
+    test_analysis_with_data, expected_optimization_config
+):
+    """Test that make_optimzation makes expected requests and returns a prediction with synchronous false"""
+
+    pred = test_analysis_with_data.make_optimization(
+        "test optimization",
+        {
+            "goal": "maximize",
+            "factor": {"name": "Factor 2", "min": 70.0, "max": 100.0},
+        },
+        [
+            {"name": "Factor 1", "min": 60.0, "max": 200.0},
+            {"name": "Target 1", "min": 600.0, "max": 700.0},
+        ],
+        include_confidence_intervals=False,
+        synchronous=False,
+    )
+
+    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    test_analysis_with_data._client.post.assert_called_with(
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
+        expected_optimization_config,
+    )
+    test_analysis_with_data._client.get.assert_not_called()

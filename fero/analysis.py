@@ -87,14 +87,14 @@ class StandardOptimizeGoal(BaseGoalSchema):
 
 class CostOptimizeGoal(BaseGoalSchema):
     type = fields.String(validate=validate.OneOf(["COST"]), required=True)
-    cost_functions = fields.Nested(CostSchema, many=True, required=True)
+    cost_function = fields.Nested(CostSchema, many=True, required=True)
 
     @validates_schema
     def max_functions(self, data, **kwargs):
 
-        if len(data["cost_functions"]) > 3:
+        if len(data["cost_function"]) > 3:
             raise ValidationError(
-                {"cost_functions": ["No more than three costs functions allowed"]}
+                {"cost_function": ["No more than three costs functions allowed"]}
             )
 
 
