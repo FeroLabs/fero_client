@@ -7,7 +7,15 @@ from pandas.testing import assert_frame_equal
 
 
 @pytest.fixture
-def test_analysis(analysis_data, patched_fero_client):
+def test_analysis(
+    analysis_data,
+    patched_fero_client,
+    prediction_request_response,
+    prediction_results_response_completed,
+):
+    patched_fero_client.post.return_value = prediction_request_response
+    patched_fero_client.get.return_value = prediction_results_response_completed
+
     return Analysis(patched_fero_client, analysis_data)
 
 
@@ -84,6 +92,131 @@ def test_analysis_with_data(test_analysis):
     }
 
     return test_analysis
+
+
+@pytest.fixture
+def expected_optimization_config():
+
+    return {
+        "name": "test optimization",
+        "description": "",
+        "prediction_type": "O",
+        "input_data": {
+            "kind": "OptimizationRequest",
+            "version": 1,
+            "objectives": [{"factor": "Factor 2", "goal": "maximize"}],
+            "basisSpecifiedColumns": [],
+            "linearFunctionDefinitions": {},
+            "basisValues": {
+                "Factor 1": 148.02718539320762,
+                "Factor 2": 148.02718539320762,
+                "Factor 3": 148.02718539320762,
+                "Target 1": 767.84871403268,
+                "Target 2": 767.84871403268,
+            },
+            "bounds": [
+                {
+                    "factor": "Factor 1",
+                    "lowerBound": 60.0,
+                    "upperBound": 200.0,
+                    "dtype": "float",
+                },
+                {
+                    "factor": "Target 1",
+                    "lowerBound": 600.0,
+                    "upperBound": 700.0,
+                    "dtype": "float",
+                    "confidenceInterval": "exclude",
+                },
+                {
+                    "factor": "Factor 2",
+                    "lowerBound": 70.0,
+                    "upperBound": 100.0,
+                    "dtype": "float",
+                },
+            ],
+        },
+    }
+
+
+@pytest.fixture
+def prediction_request_response(expected_optimization_config):
+
+    response = {
+        "uuid": "01bff6f2-8fb3-469e-813a-9b6cfd93e338",
+        "created_by": {"id": 2, "username": "fero"},
+        "created": "2020-09-30T12:35:44.897461Z",
+        "modified": "2020-09-30T12:35:46.111257Z",
+        "name": "g",
+        "description": "",
+        "prediction_type": "O",
+        "progress_url": "/api/prediction_results/f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7/progress/",
+        "latest_results": "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7",
+        "result_data": {},
+        "ready": False,
+        "prediction_tag": None,
+        "url": "/api/analyses/21621466-b198-45be-89f9-3a5eb2c7cf48/predictions/01bff6f2-8fb3-469e-813a-9b6cfd93e338/",
+        "latest_results_url": "/api/prediction_results/f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7/",
+    }
+
+    response["input_data"] = expected_optimization_config["input_data"]
+
+    return response
+
+
+@pytest.fixture
+def prediction_results_response_started():
+
+    return {
+        "request": "c9448486-0c59-487f-9c9c-345d98103fcb",
+        "revision_model": "e751f70e-aeb4-46ee-b860-bfc37f3767a7",
+        "result_data": {},
+        "state": "P",
+        "prediction_type": "O",
+    }
+
+
+@pytest.fixture
+def prediction_results_response_completed(prediction_results_response_started):
+    prediction_results_response_started["results_data"] = (
+        {
+            "status": "SUCCESS",
+            "version": 1,
+            "data": {
+                "values": {
+                    "index": [0],
+                    "columns": [
+                        "Factor 1",
+                        "Factor 2",
+                        "Factor 3",
+                        "Target 1 (5%)",
+                        "Target 1 (Mean)",
+                        "Target 1 (95%)",
+                        "Target 2 (5%)",
+                        "Target 2 (Mean)",
+                        "Target 2 (95%)",
+                    ],
+                    "data": [
+                        [
+                            148.02718539320762,
+                            90.234,
+                            148.02718539320762,
+                            666.66666,
+                            677.1234,
+                            699.1234,
+                            700.4567,
+                            677.1234,
+                            699.1234,
+                        ],
+                    ],
+                }
+            },
+            "kind": "OptimizationResponse",
+        },
+    )
+    prediction_results_response_started["state"] = "C"
+
+    return prediction_results_response_started
 
 
 @pytest.fixture
@@ -475,3 +608,22 @@ def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
             },
             [{"name": "Target 4", "min": 10, "max": 10}],
         )
+
+
+def test_analysis_make_optimization_simple_case(test_analysis_with_data):
+    """Test that make_optimzation makes expected requests and returns a prediction"""
+
+    pred = test_analysis_with_data.make_optimization(
+        "test",
+        {
+            "goal": "maximize",
+            "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
+        },
+        [
+            {"name": "Factor 2", "min": 10, "max": 10},
+            {"name": "Target 1", "min": 600.0, "max": 700.0},
+        ],
+        include_confidence_intervals=True,
+    )
+
+    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"

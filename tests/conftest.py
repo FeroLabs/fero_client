@@ -36,4 +36,5 @@ def analysis_data():
 @pytest.fixture
 def patched_fero_client():
     with mock.patch.object(Fero, "post"):
-        yield Fero(fero_token="fakeToken")
+        with mock.patch.object(Fero, "get"):
+            yield Fero(fero_token="fakeToken")

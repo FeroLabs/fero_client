@@ -101,7 +101,7 @@ class CostOptimizeGoal(BaseGoalSchema):
 class Prediction:
     def __init__(self, client: "fero.Fero", prediction_request_id: str):
         self._client = client
-        self._request_id = prediction_request_id
+        self.request_id = prediction_request_id
         self._data_cache = None
         self._complete = False
 
@@ -119,7 +119,7 @@ class Prediction:
         """Checks if the Prediction is complete"""
         if not self._complete:
             self._data_cache = self._client.get(
-                f"/api/prediction_results/{self._request_id}/"
+                f"/api/prediction_results/{self.request_id}/"
             )
             self._complete = self._data_cache["state"] == "C"
 
@@ -503,7 +503,7 @@ class Analysis:
         constraints: List[dict],
         fixed_factors: Optional[dict] = None,
         include_confidence_intervals: bool = False,
-        synchonous: bool = True,
+        synchronous: bool = True,
     ) -> Prediction:
         """Perform an optimization using the most recent model for the analysis.
 
@@ -541,8 +541,8 @@ class Analysis:
         :type constrains: dict
         :param descrfixed_factors: [description], defaults to None
         :type descrfixed_factors: dict, optional
-        :param synchonous: [description], defaults to True
-        :type synchonous: bool, optional
+        :param synchronous: [description], defaults to True
+        :type synchronous: bool, optional
         :return: [description]
         :rtype: Prediction
         """
@@ -573,4 +573,4 @@ class Analysis:
             name, goal, constraints, fixed_factors, include_confidence_intervals
         )
         print(optimize_request)
-        return self._request_prediction(optimize_request, synchonous)
+        return self._request_prediction(optimize_request, synchronous)
