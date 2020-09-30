@@ -65,6 +65,7 @@ def test_fero_client_username_pass_provided(patch_requests_post):
     patch_requests_post.assert_called_with(
         "https://app.ferolabs.com/api/token/auth/",
         json={"username": "fero", "password": "pass"},
+        verify=True,
     )
     assert client._fero_token == "fakeToken"
 
@@ -101,6 +102,7 @@ def test_fero_client_user_pass_file(patch_requests_post, mock_conf_path):
     patch_requests_post.assert_called_with(
         "https://app.ferolabs.com/api/token/auth/",
         json={"username": "fero", "password": "pass"},
+        verify=True,
     )
 
 

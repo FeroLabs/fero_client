@@ -97,6 +97,7 @@ class Fero:
         req = requests.post(
             f"{self._hostname}/api/token/auth/",
             json={"username": self._username, "password": self._password},
+            verify=self._verify,
         )
 
         return req.json().get("token", None)
