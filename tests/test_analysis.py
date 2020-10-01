@@ -1,4 +1,3 @@
-from build.lib.fero.client import Fero
 from fero import FeroError
 import pytest
 from unittest import mock
@@ -441,7 +440,7 @@ def test_analysis_target_names(test_analysis_with_data):
 def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
     """Test that a FeroError is raised if the goal doesn't include columns in the analysis"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -455,7 +454,7 @@ def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
 def test_make_optimization_bad_goals(test_analysis_with_data):
     """Test that a FeroError is raised if the goal field isn't valid"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -469,7 +468,7 @@ def test_make_optimization_bad_goals(test_analysis_with_data):
 def test_make_optimization_wrong_format_goal_factors(test_analysis_with_data):
     """Test that a FeroError is raised if the factor is malformed"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -483,7 +482,7 @@ def test_make_optimization_wrong_format_goal_factors(test_analysis_with_data):
 def test_make_optimization_type_not_cost(test_analysis_with_data):
     """Test that a FeroError is raised if the goal config is a type, but not cost"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -500,7 +499,7 @@ def test_make_optimization_type_not_cost(test_analysis_with_data):
 def test_make_optimization_type_cost_no_cost_function(test_analysis_with_data):
     """Test that a FeroError is raised if the type is cost but there is no cost_function key"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -515,7 +514,7 @@ def test_make_optimization_type_cost_no_cost_function(test_analysis_with_data):
 def test_make_optimization_type_cost_malformed_cost_function(test_analysis_with_data):
     """Test that a type COST optimization raises a fero error if the cost functions are malformed"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -532,7 +531,7 @@ def test_make_optimization_type_cost_malformed_cost_function(test_analysis_with_
 def test_make_optimization_type_cost_more_than_three(test_analysis_with_data):
     """Test that a type COST optimization raises a fero error if more than 3 cost functions are specified"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -552,7 +551,7 @@ def test_make_optimization_type_cost_more_than_three(test_analysis_with_data):
 def test_make_optimization_type_cost_target_in_function(test_analysis_with_data):
     """Test that a type COST optimization raises a Fero Error if a target is in the cost function"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -570,7 +569,7 @@ def test_make_optimization_type_cost_target_in_function(test_analysis_with_data)
 def test_make_optimization_type_cost_target_not_in_constraints(test_analysis_with_data):
     """Test that a type COST optimization raises a Fero Error if a target is not a constraint in a cost optimization"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -587,7 +586,7 @@ def test_make_optimization_type_cost_target_not_in_constraints(test_analysis_wit
 def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
     """Test that a FeroError is raised if the constraints are not in the analysis"""
 
-    with pytest.raises(FeroError) as err:
+    with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
             {
@@ -787,7 +786,7 @@ def test_prediction_complete_false(
     patched_fero_client.get.return_value = prediction_results_response_started
 
     pred = Prediction(patched_fero_client, "c9448486-0c59-487f-9c9c-345d98103fcb")
-    assert pred.complete == False
+    assert pred.complete is False
 
 
 def test_prediction_complete_true(
@@ -797,7 +796,7 @@ def test_prediction_complete_true(
     patched_fero_client.get.return_value = prediction_results_response_completed
 
     pred = Prediction(patched_fero_client, "c9448486-0c59-487f-9c9c-345d98103fcb")
-    assert pred.complete == True
+    assert pred.complete is True
 
 
 def test_prediction_get_result_not_complete(
