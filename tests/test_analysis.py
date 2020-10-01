@@ -437,6 +437,25 @@ def test_analysis_target_names(test_analysis_with_data):
     assert test_analysis_with_data.target_names == ["Target 1", "Target 2"]
 
 
+def test_make_optimization_fault_blueprint(test_analysis_with_data):
+    """Test that a FeroError is raised if this is a fault blueprint"""
+
+    test_analysis_with_data._data["blueprint_name"] = "fault"
+
+    with pytest.raises(FeroError):
+        test_analysis_with_data.make_optimization(
+            "test optimization",
+            {
+                "goal": "maximize",
+                "factor": {"name": "Factor 2", "min": 70.0, "max": 100.0},
+            },
+            [
+                {"name": "Factor 1", "min": 60.0, "max": 200.0},
+                {"name": "Target 1", "min": 600.0, "max": 700.0},
+            ],
+        )
+
+
 def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
     """Test that a FeroError is raised if the goal doesn't include columns in the analysis"""
 

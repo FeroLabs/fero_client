@@ -607,6 +607,10 @@ class Analysis:
         :return: The results of the optimization
         :rtype: Prediction
         """
+
+        if self.blueprint_name == "fault":
+            raise FeroError("Fault analysis optimization are not supported")
+
         cost_goal = "type" in goal
         if fixed_factors is None:
             fixed_factors = {}
