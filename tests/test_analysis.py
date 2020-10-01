@@ -615,7 +615,7 @@ def test_analysis_make_optimization_simple_case(
         include_confidence_intervals=False,
     )
 
-    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
         expected_optimization_config,
@@ -690,7 +690,7 @@ def test_analysis_make_optimization_cost(
         include_confidence_intervals=False,
     )
 
-    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
         expected_optimization_config,
@@ -717,7 +717,7 @@ def test_analysis_make_optimization_simple_case_basis_override(
         include_confidence_intervals=False,
     )
 
-    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
         expected_optimization_config,
@@ -745,7 +745,7 @@ def test_analysis_make_optimization_include_confidence(
         include_confidence_intervals=True,
     )
 
-    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
         expected_optimization_config,
@@ -771,7 +771,7 @@ def test_analysis_make_optimization_synchronous_false(
         synchronous=False,
     )
 
-    assert pred.request_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
         expected_optimization_config,

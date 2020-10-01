@@ -99,11 +99,24 @@ class CostOptimizeGoal(BaseGoalSchema):
 
 
 class Prediction:
-    def __init__(self, client: "fero.Fero", prediction_request_id: str):
+    """Represents the results of a prediction submitted to Fero.
+
+    Predictions are run asynchrounously by Fero and data will only be available if the `complete` property
+    is true.  Attempting to access the data for the prediction before it is complete will result in a `FeroError`
+    being raised.
+    """
+
+    def __init__(self, client: "fero.Fero", prediction_result_id: str):
         self._client = client
-        self.request_id = prediction_request_id
+        self.result_id = prediction_result_id
         self._data_cache = None
         self._complete = False
+        self._result_id = None
+
+    def __repr__(self):
+        return f"<Prediction request_id={self.result_id}>"
+
+    __str__ = __repr__
 
     @property
     def _data(self):
@@ -119,14 +132,24 @@ class Prediction:
         """Checks if the Prediction is complete"""
         if not self._complete:
             self._data_cache = self._client.get(
-                f"/api/prediction_results/{self.request_id}/"
+                f"/api/prediction_results/{self.result_id}/"
             )
             self._complete = self._data_cache["state"] == "C"
 
         return self._complete
 
     def get_results(self, format="dataframe") -> Union[pd.DataFrame, List[dict]]:
+        """Serializes the prediction results of the prediction, by default this will be a pandas
 
+        DataFrame, but specifying `format="record"` will instead return a list of dictionaries where each
+        key specifies a factor and the value is the prediction.
+
+        :param format: The format to return the result as, defaults to "dataframe"
+        :type format: str, optional
+        :raises FeroError: Raised if the prediction is not yet complete
+        :return: The results of the prediction
+        :rtype: Union[pd.DataFrame, List[dict]]
+        """
         if not self.complete:
             raise FeroError("Prediction is not complete.")
         data = self._data["result_data"]["data"]["values"]
@@ -142,6 +165,12 @@ class Prediction:
 
 
 class Analysis:
+    """An object for interacting with a specific Analysis on Fero.
+
+    The Analysis is the primary way to access a model associated with a data set.
+    Once an analysis is created it can be used to perform various actions such as making a prediction
+    based on provided data or optimizing certain values based on the Fero model of the data.
+    """
 
     _presentation_data_cache: Union[dict, None] = None
     _reg_factors: Union[List[dict], None] = None
@@ -178,6 +207,7 @@ class Analysis:
 
     @property
     def factor_names(self):
+        """Names of the factors associated with the Analysis"""
         if self._factor_names is None:
             self._parse_regression_data()
 
@@ -185,6 +215,7 @@ class Analysis:
 
     @property
     def target_names(self):
+        """Names of the targets of the Analysis"""
         if self._target_names is None:
             self._parse_regression_data()
 
@@ -210,6 +241,7 @@ class Analysis:
         return col_name
 
     def _parse_regression_data(self):
+        """Get and parse the regression simulator object from presentation data"""
         reg_data = next(
             d
             for d in self._presentation_data["data"]
@@ -403,6 +435,7 @@ class Analysis:
     def _build_optimize_request(
         self, name, goal, constraints, fixed_factors, include_confidence_intervals
     ) -> dict:
+        """Formats the content for an optimization request"""
 
         is_cost = goal.get("type", None) == "COST"
         ci_value = "include" if include_confidence_intervals else "exclude"
@@ -410,7 +443,6 @@ class Analysis:
             "name": name,
             "description": "",
             "prediction_type": "O",
-            # These appear to just be, uhm, here
         }
 
         input_data = {
@@ -422,7 +454,7 @@ class Analysis:
                     "goal": goal["goal"],
                 }
             ],
-            "basisSpecifiedColumns": [],
+            "basisSpecifiedColumns": [],  # These appear to just be, uhm, here
             "linearFunctionDefinitions": {},
         }
         basis_values = self._get_basis_values()
@@ -509,6 +541,7 @@ class Analysis:
     def _request_prediction(
         self, prediction_request: dict, synchonous: bool
     ) -> Prediction:
+        """Make the prediction request and poll unitl complete if this request is synchronous"""
 
         response_data = self._client.post(
             f"/api/analyses/{str(self.uuid)}/predictions/", prediction_request
@@ -536,12 +569,15 @@ class Analysis:
         will instead return a prediction object referencing the optimization being made.  This prediction will not contain
         results until the `complete` property is true.
 
-        Standard Goal Config
+        The expected config input looks as follows:
+
+        Example configuration for a standard (without cost) optimization
         {
             "goal": "maximize",
             "factor": {"name": "factor1", "min": 5, "max": 10}
         }
 
+        Example configuration for a cost optimization
         Cost Goal Config
         {
             "type": "COST",
@@ -552,7 +588,7 @@ class Analysis:
             ]
         }
 
-        Constraints Config
+        The constraints configuration is a list of factors and their constraints
         [
             {"name": "factor2",  "min": 10, "max": 10}
             {"name": "target1", "min": 100, "max": 500}
@@ -560,15 +596,15 @@ class Analysis:
 
         :param name: Name for this optimizatino
         :type name: str
-        :param goal: [description]
+        :param goal: A dictionary describing the goal of the optimization
         :type goal: dict
-        :param constrains: A dictionary
+        :param constrains: A dictionary describing the constraints of the optimization
         :type constrains: dict
-        :param descrfixed_factors: [description], defaults to None
-        :type descrfixed_factors: dict, optional
-        :param synchronous: [description], defaults to True
+        :param fixed_factors: Values of factors to stay fixed if not provided the mean values are used, defaults to None
+        :type fixed_factors: dict, optional
+        :param synchronous: Whether the optimization should return only after being complete.  This can take a bit, defaults to True
         :type synchronous: bool, optional
-        :return: [description]
+        :return: The results of the optimization
         :rtype: Prediction
         """
         cost_goal = "type" in goal
