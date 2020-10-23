@@ -67,8 +67,8 @@ class AnalysisSchema(Schema):
 
 class FactorSchema(Schema):
     name = fields.String(required=True)
-    min = fields.Float(required=True)
-    max = fields.Float(required=True)
+    min = fields.Float(required=False)
+    max = fields.Float(required=False)
 
 
 class CostSchema(FactorSchema):
@@ -348,11 +348,10 @@ class Analysis:
             raise FeroError(f'"{goal_name}" is not a valid goal')
 
         # If this is a factor makes sure it's not a float
-        if (
-            goal_name not in self.target_names
-            and self._get_factor_dtype(goal_name) != "float"
-        ):
-            raise FeroError("Goal must be a float")
+        if goal_name not in self.target_names and self._get_factor_dtype(
+            goal_name
+        ) not in ["float", "integer"]:
+            raise FeroError("Goal must be a float or integer")
 
     def _verify_cost_goal(self, goal: dict):
         """Verify that a cost goal is correct"""
@@ -362,8 +361,8 @@ class Analysis:
             if factor_type is None:
                 raise FeroError(f'"{factor_name}" is not a factor')
             # Implicitly find missing factors
-            if factor_type != "float":
-                raise FeroError("Cost functions factors must be factors")
+            if factor_type not in ["float", "integer"]:
+                raise FeroError("Cost functions factors must be floats or integers")
 
     def _verify_constraints(self, constraints: List[dict]):
         """verify provided constraints are in the analysis"""
@@ -461,22 +460,26 @@ class Analysis:
         basis_values.update(fixed_factors)
         input_data["basisValues"] = basis_values
 
-        factor_bounds = [
-            {
-                "factor": c["name"],
-                "lowerBound": c["min"],
-                "upperBound": c["max"],
-                "dtype": self._get_factor_dtype(c["name"]),
-            }
-            for c in constraints
-            if c["name"] in self.factor_names
-        ]
+        factor_bounds = []
+        for c in constraints:
+            if c["name"] in self.factor_names:
+                dtype = self._get_factor_dtype(c["name"])
+                factor_bounds.append(
+                    {
+                        "factor": c["name"],
+                        "lowerBound": c.get("min", None),
+                        "upperBound": c.get("max", None),
+                        "dtype": dtype,
+                    }
+                    if dtype != "category"
+                    else {"factor": c["name"], "dtype": dtype}
+                )
 
         target_bounds = [
             {
                 "factor": c["name"],
-                "lowerBound": c["min"],
-                "upperBound": c["max"],
+                "lowerBound": c.get("min", None),
+                "upperBound": c.get("max", None),
                 "dtype": "float",
                 "confidenceInterval": ci_value,
             }
@@ -499,7 +502,7 @@ class Analysis:
                     "factor": c["name"],
                     "lowerBound": c["min"],
                     "upperBound": c["max"],
-                    "dtype": "float",
+                    "dtype": self._get_factor_dtype(c["name"]),
                 }
                 for c in goal["cost_function"]
             ]
@@ -637,5 +640,4 @@ class Analysis:
         optimize_request = self._build_optimize_request(
             name, goal, constraints, fixed_factors, include_confidence_intervals
         )
-        print(optimize_request)
         return self._request_prediction(optimize_request, synchronous)

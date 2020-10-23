@@ -61,6 +61,14 @@ def test_analysis_with_data(test_analysis):
                             "default": 210.17636699824746,
                             "dtype": "float",
                         },
+                        {
+                            "factor": "Category 0",
+                            "median": "4",
+                            "importances": [0.0004481622416081965],
+                            "default": "0",
+                            "dtype": "category",
+                            "categories": ["0", "1", "2", "3", "4", "5", "6", "7", "8"],
+                        },
                     ],
                     "targets": [
                         {
@@ -113,6 +121,7 @@ def expected_optimization_config():
                 "Factor 3": 148.02718539320762,
                 "Target 1": 767.84871403268,
                 "Target 2": 767.84871403268,
+                "Category 0": "4",
             },
             "bounds": [
                 {
@@ -429,7 +438,12 @@ def test_make_prediction_prediction_failure(
 
 def test_analysis_factor_names(test_analysis_with_data):
     """Test that factor names are parsed correctly"""
-    assert test_analysis_with_data.factor_names == ["Factor 1", "Factor 2", "Factor 3"]
+    assert test_analysis_with_data.factor_names == [
+        "Factor 1",
+        "Factor 2",
+        "Factor 3",
+        "Category 0",
+    ]
 
 
 def test_analysis_target_names(test_analysis_with_data):
@@ -616,6 +630,36 @@ def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
         )
 
 
+def test_make_optimization_categorical_goal(test_analysis_with_data):
+    """Test that a FeroError is raised if the goal is category"""
+    with pytest.raises(FeroError):
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "goal": "maximize",
+                "factor": {"name": "Category 0", "min": 5.0, "max": 7.0},
+            },
+            [{"name": "Target 4", "min": 10, "max": 10}],
+        )
+
+
+def test_make_optimization_type_cost_categorical_function(test_analysis_with_data):
+    """Test that a type COST optimization raises a Fero Error if a category is a cost funciton"""
+
+    with pytest.raises(FeroError):
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "type": "COST",
+                "goal": "maximize",
+                "cost_function": [
+                    {"name": "Category 0", "min": 5.0, "max": 7.0, "cost": 1000},
+                ],
+            },
+            [{"name": "Target 1", "min": 10, "max": 10}],
+        )
+
+
 def test_analysis_make_optimization_simple_case(
     test_analysis_with_data, expected_optimization_config
 ):
@@ -634,6 +678,36 @@ def test_analysis_make_optimization_simple_case(
         include_confidence_intervals=False,
     )
 
+    assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
+    test_analysis_with_data._client.post.assert_called_with(
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
+        expected_optimization_config,
+    )
+    test_analysis_with_data._client.get.assert_called()
+
+
+def test_analysis_make_optimization_simple_case_categorical(
+    test_analysis_with_data, expected_optimization_config
+):
+    """Test that make_optimzation makes expected requests with a categorical value and returns a prediction"""
+
+    pred = test_analysis_with_data.make_optimization(
+        "test optimization",
+        {
+            "goal": "maximize",
+            "factor": {"name": "Factor 2", "min": 70.0, "max": 100.0},
+        },
+        [
+            {"name": "Category 0"},
+            {"name": "Target 1", "min": 600.0, "max": 700.0},
+        ],
+        include_confidence_intervals=False,
+    )
+    expected_optimization_config["input_data"]["bounds"][0] = {
+        "factor": "Category 0",
+        "dtype": "category",
+    }
+    print(expected_optimization_config)
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
