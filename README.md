@@ -71,15 +71,17 @@ quality_only =  fero.search_analyses(name="quality")
 
 ## Using an Analysis
 
-Along with associated properties such as `name` and `uuid`, an `Analysis` provides two methods for interacting with Fero.
+Along with associated properties such as `name` and `uuid`, an `Analysis` provides a variety of methods for interacting with Fero.
 
-The first is `Analysis.has_trained_model` which is simply a boolean check that a model has finished training. This will be false if the Analysis is still training or there was an error training and it has not been revised.
+The first thing to call when working with an analysis is `Analysis.has_trained_model` which is simply a boolean check that a model has finished training. This will be false if the Analysis is still training or there was an error training and it has not been revised. Once you have a model trained you then begin working with the analysis to leverage the model.
 
-The second method is `Analysis.make_prediction` which, as its name implies, makes a prediction using the latest model associated with the analysis. This function can take either a pandas data frame with columns matching the expected inputs(factors) for the model or a list of dictionaries with each dictionary containing a key/value pairs for each factor. A prediction will be made for each row in the data frame or each dictionary in the list.
+### Making a simple prediction
+
+The `Analysis.make_prediction` method, as its name implies, makes a prediction using the latest model associated with the analysis. This function can take either a pandas data frame with columns matching the expected inputs(factors) for the model or a list of dictionaries with each dictionary containing a key/value pairs for each factor. A prediction will be made for each row in the data frame or each dictionary in the list.
 
 The return value will either be a data frame with each target value predicted by Fero added to each row or keys for each target added to each dictionary depending on the initial input type. These values will have the suffixes `_low`, `_mid`, `_high` added to each target name to indicate the range of the prediction.
 
-### Example
+#### Example
 
 ```python
 raw_data = [{"value": 5, "value2": 2}]
@@ -99,4 +101,59 @@ print(analysis.make_prediction(raw_data))
 '''
 [{"value": 5, "value2": 2, "target_high": 100, "target_low": 75, "target_mid": 88}]
 '''
+```
+
+### Optimize
+
+A more advanced usage of an `Analysis` is to create an optimization which will make a prediction that satistifies a specified `goal` within the context of `constraints` on other factors or targets. For example, if you wanted to the minimum value of `value` while keeping `target` within a set constraints you would provide the following goal and constraint configurations.
+
+```python
+
+goal = {
+  "goal": "minimize",
+  "factor": {"name": "value", "min": 50.0, "max": 100.0}
+}
+
+constraints = [{"name": "target", "min": 100.0, "max": 200}]
+
+opt = analysis.make("example_optimization", goal, constraints)
+```
+
+By default, Fero will use the median values of fixed factors while computing the optimization. These can be overridden with custom values by passing a dictionary of `factor`:`value` pairs as the `fixed_factors` argument to the optimization function.
+
+Fero also supports the idea of a cost optimization which will weight different factors by a cost multiplier to find the best combination of inputs. For example, to find the minimum cost between `value` and `value2` while meeting the expected values of `target` you could do the following
+
+```python
+
+goal = {
+  "goal": "minimize",
+  "type": "cost
+  "cost_function": [{"name": "value", "min": 50.0, "max": 100.0, "cost": 5.0}, {"name": "value2", "min": 70.0, "max": 80.0.0, "cost": 9.0}]
+}
+
+constraints = [{"name": "target", "min": 100.0, "max": 200}]
+
+opt = analysis.make("example_cost_optimization", goal, constraints)
+```
+
+In both cases, a `Prediction` object is return which will provide the data. By default, the result will be a `DataFrame` but it can also be configured to be a list of dictionaries if you're trying to avoid pandas.
+
+#### Example
+
+```python
+
+goal = {
+  "goal": "minimize",
+  "factor": {"name": "value", "min": 50.0, "max": 100.0}
+}
+
+constraints = [{"name": "target", "min": 100.0, "max": 200}]
+
+opt = analysis.make("example_optimization", goal, constraints)
+
+print(opt.get_results())
+"""
+      value	  value2	 target (5%)  target (Mean)	  target (95%)
+0	  60	     40	        100	         150             175
+"""
 ```
