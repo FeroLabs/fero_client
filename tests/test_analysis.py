@@ -484,6 +484,20 @@ def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
         )
 
 
+def test_make_optimization_no_constraints(test_analysis_with_data):
+    """Test that a FeroError is raised if constraints are specified"""
+
+    with pytest.raises(FeroError):
+        test_analysis_with_data.make_optimization(
+            "test",
+            {
+                "goal": "maximize",
+                "factor": {"name": "Target 1", "min": 5.0, "max": 7.0},
+            },
+            [],
+        )
+
+
 def test_make_optimization_bad_goals(test_analysis_with_data):
     """Test that a FeroError is raised if the goal field isn't valid"""
 
@@ -492,7 +506,7 @@ def test_make_optimization_bad_goals(test_analysis_with_data):
             "test",
             {
                 "goal": "circumambulate",
-                "" "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
+                "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
             },
             [{"name": "Target 1", "min": 10, "max": 10}],
         )

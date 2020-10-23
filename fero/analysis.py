@@ -384,6 +384,8 @@ class Analysis:
         constraint_factors = []
         constraint_targets = []
 
+        if len(constraints) < 1:
+            raise FeroError("A constraint must be specified")
         if is_cost:
             for factor in goal["cost_function"]:
                 cost_factors.append(factor["name"])
