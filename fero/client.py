@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, Union, List
 from . import FeroError
 from .analysis import Analysis
+from .data import DataSource
 
 FERO_CONF_FILE = ".fero"
 
@@ -168,11 +169,24 @@ class Fero:
         analysis_data = self.get(f"/api/analyses/{uuid}/")
         return Analysis(self, analysis_data)
 
+    def new_datasource(self):
+        return DataSource(self)
+
     def post(self, url: str, data: dict) -> Union[dict, bytes]:
         """Do a POST request with headers set."""
+        kwargs = dict(
+            headers={"Authorization": f"JWT {self._fero_token}"}, verify=self._verify
+        )
+
+        if data is not None:
+            data["json"] = data
+        return self._handle_response(requests.post(f"{self._hostname}{url}", **kwargs))
+
+    def patch(self, url: str, data: dict) -> Union[dict, bytes]:
+        """Do a PATCH request with headers set."""
 
         return self._handle_response(
-            requests.post(
+            requests.patch(
                 f"{self._hostname}{url}",
                 json=data,
                 headers={"Authorization": f"JWT {self._fero_token}"},
@@ -187,6 +201,15 @@ class Fero:
             requests.get(
                 f"{self._hostname}{url}",
                 params=params,
+                headers={"Authorization": f"JWT {self._fero_token}"},
+                verify=self._verify,
+            )
+        )
+
+    def delete(self, url: str) -> str:
+        return self._handle_response(
+            requests.delete(
+                f"{self._hostname}{url}",
                 headers={"Authorization": f"JWT {self._fero_token}"},
                 verify=self._verify,
             )
