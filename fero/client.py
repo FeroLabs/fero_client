@@ -179,7 +179,7 @@ class Fero:
         )
 
         if data is not None:
-            data["json"] = data
+            kwargs["json"] = data
         return self._handle_response(requests.post(f"{self._hostname}{url}", **kwargs))
 
     def patch(self, url: str, data: dict) -> Union[dict, bytes]:
