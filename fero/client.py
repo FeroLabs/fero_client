@@ -6,6 +6,7 @@ from typing import Optional, Union, List
 from . import FeroError
 from .analysis import Analysis
 from .data import DataSource
+from .user import UserSchema
 
 FERO_CONF_FILE = ".fero"
 
@@ -214,3 +215,6 @@ class Fero:
                 verify=self._verify,
             )
         )
+
+    def get_profile(self) -> dict:
+        return UserSchema().load(self.get("/api/me/"))
