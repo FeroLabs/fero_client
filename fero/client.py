@@ -69,6 +69,8 @@ class Fero:
         if self._fero_token is None:
             raise FeroError("Could not login into Fero")
 
+    _user = None
+
     @property
     def fero_conf_contents(self) -> str:
         """Cache the file content"""
@@ -216,5 +218,7 @@ class Fero:
             )
         )
 
-    def get_profile(self) -> dict:
-        return UserSchema().load(self.get("/api/me/"))
+    def get_user(self) -> dict:
+        if self._user is None:
+            self._user = UserSchema().load(self.get("/api/me/"))
+        return self._user

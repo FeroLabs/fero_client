@@ -15,27 +15,6 @@ from marshmallow import (
 )
 
 
-class DataSourceSchema(Schema):
-    # TODO fill this in as it exists
-
-    uuid = fields.UUID(required=True)
-
-
-class UploadFileStatuses(enum.Enum):
-    INITIALIZED = "I"
-    PARSING = "P"
-    ANALYZING = "A"
-    CREATING = "C"
-    ERROR = "E"
-    DONE = "D"
-    DELETING = "R"  # R for removing
-    USER_CONFIRMATION = "U"
-
-    @classmethod
-    def choices(cls) -> List[str]:
-        return [v.value for v in cls]
-
-
 class DataSourceColumnSchema(Schema):
 
     name = fields.String(required=True)
@@ -53,6 +32,51 @@ class ParsedSchemaSchema(Schema):
     columns = fields.List(fields.Nested(DataSourceColumnSchema), required=True)
     version = fields.Constant("2")
     kind = fields.Constant("ParsedSchema")
+
+
+class DataSourceStatuses(enum.Enum):
+    INITIALIZED = "I"
+    PROCESSING = "P"
+    READY = "R"
+    ERROR = "E"
+
+    @classmethod
+    def choices(cls) -> List[str]:
+        return [v.value for v in cls]
+
+
+class DataSourceSchema(Schema):
+
+    uuid = fields.UUID(required=True)
+
+    name = fields.String(required=True)
+
+    latest_errors = fields.String(load_only=True, allow_none=True)
+    created = fields.DateTime(required=True, load_only=True)
+    modified = fields.DateTime(required=True, load_only=True)
+
+    status = fields.String(
+        required=True, validate=validate.OneOf(DataSourceStatuses.choices())
+    )
+
+    schema = fields.Nested(ParsedSchemaSchema, allow_none=True)
+
+    down_sampled = fields.Bool(default=False)
+
+
+class UploadFileStatuses(enum.Enum):
+    INITIALIZED = "I"
+    PARSING = "P"
+    ANALYZING = "A"
+    CREATING = "C"
+    ERROR = "E"
+    DONE = "D"
+    DELETING = "R"  # R for removing
+    USER_CONFIRMATION = "U"
+
+    @classmethod
+    def choices(cls) -> List[str]:
+        return [v.value for v in cls]
 
 
 class UploadedFilesSchema(Schema):
@@ -233,3 +257,25 @@ class DataSource:
         self._uploaded_files = UploadedFilesSchema().load(res)
 
         return self._uploaded_files
+
+    def create_datasource(
+        self, data_source_name: str, access_name: Optional[str] = None
+    ):
+        if self._uploaded_files is None:
+            raise FeroError("No files specified to process")
+        user = self._client.get_user()
+        if access_name is None:
+            access_name = user["profile"]["default_upload_ac"]["name"]
+
+        if access_name not in [a["name"] for a in user["profile"]["write_accesses"]]:
+            raise FeroError("Invalid Access requested")
+
+        post_data = {
+            "name": data_source_name,
+            "requested_access": access_name,
+            "uploaded_files_uuid": str(self._uploaded_files["uuid"]),
+        }
+        self._data_source = DataSourceSchema().load(
+            self._client.post("/api/v2/data_source/", post_data)
+        )
+        return self._data_source
