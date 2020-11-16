@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional, Union, List
 from . import FeroError
 from .analysis import Analysis
+from .asset import Asset
 
 FERO_CONF_FILE = ".fero"
 
@@ -167,6 +168,31 @@ class Fero:
         """
         analysis_data = self.get(f"/api/analyses/{uuid}/")
         return Analysis(self, analysis_data)
+
+    def search_assets(self, name: str = None) -> List[Asset]:
+        """Searches available assets by name and returns a list of matching objects.
+
+        :param name: Name of asset to filter by.
+        :type name: str, optional
+        :return: a list of assets
+        :rtype: List[Asset]
+        """
+        params = {}
+        if name is not None:
+            params["name"] = name
+        asset_data = self.get("/api/assets/", params=params)
+        return [Asset(self, a) for a in asset_data["results"]]
+
+    def get_asset(self, uuid: str) -> Asset:
+        """Gets a Fero Asset using the UUID.
+
+        :param uuid: UUID of the asset
+        :type uuid: str
+        :return: An Asset object
+        :rtype: Asset
+        """
+        asset_data = self.get(f"/api/assets/{uuid}/")
+        return Asset(self, asset_data)
 
     def post(self, url: str, data: dict) -> Union[dict, bytes]:
         """Do a POST request with headers set."""

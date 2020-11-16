@@ -1,4 +1,5 @@
 from fero.analysis import Analysis
+from fero.asset import Asset
 import pytest
 from unittest import mock
 from pathlib import Path
@@ -200,4 +201,29 @@ def test_search_analyses(patch_fero_get, analysis_data):
     assert analyses[0].name == analysis_data["name"]
     patch_fero_get.assert_called_with(
         "/api/analyses/", params={"name": analysis_data["name"]}
+    )
+
+
+def test_get_asset_success(patch_fero_get, asset_data):
+    """Test that an asset is returned by get_asset"""
+
+    patch_fero_get.return_value = asset_data
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    asset = client.get_asset("some-uuid")
+    assert isinstance(asset, Asset)
+    assert asset.name == asset_data["name"]
+    patch_fero_get.assert_called_with("/api/assets/some-uuid/")
+
+
+def test_search_assets(patch_fero_get, asset_data):
+    """Test that a list of assets is returned by search_assets"""
+
+    patch_fero_get.return_value = {"results": [asset_data]}
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    assets = client.search_assets(asset_data["name"])
+    assert len(assets) == 1
+    assert isinstance(assets[0], Asset)
+    assert assets[0].name == asset_data["name"]
+    patch_fero_get.assert_called_with(
+        "/api/assets/", params={"name": asset_data["name"]}
     )
