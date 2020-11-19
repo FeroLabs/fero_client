@@ -130,6 +130,7 @@ class Fero:
     @staticmethod
     def _handle_response(response: requests.Response) -> Union[dict, bytes]:
         """Check and decode a request response and raise a relevant error if needed"""
+        print(response.content)
         if 200 <= response.status_code < 300:
             if response.headers.get("content-type") == "application/json":
                 return response.json()

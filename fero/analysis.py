@@ -291,6 +291,69 @@ class Analysis:
         self, prediction_data: Union[pd.DataFrame, List[dict]]
     ) -> Union[pd.DataFrame, List[dict]]:
         """Makes a prediction from the provided data using the most recent trained model for the analysis.
+        This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
+        bulk prediction, use `make_prediction_legacy`.
+
+        `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
+        to make a prediction of what the targets of the Analysis will be.  The results are returned as either a data frame
+        or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
+        Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
+
+        :param prediction_data:  Either a data frame or list of dictionaries specifying values to be used in the model.
+        :type prediction_data: Union[pd.DataFrame, List[dict]]
+        :raises FeroError: Raised if no model has been trained or the server returns an error message
+        :return: A data frame or list of dictionaries depending on how the function was called
+        :rtype: Union[pd.DataFrame, List[dict]]
+        """
+        if not self.has_trained_model:
+            raise FeroError("No model has been trained on this analysis.")
+
+        # is_df = isinstance(prediction_data, pd.DataFrame)
+        #
+        # # convert to dictionary for serialization
+        # if is_df:
+        #     prediction_data = [dict(row) for _, row in prediction_data.iterrows()]
+
+        prediction_request = {"dataframe": prediction_data.to_dict(orient="split")}
+        prediction_result = self._client.post(
+            f"/api/revision_models/{str(self.latest_completed_model)}/predict_bulk/",
+            prediction_request
+        )
+        if prediction_result.get("status") != "SUCCESS":
+            raise FeroError(
+                prediction_result.get(
+                    "message", "The prediction failed for unknown reasons"
+                )
+            )
+        output = {}
+        for target_label, results in prediction_result["data"].items():
+            output
+        # prediction_results = []
+        # # make a prediction for each row
+        # for row in prediction_data:
+        #
+        #     prediction_request = {"values": row}
+        #     prediction_result = self._client.post(
+        #         f"/api/revision_models/{str(self.latest_completed_model)}/predict/",
+        #         prediction_request,
+        #     )
+        #     if prediction_result.get("status") != "SUCCESS":
+        #         raise FeroError(
+        #             prediction_result.get(
+        #                 "message", "The prediction failed for unknown reasons."
+        #             )
+        #         )
+        #
+        #     prediction_results.append(self._flatten_result(prediction_result, row))
+
+        # convert back to a data frame if need
+        # return pd.DataFrame(prediction_results) if is_df else prediction_results
+
+    def make_prediction_legacy(
+        self, prediction_data: Union[pd.DataFrame, List[dict]]
+    ) -> Union[pd.DataFrame, List[dict]]:
+        """Makes a prediction from the provided data using the most recent trained model for the analysis. This works
+        for analyses that do not support faster, bulk predictions.
 
         `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
         to make a prediction of what the targets of the Analysis will be.  The results are returned as either a data frame
