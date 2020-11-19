@@ -15,7 +15,8 @@ from typing import Union, List, Optional
 
 VALID_GOALS = ["minimize", "maximize"]
 FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
-
+V1_RESULT_SUFFIXES = ["low", "mid", "high"]
+V2_RESULT_SUFFIXES = ["low90", "low50", "mid", "high50", "high90"]
 
 class AnalysisSchema(Schema):
     class Meta:
@@ -256,15 +257,16 @@ class Analysis:
         """Flattens nested results returned by the api into a single dict and combines it with the provided data"""
         flat_result = {}
         cols = prediction_row.keys()
+
         for target, values in result["data"].items():
-            low_col = self._make_col_name(f"{target}_low", cols)
-            mid_col = self._make_col_name(f"{target}_mid", cols)
-            high_col = self._make_col_name(f"{target}_high", cols)
+            is_v2 = "low90" in values["value"] and "low50" in values["value"]
+            suffix_list = V2_RESULT_SUFFIXES if is_v2 else V1_RESULT_SUFFIXES
             flat_result.update(
                 {
-                    low_col: values["value"]["low"][0],
-                    mid_col: values["value"]["mid"][0],
-                    high_col: values["value"]["high"][0],
+                    self._make_col_name(f"{target}_{suffix}", cols): values["value"][
+                        suffix
+                    ][0]
+                    for suffix in suffix_list
                 }
             )
         flat_result.update(prediction_row)
