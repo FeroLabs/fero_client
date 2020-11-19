@@ -18,6 +18,7 @@ FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
 V1_RESULT_SUFFIXES = ["low", "mid", "high"]
 V2_RESULT_SUFFIXES = ["low90", "low50", "mid", "high50", "high90"]
 
+
 class AnalysisSchema(Schema):
     class Meta:
         unknown = EXCLUDE

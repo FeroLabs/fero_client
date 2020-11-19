@@ -256,9 +256,25 @@ def prediction_result_data_v2():
     return {
         "status": "SUCCESS",
         "data": {
-            "Target 1": {"value": {"high90": [5.0], "high50": [4.0], "low90": [1.0], "low50": [2.0], "mid": [3.0]}},
-            "target2": {"value": {"high90": [1.0], "high50": [1.0], "low90": [1.0], "low50": [1.0], "mid": [1.0]}},
-        }
+            "Target 1": {
+                "value": {
+                    "high90": [5.0],
+                    "high50": [4.0],
+                    "low90": [1.0],
+                    "low50": [2.0],
+                    "mid": [3.0],
+                }
+            },
+            "target2": {
+                "value": {
+                    "high90": [1.0],
+                    "high50": [1.0],
+                    "low90": [1.0],
+                    "low50": [1.0],
+                    "mid": [1.0],
+                }
+            },
+        },
     }
 
 
