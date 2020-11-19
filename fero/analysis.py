@@ -289,7 +289,8 @@ class Analysis:
 
     def make_prediction(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
-    ) -> Union[pd.DataFrame, List[dict]]:
+    ) -> pd.DataFrame:
+        # TODO EDIT WRITEUP HERE
         """Makes a prediction from the provided data using the most recent trained model for the analysis.
         This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
         bulk prediction, use `make_prediction_legacy`.
@@ -308,16 +309,17 @@ class Analysis:
         if not self.has_trained_model:
             raise FeroError("No model has been trained on this analysis.")
 
-        # is_df = isinstance(prediction_data, pd.DataFrame)
-        #
-        # # convert to dictionary for serialization
-        # if is_df:
-        #     prediction_data = [dict(row) for _, row in prediction_data.iterrows()]
+        is_dict_list = isinstance(prediction_data, List)
+
+        # convert to dictionary for serialization
+        prediction_df = (
+            pd.DataFrame(prediction_data) if is_dict_list else prediction_data
+        )
 
         prediction_request = {"dataframe": prediction_data.to_dict(orient="split")}
         prediction_result = self._client.post(
             f"/api/revision_models/{str(self.latest_completed_model)}/predict_bulk/",
-            prediction_request
+            prediction_request,
         )
         if prediction_result.get("status") != "SUCCESS":
             raise FeroError(
@@ -325,29 +327,16 @@ class Analysis:
                     "message", "The prediction failed for unknown reasons"
                 )
             )
-        output = {}
+        output = prediction_df.copy()
+        cols = output.columns
         for target_label, results in prediction_result["data"].items():
-            output
-        # prediction_results = []
-        # # make a prediction for each row
-        # for row in prediction_data:
-        #
-        #     prediction_request = {"values": row}
-        #     prediction_result = self._client.post(
-        #         f"/api/revision_models/{str(self.latest_completed_model)}/predict/",
-        #         prediction_request,
-        #     )
-        #     if prediction_result.get("status") != "SUCCESS":
-        #         raise FeroError(
-        #             prediction_result.get(
-        #                 "message", "The prediction failed for unknown reasons."
-        #             )
-        #         )
-        #
-        #     prediction_results.append(self._flatten_result(prediction_result, row))
+            suffixes = ["low", "mid", "high"]
+            for suffix in suffixes:
+                output[
+                    self._make_col_name(f"{target_label}_{suffix}", cols)
+                ] = pd.Series(results["value"][suffix], index=output.index)
 
-        # convert back to a data frame if need
-        # return pd.DataFrame(prediction_results) if is_df else prediction_results
+        return output.T.to_dict().values() if is_dict_list else output
 
     def make_prediction_legacy(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
