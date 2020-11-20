@@ -310,7 +310,6 @@ class Analysis:
 
         is_dict_list = isinstance(prediction_data, List)
 
-        # convert to dictionary for serialization
         prediction_df = (
             pd.DataFrame(prediction_data) if is_dict_list else prediction_data
         )
@@ -329,22 +328,26 @@ class Analysis:
         output = prediction_df.copy()
         cols = output.columns
         for target_label, results in prediction_result["data"].items():
-            suffixes = ["low", "mid", "high"]
-            for suffix in suffixes:
+            suffix_list = (
+                V2_RESULT_SUFFIXES if prediction_result["version"] == 2 else V1_RESULT_SUFFIXES
+            )
+            for suffix in suffix_list:
                 output[
                     self._make_col_name(f"{target_label}_{suffix}", cols)
                 ] = pd.Series(results["value"][suffix], index=output.index)
 
         return output.T.to_dict().values() if is_dict_list else output
 
-    def make_prediction_legacy(
+    def make_prediction_serial(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
     ) -> Union[pd.DataFrame, List[dict]]:
-        """Makes a prediction from the provided data using the most recent trained model for the analysis. This works
-        for analyses that do not support faster, bulk predictions.
+        """Makes a prediction from the provided data using the most recent trained model for the analysis. This
+        computes predictions one row at a time. Therefore, while it is slower than `make_prediction`, this method
+        works for analyses that do not support bulk predictions and can be called with inputs that are too large to
+        be transferred in a single call.
 
         `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
-        to make a prediction of what the targets of the Analysis will be.  The results are returned as either a data frame
+        to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
         or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
         Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
 
