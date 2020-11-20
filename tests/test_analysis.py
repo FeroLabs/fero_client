@@ -244,6 +244,7 @@ def prediction_dataframe(prediction_data):
 def prediction_result_data_v1():
     return {
         "status": "SUCCESS",
+        "version": 1,
         "data": {
             "Target 1": {"value": {"high": [5.0], "low": [1.0], "mid": [3.0]}},
             "target2": {"value": {"high": [1.0], "low": [1.0], "mid": [1.0]}},
@@ -255,6 +256,7 @@ def prediction_result_data_v1():
 def prediction_result_data_v2():
     return {
         "status": "SUCCESS",
+        "version": 2,
         "data": {
             "Target 1": {
                 "value": {

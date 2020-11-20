@@ -260,8 +260,7 @@ class Analysis:
         cols = prediction_row.keys()
 
         for target, values in result["data"].items():
-            is_v2 = "low90" in values["value"] and "low50" in values["value"]
-            suffix_list = V2_RESULT_SUFFIXES if is_v2 else V1_RESULT_SUFFIXES
+            suffix_list = V2_RESULT_SUFFIXES if result["version"] == 2 else V1_RESULT_SUFFIXES
             flat_result.update(
                 {
                     self._make_col_name(f"{target}_{suffix}", cols): values["value"][
