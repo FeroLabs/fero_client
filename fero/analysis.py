@@ -290,13 +290,12 @@ class Analysis:
     def make_prediction(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
     ) -> pd.DataFrame:
-        # TODO EDIT WRITEUP HERE
         """Makes a prediction from the provided data using the most recent trained model for the analysis.
         This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
         bulk prediction, use `make_prediction_legacy`.
 
         `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
-        to make a prediction of what the targets of the Analysis will be.  The results are returned as either a data frame
+        to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
         or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
         Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
 

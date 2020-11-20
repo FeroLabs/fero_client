@@ -922,7 +922,6 @@ def test_analysis_make_optimization_simple_case_categorical(
         "factor": "Category 0",
         "dtype": "category",
     }
-    print(expected_optimization_config)
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
