@@ -241,7 +241,7 @@ def prediction_dataframe(prediction_data):
 
 
 @pytest.fixture
-def prediction_result_data_v1():
+def prediction_result_data_single_v1():
     return {
         "status": "SUCCESS",
         "version": 1,
@@ -253,7 +253,23 @@ def prediction_result_data_v1():
 
 
 @pytest.fixture
-def prediction_result_data_v2():
+def prediction_result_data_bulk_v1():
+    return {
+        "status": "SUCCESS",
+        "version": 1,
+        "data": {
+            "Target 1": {
+                "value": {"high": [5.0, 5.1], "low": [1.0, 1.1], "mid": [3.0, 3.1]}
+            },
+            "target2": {
+                "value": {"high": [1.0, 1.1], "low": [1.0, 1.1], "mid": [1.0, 1.1]}
+            },
+        },
+    }
+
+
+@pytest.fixture
+def prediction_result_data_single_v2():
     return {
         "status": "SUCCESS",
         "version": 2,
@@ -274,6 +290,34 @@ def prediction_result_data_v2():
                     "low90": [1.0],
                     "low50": [1.0],
                     "mid": [1.0],
+                }
+            },
+        },
+    }
+
+
+@pytest.fixture
+def prediction_result_data_bulk_v2():
+    return {
+        "status": "SUCCESS",
+        "version": 2,
+        "data": {
+            "Target 1": {
+                "value": {
+                    "high90": [5.0, 5.1],
+                    "high50": [4.0, 4.1],
+                    "low90": [1.0, 1.1],
+                    "low50": [2.0, 2.1],
+                    "mid": [3.0, 3.1],
+                }
+            },
+            "target2": {
+                "value": {
+                    "high90": [1.0, 1.1],
+                    "high50": [1.0, 1.1],
+                    "low90": [1.0, 1.1],
+                    "low50": [1.0, 1.1],
+                    "mid": [1.0, 1.1],
                 }
             },
         },
@@ -304,12 +348,58 @@ def test_has_trained_model_false(analysis_data, patched_fero_client):
 
 
 def test_make_prediction_dictionaries_v1(
-    analysis_data, patched_fero_client, prediction_data, prediction_result_data_v1
+    analysis_data, patched_fero_client, prediction_data, prediction_result_data_bulk_v1
 ):
     """Test that make prediction returns expected response with a dictionary of predictions"""
-    patched_fero_client.post.return_value = prediction_result_data_v1
+    patched_fero_client.post.return_value = prediction_result_data_bulk_v1
     analysis = Analysis(patched_fero_client, analysis_data)
     results = analysis.make_prediction(prediction_data)
+
+    patched_fero_client.post.assert_has_calls(
+        [
+            mock.call(
+                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict_bulk/",
+                {"dataframe": pd.DataFrame(prediction_data).to_dict(orient="split")},
+            )
+        ]
+    )
+    assert isinstance(results, list)
+    assert results == [
+        {
+            "value1": 1.0,
+            "value2": 2,
+            "value3": 3.3,
+            "Target 1_high": 5.0,
+            "Target 1_low": 1.0,
+            "Target 1_mid": 3.0,
+            "target2_high": 1.0,
+            "target2_low": 1.0,
+            "target2_mid": 1.0,
+        },
+        {
+            "value1": 4.0,
+            "value2": 5,
+            "value3": 6.3,
+            "Target 1_high": 5.1,
+            "Target 1_low": 1.1,
+            "Target 1_mid": 3.1,
+            "target2_high": 1.1,
+            "target2_low": 1.1,
+            "target2_mid": 1.1,
+        },
+    ]
+
+
+def test_make_prediction_serial_dictionaries_v1(
+    analysis_data,
+    patched_fero_client,
+    prediction_data,
+    prediction_result_data_single_v1,
+):
+    """Test that make prediction returns expected response with a dictionary of predictions"""
+    patched_fero_client.post.return_value = prediction_result_data_single_v1
+    analysis = Analysis(patched_fero_client, analysis_data)
+    results = analysis.make_prediction_serial(prediction_data)
 
     patched_fero_client.post.assert_has_calls(
         [
@@ -351,12 +441,66 @@ def test_make_prediction_dictionaries_v1(
 
 
 def test_make_prediction_dictionaries_v2(
-    analysis_data, patched_fero_client, prediction_data, prediction_result_data_v2
+    analysis_data, patched_fero_client, prediction_data, prediction_result_data_bulk_v2
 ):
     """Test that make prediction returns expected response with a dictionary of predictions"""
-    patched_fero_client.post.return_value = prediction_result_data_v2
+    patched_fero_client.post.return_value = prediction_result_data_bulk_v2
     analysis = Analysis(patched_fero_client, analysis_data)
     results = analysis.make_prediction(prediction_data)
+
+    patched_fero_client.post.assert_has_calls(
+        [
+            mock.call(
+                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict_bulk/",
+                {"dataframe": pd.DataFrame(prediction_data).to_dict(orient="split")},
+            ),
+        ]
+    )
+    assert isinstance(results, list)
+    assert results == [
+        {
+            "value1": 1.0,
+            "value2": 2,
+            "value3": 3.3,
+            "Target 1_high90": 5.0,
+            "Target 1_high50": 4.0,
+            "Target 1_low90": 1.0,
+            "Target 1_low50": 2.0,
+            "Target 1_mid": 3.0,
+            "target2_high90": 1.0,
+            "target2_high50": 1.0,
+            "target2_low90": 1.0,
+            "target2_low50": 1.0,
+            "target2_mid": 1.0,
+        },
+        {
+            "value1": 4.0,
+            "value2": 5,
+            "value3": 6.3,
+            "Target 1_high90": 5.1,
+            "Target 1_high50": 4.1,
+            "Target 1_low90": 1.1,
+            "Target 1_low50": 2.1,
+            "Target 1_mid": 3.1,
+            "target2_high90": 1.1,
+            "target2_high50": 1.1,
+            "target2_low90": 1.1,
+            "target2_low50": 1.1,
+            "target2_mid": 1.1,
+        },
+    ]
+
+
+def test_make_prediction_serial_dictionaries_v2(
+    analysis_data,
+    patched_fero_client,
+    prediction_data,
+    prediction_result_data_single_v2,
+):
+    """Test that make prediction returns expected response with a dictionary of predictions"""
+    patched_fero_client.post.return_value = prediction_result_data_single_v2
+    analysis = Analysis(patched_fero_client, analysis_data)
+    results = analysis.make_prediction_serial(prediction_data)
 
     patched_fero_client.post.assert_has_calls(
         [
@@ -405,17 +549,71 @@ def test_make_prediction_dictionaries_v2(
     ]
 
 
-def test_make_prediction_datafram_v1(
+def test_make_prediction_dataframe_v1(
     analysis_data,
     patched_fero_client,
     prediction_dataframe,
-    prediction_result_data_v1,
+    prediction_result_data_bulk_v1,
     prediction_data,
 ):
     """Test that make prediction returns expected response with a dataframe"""
-    patched_fero_client.post.return_value = prediction_result_data_v1
+    patched_fero_client.post.return_value = prediction_result_data_bulk_v1
     analysis = Analysis(patched_fero_client, analysis_data)
     results = analysis.make_prediction(prediction_dataframe)
+    patched_fero_client.post.assert_has_calls(
+        [
+            mock.call(
+                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict_bulk/",
+                {"dataframe": pd.DataFrame(prediction_data).to_dict(orient="split")},
+            ),
+        ]
+    )
+
+    assert isinstance(results, pd.DataFrame)
+    expected = pd.DataFrame(
+        [
+            {
+                "value1": 1.0,
+                "value2": 2,
+                "value3": 3.3,
+                "Target 1_high": 5.0,
+                "Target 1_low": 1.0,
+                "Target 1_mid": 3.0,
+                "target2_high": 1.0,
+                "target2_low": 1.0,
+                "target2_mid": 1.0,
+            },
+            {
+                "value1": 4.0,
+                "value2": 5,
+                "value3": 6.3,
+                "Target 1_high": 5.1,
+                "Target 1_low": 1.1,
+                "Target 1_mid": 3.1,
+                "target2_high": 1.1,
+                "target2_low": 1.1,
+                "target2_mid": 1.1,
+            },
+        ]
+    )
+    assert_frame_equal(
+        results,
+        expected,
+        check_like=True,
+    )
+
+
+def test_make_prediction_serial_dataframe_v1(
+    analysis_data,
+    patched_fero_client,
+    prediction_dataframe,
+    prediction_result_data_single_v1,
+    prediction_data,
+):
+    """Test that make prediction returns expected response with a dataframe"""
+    patched_fero_client.post.return_value = prediction_result_data_single_v1
+    analysis = Analysis(patched_fero_client, analysis_data)
+    results = analysis.make_prediction_serial(prediction_dataframe)
     patched_fero_client.post.assert_has_calls(
         [
             mock.call(
@@ -463,17 +661,79 @@ def test_make_prediction_datafram_v1(
     )
 
 
-def test_make_prediction_datafram_v2(
+def test_make_prediction_dataframe_v2(
     analysis_data,
     patched_fero_client,
     prediction_dataframe,
-    prediction_result_data_v2,
+    prediction_result_data_bulk_v2,
     prediction_data,
 ):
     """Test that make prediction returns expected response with a dataframe"""
-    patched_fero_client.post.return_value = prediction_result_data_v2
+    patched_fero_client.post.return_value = prediction_result_data_bulk_v2
     analysis = Analysis(patched_fero_client, analysis_data)
     results = analysis.make_prediction(prediction_dataframe)
+    patched_fero_client.post.assert_has_calls(
+        [
+            mock.call(
+                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict_bulk/",
+                {"dataframe": pd.DataFrame(prediction_data).to_dict(orient="split")},
+            ),
+        ]
+    )
+
+    assert isinstance(results, pd.DataFrame)
+    expected = pd.DataFrame(
+        [
+            {
+                "value1": 1.0,
+                "value2": 2,
+                "value3": 3.3,
+                "Target 1_high90": 5.0,
+                "Target 1_high50": 4.0,
+                "Target 1_low90": 1.0,
+                "Target 1_low50": 2.0,
+                "Target 1_mid": 3.0,
+                "target2_high90": 1.0,
+                "target2_high50": 1.0,
+                "target2_low90": 1.0,
+                "target2_low50": 1.0,
+                "target2_mid": 1.0,
+            },
+            {
+                "value1": 4.0,
+                "value2": 5,
+                "value3": 6.3,
+                "Target 1_high90": 5.1,
+                "Target 1_high50": 4.1,
+                "Target 1_low90": 1.1,
+                "Target 1_low50": 2.1,
+                "Target 1_mid": 3.1,
+                "target2_high90": 1.1,
+                "target2_high50": 1.1,
+                "target2_low90": 1.1,
+                "target2_low50": 1.1,
+                "target2_mid": 1.1,
+            },
+        ]
+    )
+    assert_frame_equal(
+        results,
+        expected,
+        check_like=True,
+    )
+
+
+def test_make_prediction_serial_dataframe_v2(
+    analysis_data,
+    patched_fero_client,
+    prediction_dataframe,
+    prediction_result_data_single_v2,
+    prediction_data,
+):
+    """Test that make prediction returns expected response with a dataframe"""
+    patched_fero_client.post.return_value = prediction_result_data_single_v2
+    analysis = Analysis(patched_fero_client, analysis_data)
+    results = analysis.make_prediction_serial(prediction_dataframe)
     patched_fero_client.post.assert_has_calls(
         [
             mock.call(
@@ -530,7 +790,7 @@ def test_make_prediction_datafram_v2(
 
 
 def test_make_prediction_dataframe_duplicate_cols_v1(
-    analysis_data, patched_fero_client, prediction_result_data_v1
+    analysis_data, patched_fero_client, prediction_result_data_bulk_v1
 ):
     """Test that make prediction returns managled columns if the column names would overlap"""
 
@@ -539,9 +799,52 @@ def test_make_prediction_dataframe_duplicate_cols_v1(
         {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high": 5.5},
     ]
 
-    patched_fero_client.post.return_value = prediction_result_data_v1
+    patched_fero_client.post.return_value = prediction_result_data_bulk_v1
     analysis = Analysis(patched_fero_client, analysis_data)
     results = analysis.make_prediction(dupe_data)
+
+    assert isinstance(results, list)
+    assert results == [
+        {
+            "value1": 1.0,
+            "value2": 2,
+            "value3": 3.3,
+            "Target 1_high.0": 5.0,
+            "Target 1_low": 1.0,
+            "Target 1_mid": 3.0,
+            "target2_high": 1.0,
+            "target2_low": 1.0,
+            "target2_mid": 1.0,
+            "Target 1_high": 5.5,
+        },
+        {
+            "value1": 4.0,
+            "value2": 5,
+            "value3": 6.3,
+            "Target 1_high.0": 5.1,
+            "Target 1_low": 1.1,
+            "Target 1_mid": 3.1,
+            "target2_high": 1.1,
+            "target2_low": 1.1,
+            "target2_mid": 1.1,
+            "Target 1_high": 5.5,
+        },
+    ]
+
+
+def test_make_prediction_serial_dataframe_duplicate_cols_v1(
+    analysis_data, patched_fero_client, prediction_result_data_single_v1
+):
+    """Test that make prediction returns managled columns if the column names would overlap"""
+
+    dupe_data = [
+        {"value1": 1.0, "value2": 2, "value3": 3.3, "Target 1_high": 5.5},
+        {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high": 5.5},
+    ]
+
+    patched_fero_client.post.return_value = prediction_result_data_single_v1
+    analysis = Analysis(patched_fero_client, analysis_data)
+    results = analysis.make_prediction_serial(dupe_data)
 
     assert isinstance(results, list)
     assert results == [
@@ -573,7 +876,7 @@ def test_make_prediction_dataframe_duplicate_cols_v1(
 
 
 def test_make_prediction_dataframe_duplicate_cols_v2(
-    analysis_data, patched_fero_client, prediction_result_data_v2
+    analysis_data, patched_fero_client, prediction_result_data_bulk_v2
 ):
     """Test that make prediction returns managled columns if the column names would overlap"""
 
@@ -582,9 +885,60 @@ def test_make_prediction_dataframe_duplicate_cols_v2(
         {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high90": 5.5},
     ]
 
-    patched_fero_client.post.return_value = prediction_result_data_v2
+    patched_fero_client.post.return_value = prediction_result_data_bulk_v2
     analysis = Analysis(patched_fero_client, analysis_data)
     results = analysis.make_prediction(dupe_data)
+
+    assert isinstance(results, list)
+    assert results == [
+        {
+            "value1": 1.0,
+            "value2": 2.0,
+            "value3": 3.3,
+            "Target 1_high90.0": 5.0,
+            "Target 1_high50": 4.0,
+            "Target 1_low90": 1.0,
+            "Target 1_low50": 2.0,
+            "Target 1_mid": 3.0,
+            "target2_high90": 1.0,
+            "target2_high50": 1.0,
+            "target2_low90": 1.0,
+            "target2_low50": 1.0,
+            "target2_mid": 1.0,
+            "Target 1_high90": 5.5,
+        },
+        {
+            "value1": 4.0,
+            "value2": 5.0,
+            "value3": 6.3,
+            "Target 1_high90.0": 5.1,
+            "Target 1_high50": 4.1,
+            "Target 1_low90": 1.1,
+            "Target 1_low50": 2.1,
+            "Target 1_mid": 3.1,
+            "target2_high90": 1.1,
+            "target2_high50": 1.1,
+            "target2_low90": 1.1,
+            "target2_low50": 1.1,
+            "target2_mid": 1.1,
+            "Target 1_high90": 5.5,
+        },
+    ]
+
+
+def test_make_prediction_serial_dataframe_duplicate_cols_v2(
+    analysis_data, patched_fero_client, prediction_result_data_single_v2
+):
+    """Test that make prediction returns managled columns if the column names would overlap"""
+
+    dupe_data = [
+        {"value1": 1.0, "value2": 2, "value3": 3.3, "Target 1_high90": 5.5},
+        {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high90": 5.5},
+    ]
+
+    patched_fero_client.post.return_value = prediction_result_data_single_v2
+    analysis = Analysis(patched_fero_client, analysis_data)
+    results = analysis.make_prediction_serial(dupe_data)
 
     assert isinstance(results, list)
     assert results == [
@@ -621,6 +975,20 @@ def test_make_prediction_dataframe_duplicate_cols_v2(
             "Target 1_high90": 5.5,
         },
     ]
+
+
+def test_make_prediction_serial_prediction_failure(
+    analysis_data, patched_fero_client, prediction_data
+):
+    """Test that  a FeroError is raised if a prediction fails"""
+
+    with pytest.raises(FeroError):
+        patched_fero_client.post.return_value = {
+            "status": "FAILED",
+            "message": "Something broke!",
+        }
+        analysis = Analysis(patched_fero_client, analysis_data)
+        analysis.make_prediction_serial(prediction_data)
 
 
 def test_make_prediction_prediction_failure(

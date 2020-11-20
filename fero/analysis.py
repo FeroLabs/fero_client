@@ -289,7 +289,7 @@ class Analysis:
 
     def make_prediction(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, List[dict]]:
         """Makes a prediction from the provided data using the most recent trained model for the analysis.
         This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
         bulk prediction, use `make_prediction_legacy`.
@@ -308,13 +308,13 @@ class Analysis:
         if not self.has_trained_model:
             raise FeroError("No model has been trained on this analysis.")
 
-        is_dict_list = isinstance(prediction_data, List)
+        is_dict_list = isinstance(prediction_data, list)
 
         prediction_df = (
             pd.DataFrame(prediction_data) if is_dict_list else prediction_data
         )
 
-        prediction_request = {"dataframe": prediction_data.to_dict(orient="split")}
+        prediction_request = {"dataframe": prediction_df.to_dict(orient="split")}
         prediction_result = self._client.post(
             f"/api/revision_models/{str(self.latest_completed_model)}/predict_bulk/",
             prediction_request,
@@ -329,14 +329,16 @@ class Analysis:
         cols = output.columns
         for target_label, results in prediction_result["data"].items():
             suffix_list = (
-                V2_RESULT_SUFFIXES if prediction_result["version"] == 2 else V1_RESULT_SUFFIXES
+                V2_RESULT_SUFFIXES
+                if prediction_result["version"] == 2
+                else V1_RESULT_SUFFIXES
             )
             for suffix in suffix_list:
                 output[
                     self._make_col_name(f"{target_label}_{suffix}", cols)
                 ] = pd.Series(results["value"][suffix], index=output.index)
 
-        return output.T.to_dict().values() if is_dict_list else output
+        return list(output.T.to_dict().values()) if is_dict_list else output
 
     def make_prediction_serial(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
