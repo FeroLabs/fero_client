@@ -26,6 +26,23 @@ print(prediction)
       value	  value2	target_high	 target_low	  target_mid
 0	  5	      2	        100	         75	          88
 '''
+
+# get an asset
+assets = fero_client.search_assets(name="my-favorite-asset")
+asset = assets[0]
+
+# see the current predictions
+prediction = asset.predict()
+
+print(prediction)
+'''
+                        mean:Factor1  p5:Factor1  p25:Factor1 ... p75:Target1  p95:Target1
+2020-12-25T00:00:00Z    7.937         7.253       7.688       ... 1.921        2.197
+2020-12-25T01:00:00Z    8.059         6.962       7.721       ... 1.924        2.202
+2020-12-25T02:00:00Z    8.193         6.754       7.692       ... 1.871        2.318
+2020-12-25T03:00:00Z    8.349         6.552       7.619       ... 1.830        2.375
+2020-12-25T04:00:00Z    8.492         6.199       7.498       ... 1.762        2.425
+'''
 ```
 
 ## Providing Credentials
@@ -63,10 +80,10 @@ fero_client = Fero()
 analysis = fero_client.get_analysis('5dfbbb63-8ad4-4638-9fdb-61e39952d3cf')
 
 # get all available analyses
-all_analyses = fero.search_analyses()
+all_analyses = fero_client.search_analyses()
 
 # only get "quality" analyses
-quality_only =  fero.search_analyses(name="quality")
+quality_only =  fero_client.search_analyses(name="quality")
 ```
 
 ## Using an Analysis
@@ -156,4 +173,107 @@ print(opt.get_results())
       value	  value2	 target (5%)  target (Mean)	  target (95%)
 0	  60	     40	        100	         150             175
 """
+```
+
+## Finding an Asset
+
+An `Asset` object is how Fero exposes ML time series models to the API. The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single string and attempts to lookup the asset by its unique id. The second method is `Fero.search_assets`, which will return a list of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
+
+#### Examples
+
+```python
+from fero import Fero
+fero_client = Fero()
+
+# get a specific asset
+asset = fero_client.get_asset('fd57ba36-3c5d-40f5-ae0c-d7b76ab39ee5')
+
+# get all available assets
+all_assets = fero_client.search_assets()
+
+# get only "favorite" assets
+favorite_only = fero_client.search_assets(name="favorite")
+```
+
+## Using an Asset
+
+Along with associated properties such as `name` and `uuid`, an `Asset` provides a few methods for interacting with Fero.
+
+The first thing to call when working with an asset is `Asset.has_trained_model`, which is simply a boolean check that a model has finished training. This will be false if the Asset is still training or there was an error training and it has not been revised. Once you have a model trained you then begin working with the asset to leverage the model. 
+
+### Making a prediction
+
+The `Asset.predict` method, as its name implies, makes predictions using the latest model associated with the asset. Fero computes predictions for all controllable factors and with those results, predictions for all target variables. Predictions are provided for the 5 time intervals following the end of the training dataset. (Interval size is determined during model configuration and training.) Optionally, you may call `Asset.predict` with an argument specifying values for one or more of the controllable factors; Fero will predict all targets using your specified values in place of its controllable factor predictions where applicable. 
+
+#### Examples
+```python
+# With no inputs
+prediction = asset.predict()
+
+print(prediction.columns)
+['mean:Factor1', 'p5:Factor1', 'p25:Factor1', 'p75:Factor1', 'p95:Factor1',
+ 'mean:Factor2', 'p5:Factor2', 'p25:Factor2', 'p75:Factor2', 'p95:Factor2',
+ 'mean:Target1', 'p5:Target1', 'p25:Target1', 'p75:Target1', 'p95:Target1']
+
+print(prediction)
+'''
+                        mean:Factor1  p5:Factor1  p25:Factor1 ... p75:Target1  p95:Target1
+2020-12-25T00:00:00Z    7.937         7.253       7.688       ... 1.921        2.197
+2020-12-25T01:00:00Z    8.059         6.962       7.721       ... 1.924        2.202
+2020-12-25T02:00:00Z    8.193         6.754       7.692       ... 1.871        2.318
+2020-12-25T03:00:00Z    8.349         6.552       7.619       ... 1.830        2.375
+2020-12-25T04:00:00Z    8.492         6.199       7.498       ... 1.762        2.425
+'''
+
+# Provide specified values as a data frame
+new_factor_values = pd.DataFrame({
+    "Factor1": [8.0, 8.1, 8.2, 8.3, 8.4]
+})
+
+prediction = asset.predict(new_factor_values)
+
+print(prediction.columns)
+['specified:Factor1', 
+ 'mean:Factor2', 'p5:Factor2', 'p25:Factor2', 'p75:Factor2', 'p95:Factor2',
+ 'mean:Target1', 'p5:Target1', 'p25:Target1', 'p75:Target1', 'p95:Target1']
+
+print(prediction)
+'''
+                        specified:Factor1  mean:Factor2  p5:Factor2 ... p75:Target1  p95:Target1
+2020-12-25T00:00:00Z    8.0                13.452        11.953     ... 1.921        2.197
+2020-12-25T01:00:00Z    8.1                13.119        11.762     ... 1.924        2.202
+2020-12-25T02:00:00Z    8.2                13.084        11.454     ... 1.871        2.318
+2020-12-25T03:00:00Z    8.3                13.003        11.352     ... 1.830        2.375
+2020-12-25T04:00:00Z    8.4                12.976        11.109     ... 1.762        2.425
+'''
+
+# Provide specified values as a dictionary
+new_factor_values = {
+    "Factor1": [8.0, 8.1, 8.2, 8.3, 8.4]
+}
+
+prediction = asset.predict(new_factor_values)
+
+print(list(prediction.keys())
+'''
+[
+    'specified:Factor1', 'mean:Factor2', 'p5:Factor2', 'p25:Factor2', 'p75:Factor2',
+    'p95:Factor2', 'mean:Target1', 'p5:Target1', 'p25:Target1', 'p75:Target1', 'p95:Target1',
+    'index'
+]
+'''
+
+print(prediction['mean:Factor2'])
+'''
+[
+    13.452, 13.119, 13.084, 13.003, 12.976
+]
+'''
+
+print(prediction['index'])
+'''
+[
+    2020-12-25T00:00:00Z, 2020-12-25T01:00:00Z, 2020-12-25T02:00:00Z, 2020-12-25T03:00:00Z, 2020-12-25T04:00:00Z
+]
+'''
 ```
