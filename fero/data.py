@@ -1,7 +1,7 @@
 import os
-from os import name
 import fero
 import enum
+import uuid
 from fero import FeroError
 from typing import Optional, List, IO, Union
 import requests
@@ -46,6 +46,8 @@ class DataSourceStatuses(enum.Enum):
 
 
 class DataSourceSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
 
     uuid = fields.UUID(required=True)
 
@@ -121,14 +123,38 @@ class DataSource:
         return self._data_source is not None
 
     @property
+    def uploaded_files(self):
+        if self._uploaded_files is None:
+            self._uploaded_files = {}
+
+        return self._uploaded_files
+
+    @property
     def uploaded_data_configuration(self):
-        return self._uploaded_files.get("uploaded_data_configuration", None)
+        if self.uploaded_files.get("uploaded_data_configuration", None) is None:
+            self._uploaded_files["uploaded_data_configuration"] = {}
+        return self._uploaded_files["uploaded_data_configuration"]
+
+    @uploaded_data_configuration.setter
+    def uploaded_data_configuration(self, data):
+        self.uploaded_data_configuration.update(data)
+
+    @property
+    def id(self) -> Union[uuid.UUID, None]:
+        if self._data_source:
+            return self._data_source.get("uuid", None)
 
     def _create_uploaded_files(self, name):
 
         data = {"name": name}
 
+        # add upload config if it's been pre-configured
+        if self.uploaded_data_configuration:
+            data["uploaded_data_configuration"] = self.uploaded_data_configuration
+
         res = self._client.post("/api/v2/uploaded_files/", data)
+
+        # Overwrite anything that exists with the server version
         self._uploaded_files = UploadedFilesSchema().load(res)
 
     def _upload_file(self, fp: IO) -> None:
@@ -215,39 +241,41 @@ class DataSource:
             "encoding": encoding,
         }
 
-        if self._uploaded_files is not None:
-            self._uploaded_files["uploaded_data_configuration"][
-                "upload_format_configuration"
-            ]["file_options"] = csv_config
+        if "upload_format_configuration" in self.uploaded_data_configuration:
+            self.uploaded_data_configuration["upload_format_configuration"][
+                "file_options"
+            ] = csv_config
         else:
-            self._uploaded_files = {
+            self.uploaded_data_configuration = {
                 "uploaded_data_configuration": {
                     "upload_format_configuration": {"file_options": csv_config}
                 }
             }
 
-    def configure_pivot(
-        self, name_column: str, value_column: str, join_column: Optional[str] = None
-    ):
+    def configure_pivot(self, name_column: str, value_column: str, join_column: str):
 
         pivot_config = {
             "name_column": name_column,
             "value_column": value_column,
             "join_column": join_column,
-            "file_options": self._uploaded_files.get("file_options", None),
             "format_type": "pivoted",
         }
 
-        if self._uploaded_files is not None:
-            self._uploaded_files["uploaded_data_configuration"][
-                "upload_format_configuration"
-            ] = pivot_config
+        if "upload_format_configuration" in self.uploaded_data_configuration:
+            self.uploaded_data_configuration["upload_format_configuration"].update(
+                pivot_config
+            )
+
         else:
-            self._uploaded_files = {
-                "uploaded_data_configuration": {
-                    "upload_format_configuration": pivot_config
-                }
+            self.uploaded_data_configuration = {
+                "upload_format_configuration": pivot_config
             }
+
+    def set_primary_datetime_col(self, dt_col: str) -> None:
+        self.uploaded_data_configuration["primary_datetime_col"] = dt_col
+
+    def set_primary_key_col(self, primary_key: str) -> None:
+        self.uploaded_data_configuration["primary_key_col"] = primary_key
 
     def update_file_configuration(self) -> dict:
         res = self._client.patch(
@@ -258,9 +286,7 @@ class DataSource:
 
         return self._uploaded_files
 
-    def create_datasource(
-        self, data_source_name: str, access_name: Optional[str] = None
-    ):
+    def create_datasource(self, access_name: Optional[str] = None):
         if self._uploaded_files is None:
             raise FeroError("No files specified to process")
         user = self._client.get_user()
@@ -271,7 +297,7 @@ class DataSource:
             raise FeroError("Invalid Access requested")
 
         post_data = {
-            "name": data_source_name,
+            "name": self._uploaded_files.get("name", ""),
             "requested_access": access_name,
             "uploaded_files_uuid": str(self._uploaded_files["uuid"]),
         }
