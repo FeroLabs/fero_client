@@ -5,6 +5,7 @@ import uuid
 from fero import FeroError
 from typing import Optional, List, IO, Union
 import requests
+from azure.storage.blob import BlobClient
 from marshmallow import (
     Schema,
     fields,
@@ -157,15 +158,8 @@ class DataSource:
         # Overwrite anything that exists with the server version
         self._uploaded_files = UploadedFilesSchema().load(res)
 
-    def _upload_file(self, fp: IO) -> None:
-        """Uploads a single file to the uploaded files location"""
-
-        file_name = os.path.basename(fp.name)
-
-        inbox_response = self._client.get(
-            f"/api/v2/uploaded_files/{self._uploaded_files['uuid']}/inbox_url/",
-            params={"file_name": file_name},
-        )
+    @staticmethod
+    def _s3_upload(inbox_response, file_name, fp) -> None:
 
         files = {
             "file": (
@@ -182,6 +176,32 @@ class DataSource:
 
         if res.status_code != 204:
             raise FeroError("Error Uploading File")
+
+    @staticmethod
+    def _azure_upload(inbox_response: dict, fp) -> None:
+
+        blob_client = BlobClient.from_blob_url(
+            f"https://{inbox_response['storage_name']}.blob.core.windows.net/{inbox_response['container']}/{inbox_response['blob']}?{inbox_response['sas_token']}"
+        )
+        # hacks
+        from io import BytesIO
+
+        blob_client.upload_blob(BytesIO(fp.read().encode()))
+
+    def _upload_file(self, fp: IO) -> None:
+        """Uploads a single file to the uploaded files location"""
+
+        file_name = os.path.basename(fp.name)
+
+        inbox_response = self._client.get(
+            f"/api/v2/uploaded_files/{self._uploaded_files['uuid']}/inbox_url/",
+            params={"file_name": file_name},
+        )
+
+        if inbox_response["upload_type"] == "azure":
+            self._azure_upload(inbox_response, fp)
+        else:
+            self._s3_upload(inbox_response, file_name, fp)
 
     def upload_files(self, files: List[Union[IO, str]], name=None):
         """Uploads a file to Fero, creating a file upload object if needed.
