@@ -1,6 +1,12 @@
 import time
 import fero
+import uuid
+import json
+import io
+import requests
+from datetime import datetime
 from fero import FeroError
+from azure.storage.blob import BlobClient
 import pandas as pd
 from marshmallow import (
     Schema,
@@ -10,14 +16,14 @@ from marshmallow import (
     ValidationError,
     EXCLUDE,
 )
-from typing import Union, List, Optional
+from typing import Union, List, Optional, IO
 
 
 VALID_GOALS = ["minimize", "maximize"]
 FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
 V1_RESULT_SUFFIXES = ["low", "mid", "high"]
 V2_RESULT_SUFFIXES = ["low90", "low50", "mid", "high50", "high90"]
-
+BULK_PREDICTION_TYPE = "M"
 
 class AnalysisSchema(Schema):
     class Meta:
@@ -242,6 +248,51 @@ class Analysis:
 
         return col_name
 
+    @staticmethod
+    def _s3_upload(inbox_response, file_name, fp) -> None:
+
+        files = {
+            "file": (
+                file_name,
+                fp,
+            )
+        }
+
+        res = requests.post(
+            inbox_response["url"],
+            data=inbox_response["fields"],
+            files=files,
+        )
+
+        if res.status_code != 204:
+            raise FeroError("Error Uploading File")
+
+    @staticmethod
+    def _azure_upload(inbox_response: dict, fp) -> None:
+
+        blob_client = BlobClient.from_blob_url(
+            f"https://{inbox_response['storage_name']}.blob.core.windows.net/{inbox_response['container']}/{inbox_response['blob']}?{inbox_response['sas_token']}"
+        )
+        # hacks
+        from io import BytesIO
+
+        blob_client.upload_blob(BytesIO(fp.read().encode()))
+
+    def _upload_file(self, fp: IO, file_name: str) -> None:
+        """Uploads a single file to the uploaded files location"""
+
+        inbox_response = self._client.post(
+            f"/api/analyses/{self.uuid}/predictions/inbox_url/",
+            {"file_name": file_name},
+        )
+
+        print('UPLOADING TO: {}'.format(inbox_response))
+
+        if inbox_response["upload_type"] == "azure":
+            self._azure_upload(inbox_response, fp)
+        else:
+            self._s3_upload(inbox_response, file_name, fp)
+
     def _parse_regression_data(self):
         """Get and parse the regression simulator object from presentation data"""
         reg_data = next(
@@ -314,31 +365,47 @@ class Analysis:
             pd.DataFrame(prediction_data) if is_dict_list else prediction_data
         )
 
+        data_file = io.StringIO(json.dumps(prediction_df.to_dict(orient="split")))
+        # print('>>> {}'.format(self._data.keys()))
+        upload_identifier = str(uuid.uuid4()) # TODO: Make this deterministic -- the hexdigest from df plus analysis uuid
+        self._upload_file(data_file, upload_identifier)
+
+        post_body = {
+            "input_data": {
+                "upload_identifier": upload_identifier
+            },
+            "prediction_type": BULK_PREDICTION_TYPE,
+            "name": f"Bulk Prediction - {str(datetime.utcnow())} - {upload_identifier}",
+            "description": "",
+            "prediction_tag": upload_identifier
+        }
+
         prediction_request = {"dataframe": prediction_df.to_dict(orient="split")}
         prediction_result = self._client.post(
-            f"/api/revision_models/{str(self.latest_completed_model)}/predict_bulk/",
-            prediction_request,
+            f"/api/analyses/{self.uuid}/predictions/get_or_create/",
+            post_body,
         )
-        if prediction_result.get("status") != "SUCCESS":
-            raise FeroError(
-                prediction_result.get(
-                    "message", "The prediction failed for unknown reasons"
-                )
-            )
-        output = prediction_df.copy()
-        cols = output.columns
-        for target_label, results in prediction_result["data"].items():
-            suffix_list = (
-                V2_RESULT_SUFFIXES
-                if prediction_result["version"] == 2
-                else V1_RESULT_SUFFIXES
-            )
-            for suffix in suffix_list:
-                output[
-                    self._make_col_name(f"{target_label}_{suffix}", cols)
-                ] = pd.Series(results["value"][suffix], index=output.index)
-
-        return list(output.T.to_dict().values()) if is_dict_list else output
+        print('>>>>!!!! {}'.format(prediction_result))
+        # if prediction_result.get("status") != "SUCCESS":
+        #     raise FeroError(
+        #         prediction_result.get(
+        #             "message", "The prediction failed for unknown reasons"
+        #         )
+        #     )
+        # output = prediction_df.copy()
+        # cols = output.columns
+        # for target_label, results in prediction_result["data"].items():
+        #     suffix_list = (
+        #         V2_RESULT_SUFFIXES
+        #         if prediction_result["version"] == 2
+        #         else V1_RESULT_SUFFIXES
+        #     )
+        #     for suffix in suffix_list:
+        #         output[
+        #             self._make_col_name(f"{target_label}_{suffix}", cols)
+        #         ] = pd.Series(results["value"][suffix], index=output.index)
+        #
+        # return list(output.T.to_dict().values()) if is_dict_list else output
 
     def make_prediction_serial(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
