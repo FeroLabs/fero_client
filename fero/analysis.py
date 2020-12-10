@@ -136,6 +136,20 @@ class Prediction:
         return self._data_cache
 
     @property
+    def status(self):
+        if not self.complete:
+            return None
+        if "result_data" in self._data and "status" in self._data["result_data"]:
+            return self._data["result_data"]["status"]
+        return None
+
+    @property
+    def prediction_type(self):
+        if "prediction_type" in self._data:
+            return self._data["prediction_type"]
+        return None
+
+    @property
     def complete(self):
         """Checks if the Prediction is complete"""
         if not self._complete:
@@ -154,22 +168,29 @@ class Prediction:
 
         :param format: The format to return the result as, defaults to "dataframe"
         :type format: str, optional
-        :raises FeroError: Raised if the prediction is not yet complete
+        :raises FeroError: Raised if the prediction is not yet complete or is completed and failed.
         :return: The results of the prediction
         :rtype: Union[pd.DataFrame, List[dict]]
         """
         if not self.complete:
             raise FeroError("Prediction is not complete.")
-        data = self._data["result_data"]["data"]["values"]
-        if format == "records":
-            return [
-                {col: val for col, val in zip(data["columns"], row)}
-                for row in data["data"]
-            ]
+        if self.status != "SUCCESS":
+            raise FeroError(f"Prediction failed with the following message: {self._data['result_data']['message']}")
+        if self.prediction_type == BULK_PREDICTION_TYPE:
+            data_url = self._data["result_data"]["data"]["download_url"]
+            data = self._client.get(data_url, append_hostname=False)
+            return pd.DataFrame(**data)
         else:
-            return pd.DataFrame(
-                data["data"], columns=data["columns"], index=data["index"]
-            )
+            data = self._data["result_data"]["data"]["values"]
+            if format == "records":
+                return [
+                    {col: val for col, val in zip(data["columns"], row)}
+                    for row in data["data"]
+                ]
+            else:
+                return pd.DataFrame(
+                    data["data"], columns=data["columns"], index=data["index"]
+                )
 
 
 class Analysis:
@@ -278,20 +299,21 @@ class Analysis:
 
         blob_client.upload_blob(BytesIO(fp.read().encode()))
 
-    def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> None:
-        """Uploads a single file to the uploaded files location"""
+    def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> str:
+        """Uploads a single file to the uploaded files location. Returns id of workspace to check"""
 
         inbox_response = self._client.post(
             f"/api/analyses/{self.uuid}/workspaces/inbox_url/",
             {"file_tag": file_tag, "prediction_type": prediction_type},
         )
 
-        print('UPLOADING TO: {}'.format(inbox_response))
+        workspace_id = inbox_response.pop("workspace_id")
 
         if inbox_response["upload_type"] == "azure":
             self._azure_upload(inbox_response, fp)
         else:
             self._s3_upload(inbox_response, file_tag, fp)
+        return workspace_id
 
     def _parse_regression_data(self):
         """Get and parse the regression simulator object from presentation data"""
@@ -366,46 +388,17 @@ class Analysis:
         )
 
         data_file = io.StringIO(json.dumps(prediction_df.to_dict(orient="split")))
-        # print('>>> {}'.format(self._data.keys()))
-        upload_identifier = str(uuid.uuid4()) # TODO: Make this deterministic -- the hexdigest from df plus analysis uuid
-        self._upload_file(data_file, upload_identifier, BULK_PREDICTION_TYPE)
-        #
-        # post_body = {
-        #     "input_data": {
-        #         "upload_identifier": upload_identifier
-        #     },
-        #     "prediction_type": BULK_PREDICTION_TYPE,
-        #     "name": f"Bulk Prediction - {str(datetime.utcnow())} - {upload_identifier}",
-        #     "description": "",
-        #     "prediction_tag": upload_identifier
-        # }
-        #
-        # prediction_request = {"dataframe": prediction_df.to_dict(orient="split")}
-        # prediction_result = self._client.post(
-        #     f"/api/analyses/{self.uuid}/predictions/get_or_create/",
-        #     post_body,
-        # )
-        # print('>>>>!!!! {}'.format(prediction_result))
-        # if prediction_result.get("status") != "SUCCESS":
-        #     raise FeroError(
-        #         prediction_result.get(
-        #             "message", "The prediction failed for unknown reasons"
-        #         )
-        #     )
-        # output = prediction_df.copy()
-        # cols = output.columns
-        # for target_label, results in prediction_result["data"].items():
-        #     suffix_list = (
-        #         V2_RESULT_SUFFIXES
-        #         if prediction_result["version"] == 2
-        #         else V1_RESULT_SUFFIXES
-        #     )
-        #     for suffix in suffix_list:
-        #         output[
-        #             self._make_col_name(f"{target_label}_{suffix}", cols)
-        #         ] = pd.Series(results["value"][suffix], index=output.index)
-        #
-        # return list(output.T.to_dict().values()) if is_dict_list else output
+        upload_identifier = str(uuid.uuid4())
+        workspace_id = self._upload_file(data_file, upload_identifier, BULK_PREDICTION_TYPE)
+        prediction = self._poll_workspace_for_prediction(workspace_id)
+        if prediction.status != "SUCCESS":
+            raise FeroError(
+                prediction.get(
+                    "message", "The prediction failed for unknown reasons"
+                )
+            )
+        output = prediction.get_results()
+        return list(output.T.to_dict().values()) if is_dict_list else output
 
     def make_prediction_serial(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
@@ -671,7 +664,7 @@ class Analysis:
         return opt_request
 
     def _request_prediction(
-        self, prediction_request: dict, synchonous: bool
+        self, prediction_request: dict, synchronous: bool
     ) -> Prediction:
         """Make the prediction request and poll unitl complete if this request is synchronous"""
 
@@ -681,7 +674,21 @@ class Analysis:
         prediction = Prediction(self._client, response_data["latest_results"])
 
         # If synchronous block until the prediction is complete
-        while synchonous and not prediction.complete:
+        while synchronous and not prediction.complete:
+            time.sleep(0.5)
+
+        return prediction
+
+    def _poll_workspace_for_prediction(self, workspace_id: str):
+        """Poll workspace until it and a result exist"""
+        workspace_url = f"/api/analyses/{str(self.uuid)}/workspaces/{workspace_id}"
+        workspace_data = None
+        while workspace_data is None:
+            time.sleep(0.5)
+            workspace_data = self._client.get(workspace_url, allow_404=True)
+
+        prediction = Prediction(self._client, workspace_data["latest_prediction"]["latest_results"])
+        while not prediction.complete:
             time.sleep(0.5)
 
         return prediction
