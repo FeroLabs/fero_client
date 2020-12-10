@@ -128,7 +128,9 @@ class Fero:
         return None
 
     @staticmethod
-    def _handle_response(response: requests.Response, allow_404: bool = False) -> Optional[Union[dict, bytes]]:
+    def _handle_response(
+        response: requests.Response, allow_404: bool = False
+    ) -> Optional[Union[dict, bytes]]:
         """Check and decode a request response and raise a relevant error if needed"""
         if 200 <= response.status_code < 300:
             if response.headers.get("content-type") == "application/json":
@@ -207,10 +209,12 @@ class Fero:
                 headers={"Authorization": f"JWT {self._fero_token}"},
                 verify=self._verify,
             ),
-            allow_404=False
+            allow_404=False,
         )
 
-    def get(self, url: str, params=None, allow_404=False, append_hostname=True) -> Union[dict, bytes]:
+    def get(
+        self, url: str, params=None, allow_404=False, append_hostname=True
+    ) -> Union[dict, bytes]:
         """Do a GET request with headers set."""
 
         return self._handle_response(
@@ -220,5 +224,5 @@ class Fero:
                 headers={"Authorization": f"JWT {self._fero_token}"},
                 verify=self._verify,
             ),
-            allow_404=allow_404
+            allow_404=allow_404,
         )

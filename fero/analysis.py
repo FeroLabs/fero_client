@@ -4,7 +4,6 @@ import uuid
 import json
 import io
 import requests
-from datetime import datetime
 from fero import FeroError
 from azure.storage.blob import BlobClient
 import pandas as pd
@@ -24,6 +23,7 @@ FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
 V1_RESULT_SUFFIXES = ["low", "mid", "high"]
 V2_RESULT_SUFFIXES = ["low90", "low50", "mid", "high50", "high90"]
 BULK_PREDICTION_TYPE = "M"
+
 
 class AnalysisSchema(Schema):
     class Meta:
@@ -175,7 +175,9 @@ class Prediction:
         if not self.complete:
             raise FeroError("Prediction is not complete.")
         if self.status != "SUCCESS":
-            raise FeroError(f"Prediction failed with the following message: {self._data['result_data']['message']}")
+            raise FeroError(
+                f"Prediction failed with the following message: {self._data['result_data']['message']}"
+            )
         if self.prediction_type == BULK_PREDICTION_TYPE:
             data_url = self._data["result_data"]["data"]["download_url"]
             data = self._client.get(data_url, append_hostname=False)
@@ -389,13 +391,13 @@ class Analysis:
 
         data_file = io.StringIO(json.dumps(prediction_df.to_dict(orient="split")))
         upload_identifier = str(uuid.uuid4())
-        workspace_id = self._upload_file(data_file, upload_identifier, BULK_PREDICTION_TYPE)
+        workspace_id = self._upload_file(
+            data_file, upload_identifier, BULK_PREDICTION_TYPE
+        )
         prediction = self._poll_workspace_for_prediction(workspace_id)
         if prediction.status != "SUCCESS":
             raise FeroError(
-                prediction.get(
-                    "message", "The prediction failed for unknown reasons"
-                )
+                prediction.get("message", "The prediction failed for unknown reasons")
             )
         output = prediction.get_results()
         return list(output.T.to_dict().values()) if is_dict_list else output
@@ -687,7 +689,9 @@ class Analysis:
             time.sleep(0.5)
             workspace_data = self._client.get(workspace_url, allow_404=True)
 
-        prediction = Prediction(self._client, workspace_data["latest_prediction"]["latest_results"])
+        prediction = Prediction(
+            self._client, workspace_data["latest_prediction"]["latest_results"]
+        )
         while not prediction.complete:
             time.sleep(0.5)
 
