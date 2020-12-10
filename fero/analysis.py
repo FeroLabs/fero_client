@@ -278,12 +278,12 @@ class Analysis:
 
         blob_client.upload_blob(BytesIO(fp.read().encode()))
 
-    def _upload_file(self, fp: IO, file_name: str) -> None:
+    def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> None:
         """Uploads a single file to the uploaded files location"""
 
         inbox_response = self._client.post(
-            f"/api/analyses/{self.uuid}/predictions/inbox_url/",
-            {"file_name": file_name},
+            f"/api/analyses/{self.uuid}/workspaces/inbox_url/",
+            {"file_tag": file_tag, "prediction_type": prediction_type},
         )
 
         print('UPLOADING TO: {}'.format(inbox_response))
@@ -291,7 +291,7 @@ class Analysis:
         if inbox_response["upload_type"] == "azure":
             self._azure_upload(inbox_response, fp)
         else:
-            self._s3_upload(inbox_response, file_name, fp)
+            self._s3_upload(inbox_response, file_tag, fp)
 
     def _parse_regression_data(self):
         """Get and parse the regression simulator object from presentation data"""
@@ -368,24 +368,24 @@ class Analysis:
         data_file = io.StringIO(json.dumps(prediction_df.to_dict(orient="split")))
         # print('>>> {}'.format(self._data.keys()))
         upload_identifier = str(uuid.uuid4()) # TODO: Make this deterministic -- the hexdigest from df plus analysis uuid
-        self._upload_file(data_file, upload_identifier)
-
-        post_body = {
-            "input_data": {
-                "upload_identifier": upload_identifier
-            },
-            "prediction_type": BULK_PREDICTION_TYPE,
-            "name": f"Bulk Prediction - {str(datetime.utcnow())} - {upload_identifier}",
-            "description": "",
-            "prediction_tag": upload_identifier
-        }
-
-        prediction_request = {"dataframe": prediction_df.to_dict(orient="split")}
-        prediction_result = self._client.post(
-            f"/api/analyses/{self.uuid}/predictions/get_or_create/",
-            post_body,
-        )
-        print('>>>>!!!! {}'.format(prediction_result))
+        self._upload_file(data_file, upload_identifier, BULK_PREDICTION_TYPE)
+        #
+        # post_body = {
+        #     "input_data": {
+        #         "upload_identifier": upload_identifier
+        #     },
+        #     "prediction_type": BULK_PREDICTION_TYPE,
+        #     "name": f"Bulk Prediction - {str(datetime.utcnow())} - {upload_identifier}",
+        #     "description": "",
+        #     "prediction_tag": upload_identifier
+        # }
+        #
+        # prediction_request = {"dataframe": prediction_df.to_dict(orient="split")}
+        # prediction_result = self._client.post(
+        #     f"/api/analyses/{self.uuid}/predictions/get_or_create/",
+        #     post_body,
+        # )
+        # print('>>>>!!!! {}'.format(prediction_result))
         # if prediction_result.get("status") != "SUCCESS":
         #     raise FeroError(
         #         prediction_result.get(
