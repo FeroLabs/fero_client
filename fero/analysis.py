@@ -124,6 +124,9 @@ class Prediction:
     def __repr__(self):
         return f"<Prediction request_id={self.result_id}>"
 
+    def __getattr__(self, name: str):
+        return self._data.get(name)
+
     __str__ = __repr__
 
     @property
@@ -141,12 +144,6 @@ class Prediction:
             return None
         if "result_data" in self._data and "status" in self._data["result_data"]:
             return self._data["result_data"]["status"]
-        return None
-
-    @property
-    def prediction_type(self):
-        if "prediction_type" in self._data:
-            return self._data["prediction_type"]
         return None
 
     @property
@@ -292,14 +289,10 @@ class Analysis:
 
     @staticmethod
     def _azure_upload(inbox_response: dict, fp) -> None:
-
         blob_client = BlobClient.from_blob_url(
             f"https://{inbox_response['storage_name']}.blob.core.windows.net/{inbox_response['container']}/{inbox_response['blob']}?{inbox_response['sas_token']}"
         )
-        # hacks
-        from io import BytesIO
-
-        blob_client.upload_blob(BytesIO(fp.read().encode()))
+        blob_client.upload_blob(io.BytesIO(fp.read().encode()))
 
     def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> str:
         """Uploads a single file to the uploaded files location. Returns id of workspace to check"""
@@ -397,7 +390,9 @@ class Analysis:
         prediction = self._poll_workspace_for_prediction(workspace_id)
         if prediction.status != "SUCCESS":
             raise FeroError(
-                prediction.get("message", "The prediction failed for unknown reasons")
+                prediction.result_data.get(
+                    "message", "The prediction failed for unknown reasons"
+                )
             )
         output = prediction.get_results()
         return list(output.T.to_dict().values()) if is_dict_list else output
@@ -687,7 +682,11 @@ class Analysis:
         workspace_data = None
         while workspace_data is None:
             time.sleep(0.5)
-            workspace_data = self._client.get(workspace_url, allow_404=True)
+            workspace_data = self._client.get(
+                workspace_url,
+                params={"prediction_type": BULK_PREDICTION_TYPE},
+                allow_404=True,
+            )
 
         prediction = Prediction(
             self._client, workspace_data["latest_prediction"]["latest_results"]
