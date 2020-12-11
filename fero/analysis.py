@@ -382,7 +382,9 @@ class Analysis:
             pd.DataFrame(prediction_data) if is_dict_list else prediction_data
         )
 
-        data_file = io.StringIO(json.dumps(prediction_df.to_dict(orient="split")))
+        data_file = io.StringIO()
+        prediction_df.to_json(data_file, orient="split")
+        data_file.seek(0)
         upload_identifier = str(uuid.uuid4())
         workspace_id = self._upload_file(
             data_file, upload_identifier, BULK_PREDICTION_TYPE
