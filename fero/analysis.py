@@ -1,7 +1,6 @@
 import time
 import fero
 import uuid
-import json
 import io
 import requests
 from fero import FeroError
