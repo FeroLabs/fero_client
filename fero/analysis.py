@@ -1,6 +1,10 @@
 import time
 import fero
+import uuid
+import io
+import requests
 from fero import FeroError
+from azure.storage.blob import BlobClient
 import pandas as pd
 from marshmallow import (
     Schema,
@@ -10,13 +14,14 @@ from marshmallow import (
     ValidationError,
     EXCLUDE,
 )
-from typing import Union, List, Optional
+from typing import Union, List, Optional, IO
 
 
 VALID_GOALS = ["minimize", "maximize"]
 FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
 V1_RESULT_SUFFIXES = ["low", "mid", "high"]
 V2_RESULT_SUFFIXES = ["low90", "low50", "mid", "high50", "high90"]
+BULK_PREDICTION_TYPE = "M"
 
 
 class AnalysisSchema(Schema):
@@ -118,6 +123,9 @@ class Prediction:
     def __repr__(self):
         return f"<Prediction request_id={self.result_id}>"
 
+    def __getattr__(self, name: str):
+        return self._data.get(name)
+
     __str__ = __repr__
 
     @property
@@ -128,6 +136,14 @@ class Prediction:
             return None
 
         return self._data_cache
+
+    @property
+    def status(self):
+        if not self.complete:
+            return None
+        if "result_data" in self._data and "status" in self._data["result_data"]:
+            return self._data["result_data"]["status"]
+        return None
 
     @property
     def complete(self):
@@ -148,22 +164,31 @@ class Prediction:
 
         :param format: The format to return the result as, defaults to "dataframe"
         :type format: str, optional
-        :raises FeroError: Raised if the prediction is not yet complete
+        :raises FeroError: Raised if the prediction is not yet complete or is completed and failed.
         :return: The results of the prediction
         :rtype: Union[pd.DataFrame, List[dict]]
         """
         if not self.complete:
             raise FeroError("Prediction is not complete.")
-        data = self._data["result_data"]["data"]["values"]
-        if format == "records":
-            return [
-                {col: val for col, val in zip(data["columns"], row)}
-                for row in data["data"]
-            ]
-        else:
-            return pd.DataFrame(
-                data["data"], columns=data["columns"], index=data["index"]
+        if self.status != "SUCCESS":
+            raise FeroError(
+                f"Prediction failed with the following message: {self._data['result_data']['message']}"
             )
+        if self.prediction_type == BULK_PREDICTION_TYPE:
+            data_url = self._data["result_data"]["data"]["download_url"]
+            data = self._client.get_preauthenticated(data_url)
+            return pd.DataFrame(**data)
+        else:
+            data = self._data["result_data"]["data"]["values"]
+            if format == "records":
+                return [
+                    {col: val for col, val in zip(data["columns"], row)}
+                    for row in data["data"]
+                ]
+            else:
+                return pd.DataFrame(
+                    data["data"], columns=data["columns"], index=data["index"]
+                )
 
 
 class Analysis:
@@ -242,6 +267,47 @@ class Analysis:
 
         return col_name
 
+    def _s3_upload(self, inbox_response, file_name, fp) -> None:
+
+        files = {
+            "file": (
+                file_name,
+                fp,
+            )
+        }
+        res = requests.post(
+            inbox_response["url"],
+            data=inbox_response["fields"],
+            files=files,
+            verify=self._client._verify,
+        )
+
+        if res.status_code != 204:
+            raise FeroError("Error Uploading File")
+
+    @staticmethod
+    def _azure_upload(inbox_response: dict, fp) -> None:
+        blob_client = BlobClient.from_blob_url(
+            f"https://{inbox_response['storage_name']}.blob.core.windows.net/{inbox_response['container']}/{inbox_response['blob']}?{inbox_response['sas_token']}"
+        )
+        blob_client.upload_blob(io.BytesIO(fp.read().encode()))
+
+    def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> str:
+        """Uploads a single file to the uploaded files location. Returns id of workspace to check"""
+
+        inbox_response = self._client.post(
+            f"/api/analyses/{self.uuid}/workspaces/inbox_url/",
+            {"file_tag": file_tag, "prediction_type": prediction_type},
+        )
+
+        workspace_id = inbox_response.pop("workspace_id")
+
+        if inbox_response["upload_type"] == "azure":
+            self._azure_upload(inbox_response, fp)
+        else:
+            self._s3_upload(inbox_response, file_tag, fp)
+        return workspace_id
+
     def _parse_regression_data(self):
         """Get and parse the regression simulator object from presentation data"""
         reg_data = next(
@@ -291,9 +357,56 @@ class Analysis:
         self, prediction_data: Union[pd.DataFrame, List[dict]]
     ) -> Union[pd.DataFrame, List[dict]]:
         """Makes a prediction from the provided data using the most recent trained model for the analysis.
+        This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
+        bulk prediction, use `make_prediction_legacy`.
 
         `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
-        to make a prediction of what the targets of the Analysis will be.  The results are returned as either a data frame
+        to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
+        or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
+        Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
+
+        :param prediction_data:  Either a data frame or list of dictionaries specifying values to be used in the model.
+        :type prediction_data: Union[pd.DataFrame, List[dict]]
+        :raises FeroError: Raised if no model has been trained or the server returns an error message
+        :return: A data frame or list of dictionaries depending on how the function was called
+        :rtype: Union[pd.DataFrame, List[dict]]
+        """
+        if not self.has_trained_model:
+            raise FeroError("No model has been trained on this analysis.")
+
+        is_dict_list = isinstance(prediction_data, list)
+
+        prediction_df = (
+            pd.DataFrame(prediction_data) if is_dict_list else prediction_data
+        )
+
+        data_file = io.StringIO()
+        prediction_df.to_json(data_file, orient="split")
+        data_file.seek(0)
+        upload_identifier = str(uuid.uuid4())
+        workspace_id = self._upload_file(
+            data_file, upload_identifier, BULK_PREDICTION_TYPE
+        )
+        prediction = self._poll_workspace_for_prediction(workspace_id)
+        if prediction.status != "SUCCESS":
+            raise FeroError(
+                prediction.result_data.get(
+                    "message", "The prediction failed for unknown reasons"
+                )
+            )
+        output = prediction.get_results()
+        return list(output.T.to_dict().values()) if is_dict_list else output
+
+    def make_prediction_serial(
+        self, prediction_data: Union[pd.DataFrame, List[dict]]
+    ) -> Union[pd.DataFrame, List[dict]]:
+        """Makes a prediction from the provided data using the most recent trained model for the analysis. This
+        computes predictions one row at a time. Therefore, while it is slower than `make_prediction`, this method
+        works for analyses that do not support bulk predictions and can be called with inputs that are too large to
+        be transferred in a single call.
+
+        `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
+        to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
         or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
         Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
 
@@ -548,7 +661,7 @@ class Analysis:
         return opt_request
 
     def _request_prediction(
-        self, prediction_request: dict, synchonous: bool
+        self, prediction_request: dict, synchronous: bool
     ) -> Prediction:
         """Make the prediction request and poll unitl complete if this request is synchronous"""
 
@@ -558,7 +671,27 @@ class Analysis:
         prediction = Prediction(self._client, response_data["latest_results"])
 
         # If synchronous block until the prediction is complete
-        while synchonous and not prediction.complete:
+        while synchronous and not prediction.complete:
+            time.sleep(0.5)
+
+        return prediction
+
+    def _poll_workspace_for_prediction(self, workspace_id: str):
+        """Poll workspace until it and a result exist"""
+        workspace_url = f"/api/analyses/{str(self.uuid)}/workspaces/{workspace_id}"
+        workspace_data = None
+        while workspace_data is None:
+            time.sleep(0.5)
+            workspace_data = self._client.get(
+                workspace_url,
+                params={"prediction_type": BULK_PREDICTION_TYPE},
+                allow_404=True,
+            )
+
+        prediction = Prediction(
+            self._client, workspace_data["latest_prediction"]["latest_results"]
+        )
+        while not prediction.complete:
             time.sleep(0.5)
 
         return prediction

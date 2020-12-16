@@ -128,7 +128,9 @@ class Fero:
         return None
 
     @staticmethod
-    def _handle_response(response: requests.Response) -> Union[dict, bytes]:
+    def _handle_response(
+        response: requests.Response, allow_404: bool = False
+    ) -> Optional[Union[dict, bytes]]:
         """Check and decode a request response and raise a relevant error if needed"""
         if 200 <= response.status_code < 300:
             if response.headers.get("content-type") == "application/json":
@@ -136,7 +138,10 @@ class Fero:
             else:
                 return response.content
         elif response.status_code == 404:
-            raise FeroError("The requested resource was not found.")
+            if allow_404:
+                return None
+            else:
+                raise FeroError("The requested resource was not found.")
         elif response.status_code in [401, 403]:
             raise FeroError("You are not authorized to access this resourced.")
         else:
@@ -203,17 +208,24 @@ class Fero:
                 json=data,
                 headers={"Authorization": f"JWT {self._fero_token}"},
                 verify=self._verify,
-            )
+            ),
+            allow_404=False,
         )
 
-    def get(self, url: str, params=None) -> Union[dict, bytes]:
+    def get(self, url: str, params=None, allow_404=False) -> Union[dict, bytes]:
         """Do a GET request with headers set."""
-
         return self._handle_response(
             requests.get(
                 f"{self._hostname}{url}",
                 params=params,
                 headers={"Authorization": f"JWT {self._fero_token}"},
                 verify=self._verify,
-            )
+            ),
+            allow_404=allow_404,
+        )
+
+    def get_preauthenticated(self, url, params=None) -> Union[dict, bytes]:
+        """Do a GET request without adjusting the url or auth headers"""
+        return self._handle_response(
+            requests.get(url, params=params, verify=self._verify)
         )

@@ -1,4 +1,5 @@
 from fero import FeroError
+import io
 import pytest
 from unittest import mock
 from fero.analysis import Analysis, Prediction
@@ -241,7 +242,7 @@ def prediction_dataframe(prediction_data):
 
 
 @pytest.fixture
-def prediction_result_data_v1():
+def prediction_result_data_single_v1():
     return {
         "status": "SUCCESS",
         "version": 1,
@@ -253,7 +254,23 @@ def prediction_result_data_v1():
 
 
 @pytest.fixture
-def prediction_result_data_v2():
+def prediction_result_data_bulk_v1():
+    return {
+        "status": "SUCCESS",
+        "version": 1,
+        "data": {
+            "Target 1": {
+                "value": {"high": [5.0, 5.1], "low": [1.0, 1.1], "mid": [3.0, 3.1]}
+            },
+            "target2": {
+                "value": {"high": [1.0, 1.1], "low": [1.0, 1.1], "mid": [1.0, 1.1]}
+            },
+        },
+    }
+
+
+@pytest.fixture
+def prediction_result_data_single_v2():
     return {
         "status": "SUCCESS",
         "version": 2,
@@ -280,6 +297,68 @@ def prediction_result_data_v2():
     }
 
 
+@pytest.fixture
+def prediction_result_data_bulk_v2():
+    return {
+        "status": "SUCCESS",
+        "version": 2,
+        "data": {
+            "Target 1": {
+                "value": {
+                    "high90": [5.0, 5.1],
+                    "high50": [4.0, 4.1],
+                    "low90": [1.0, 1.1],
+                    "low50": [2.0, 2.1],
+                    "mid": [3.0, 3.1],
+                }
+            },
+            "target2": {
+                "value": {
+                    "high90": [1.0, 1.1],
+                    "high50": [1.0, 1.1],
+                    "low90": [1.0, 1.1],
+                    "low50": [1.0, 1.1],
+                    "mid": [1.0, 1.1],
+                }
+            },
+        },
+    }
+
+
+@pytest.fixture
+def batch_prediction_success_data_cache():
+    return {
+        "request": "request_id",
+        "revision_model": "revision_model_id",
+        "result_data": {
+            "data": {
+                "filePath": "file_path.json",
+                "download_url": "http://download/url/with/expiring/access/token/file.json",
+            },
+            "version": 1,
+            "status": "SUCCESS",
+            "kind": "BatchPredictionResponse",
+        },
+        "state": "C",
+        "prediction_type": "M",
+    }
+
+
+@pytest.fixture
+def batch_prediction_failure_data_cache():
+
+    return {
+        "request": "request_id",
+        "revision_model": "revision_model_id",
+        "result_data": {
+            "status": "FAILED",
+            "message": "Something broke!",
+        },
+        "state": "C",
+        "prediction_type": "M",
+    }
+
+
 def test_creates_analysis_correctly(analysis_data, patched_fero_client):
     """Test that a valid analysis is created from valid data and a valid client"""
 
@@ -303,13 +382,47 @@ def test_has_trained_model_false(analysis_data, patched_fero_client):
     assert analysis.has_trained_model() is False
 
 
-def test_make_prediction_dictionaries_v1(
-    analysis_data, patched_fero_client, prediction_data, prediction_result_data_v1
+def test_make_prediction_dictionaries(
+    analysis_data,
+    patched_fero_client,
+    prediction_data,
+    prediction_dataframe,
+    batch_prediction_success_data_cache,
+):
+    """Test that make prediction returns expected response as a dictionary of predictions"""
+
+    analysis = Analysis(patched_fero_client, analysis_data)
+    analysis._upload_file = mock.MagicMock()
+    analysis._upload_file.return_value = "test_workspace_id"
+    analysis._poll_workspace_for_prediction = mock.MagicMock()
+
+    # Mock prediction
+    test_prediction = Prediction(patched_fero_client, "result_id")
+    test_prediction._data_cache = batch_prediction_success_data_cache
+    test_prediction._complete = True
+    test_prediction.get_results = mock.MagicMock()
+    test_prediction.get_results.return_value = prediction_dataframe  # As pd.DataFrame
+    analysis._poll_workspace_for_prediction.return_value = test_prediction
+
+    results = analysis.make_prediction(prediction_data)
+
+    assert isinstance(results, list)
+    assert results == [
+        {"value1": 1.0, "value2": 2, "value3": 3.3},
+        {"value1": 4.0, "value2": 5, "value3": 6.3},
+    ]
+
+
+def test_make_prediction_serial_dictionaries_v1(
+    analysis_data,
+    patched_fero_client,
+    prediction_data,
+    prediction_result_data_single_v1,
 ):
     """Test that make prediction returns expected response with a dictionary of predictions"""
-    patched_fero_client.post.return_value = prediction_result_data_v1
+    patched_fero_client.post.return_value = prediction_result_data_single_v1
     analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction(prediction_data)
+    results = analysis.make_prediction_serial(prediction_data)
 
     patched_fero_client.post.assert_has_calls(
         [
@@ -350,13 +463,16 @@ def test_make_prediction_dictionaries_v1(
     ]
 
 
-def test_make_prediction_dictionaries_v2(
-    analysis_data, patched_fero_client, prediction_data, prediction_result_data_v2
+def test_make_prediction_serial_dictionaries_v2(
+    analysis_data,
+    patched_fero_client,
+    prediction_data,
+    prediction_result_data_single_v2,
 ):
     """Test that make prediction returns expected response with a dictionary of predictions"""
-    patched_fero_client.post.return_value = prediction_result_data_v2
+    patched_fero_client.post.return_value = prediction_result_data_single_v2
     analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction(prediction_data)
+    results = analysis.make_prediction_serial(prediction_data)
 
     patched_fero_client.post.assert_has_calls(
         [
@@ -405,17 +521,53 @@ def test_make_prediction_dictionaries_v2(
     ]
 
 
-def test_make_prediction_datafram_v1(
+def test_make_prediction_dataframe(
     analysis_data,
     patched_fero_client,
     prediction_dataframe,
-    prediction_result_data_v1,
+    batch_prediction_success_data_cache,
+):
+    """Test that make prediction returns expected response as a dataframe"""
+    analysis = Analysis(patched_fero_client, analysis_data)
+    analysis._upload_file = mock.MagicMock()
+    analysis._upload_file.return_value = "test_workspace_id"
+    analysis._poll_workspace_for_prediction = mock.MagicMock()
+
+    # Mock prediction
+    test_prediction = Prediction(patched_fero_client, "result_id")
+    test_prediction._data_cache = batch_prediction_success_data_cache
+    test_prediction._complete = True
+    test_prediction.get_results = mock.MagicMock()
+    test_prediction.get_results.return_value = prediction_dataframe  # As pd.DataFrame
+    analysis._poll_workspace_for_prediction.return_value = test_prediction
+
+    results = analysis.make_prediction(prediction_dataframe)
+
+    assert isinstance(results, pd.DataFrame)
+    expected = pd.DataFrame(
+        [
+            {"value1": 1.0, "value2": 2, "value3": 3.3},
+            {"value1": 4.0, "value2": 5, "value3": 6.3},
+        ]
+    )
+    assert_frame_equal(
+        results,
+        expected,
+        check_like=True,
+    )
+
+
+def test_make_prediction_serial_dataframe_v1(
+    analysis_data,
+    patched_fero_client,
+    prediction_dataframe,
+    prediction_result_data_single_v1,
     prediction_data,
 ):
     """Test that make prediction returns expected response with a dataframe"""
-    patched_fero_client.post.return_value = prediction_result_data_v1
+    patched_fero_client.post.return_value = prediction_result_data_single_v1
     analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction(prediction_dataframe)
+    results = analysis.make_prediction_serial(prediction_dataframe)
     patched_fero_client.post.assert_has_calls(
         [
             mock.call(
@@ -463,17 +615,17 @@ def test_make_prediction_datafram_v1(
     )
 
 
-def test_make_prediction_datafram_v2(
+def test_make_prediction_serial_dataframe_v2(
     analysis_data,
     patched_fero_client,
     prediction_dataframe,
-    prediction_result_data_v2,
+    prediction_result_data_single_v2,
     prediction_data,
 ):
     """Test that make prediction returns expected response with a dataframe"""
-    patched_fero_client.post.return_value = prediction_result_data_v2
+    patched_fero_client.post.return_value = prediction_result_data_single_v2
     analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction(prediction_dataframe)
+    results = analysis.make_prediction_serial(prediction_dataframe)
     patched_fero_client.post.assert_has_calls(
         [
             mock.call(
@@ -529,8 +681,8 @@ def test_make_prediction_datafram_v2(
     )
 
 
-def test_make_prediction_dataframe_duplicate_cols_v1(
-    analysis_data, patched_fero_client, prediction_result_data_v1
+def test_make_prediction_serial_dataframe_duplicate_cols_v1(
+    analysis_data, patched_fero_client, prediction_result_data_single_v1
 ):
     """Test that make prediction returns managled columns if the column names would overlap"""
 
@@ -539,9 +691,9 @@ def test_make_prediction_dataframe_duplicate_cols_v1(
         {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high": 5.5},
     ]
 
-    patched_fero_client.post.return_value = prediction_result_data_v1
+    patched_fero_client.post.return_value = prediction_result_data_single_v1
     analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction(dupe_data)
+    results = analysis.make_prediction_serial(dupe_data)
 
     assert isinstance(results, list)
     assert results == [
@@ -572,8 +724,8 @@ def test_make_prediction_dataframe_duplicate_cols_v1(
     ]
 
 
-def test_make_prediction_dataframe_duplicate_cols_v2(
-    analysis_data, patched_fero_client, prediction_result_data_v2
+def test_make_prediction_serial_dataframe_duplicate_cols_v2(
+    analysis_data, patched_fero_client, prediction_result_data_single_v2
 ):
     """Test that make prediction returns managled columns if the column names would overlap"""
 
@@ -582,9 +734,9 @@ def test_make_prediction_dataframe_duplicate_cols_v2(
         {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high90": 5.5},
     ]
 
-    patched_fero_client.post.return_value = prediction_result_data_v2
+    patched_fero_client.post.return_value = prediction_result_data_single_v2
     analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction(dupe_data)
+    results = analysis.make_prediction_serial(dupe_data)
 
     assert isinstance(results, list)
     assert results == [
@@ -623,7 +775,7 @@ def test_make_prediction_dataframe_duplicate_cols_v2(
     ]
 
 
-def test_make_prediction_prediction_failure(
+def test_make_prediction_serial_prediction_failure(
     analysis_data, patched_fero_client, prediction_data
 ):
     """Test that  a FeroError is raised if a prediction fails"""
@@ -634,6 +786,27 @@ def test_make_prediction_prediction_failure(
             "message": "Something broke!",
         }
         analysis = Analysis(patched_fero_client, analysis_data)
+        analysis.make_prediction_serial(prediction_data)
+
+
+def test_make_prediction_prediction_failure(
+    analysis_data,
+    patched_fero_client,
+    prediction_data,
+    batch_prediction_failure_data_cache,
+):
+    """Test that  a FeroError is raised if a prediction fails"""
+
+    with pytest.raises(FeroError):
+        analysis = Analysis(patched_fero_client, analysis_data)
+        analysis._upload_file = mock.MagicMock()
+        analysis._upload_file.return_value = "test_workspace_id"
+        analysis._poll_workspace_for_prediction = mock.MagicMock()
+        test_prediction = Prediction(patched_fero_client, "result_id")
+        test_prediction._data_cache = batch_prediction_failure_data_cache
+        test_prediction._complete = True
+        analysis._poll_workspace_for_prediction.return_value = test_prediction
+
         analysis.make_prediction(prediction_data)
 
 
@@ -922,7 +1095,6 @@ def test_analysis_make_optimization_simple_case_categorical(
         "factor": "Category 0",
         "dtype": "category",
     }
-    print(expected_optimization_config)
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
@@ -1182,3 +1354,61 @@ def test_prediction_get_result_dict(
         }
     ]
     assert excepted == pred.get_results(format="records")
+
+
+def test_analysis_upload_file_makes_expected_calls_azure(
+    analysis_data, patched_fero_client
+):
+    """Test that _upload_file makes the expected calls and returns the expected values"""
+    patched_fero_client.post.return_value = {
+        "upload_type": "azure",
+        "workspace_id": "uuid",
+        "other_info": "test_value",
+    }
+    analysis = Analysis(patched_fero_client, analysis_data)
+    analysis._azure_upload = mock.MagicMock()
+    analysis._s3_upload = mock.MagicMock()
+    fp = io.StringIO("test_data")
+    analysis._upload_file(fp, "test_tag", "test_type")
+
+    patched_fero_client.post.assert_has_calls(
+        [
+            mock.call(
+                f"/api/analyses/{str(analysis.uuid)}/workspaces/inbox_url/",
+                {"file_tag": "test_tag", "prediction_type": "test_type"},
+            )
+        ]
+    )
+    analysis._azure_upload.assert_has_calls(
+        [mock.call({"upload_type": "azure", "other_info": "test_value"}, fp)]
+    )
+    analysis._s3_upload.assert_has_calls([])
+
+
+def test_analysis_upload_file_makes_expected_calls_s3(
+    analysis_data, patched_fero_client
+):
+    """Test that _upload_file makes the expected calls and returns the expected values"""
+    patched_fero_client.post.return_value = {
+        "upload_type": "s3",
+        "workspace_id": "uuid",
+        "other_info": "test_value",
+    }
+    analysis = Analysis(patched_fero_client, analysis_data)
+    analysis._azure_upload = mock.MagicMock()
+    analysis._s3_upload = mock.MagicMock()
+    fp = io.StringIO("test_data")
+    analysis._upload_file(fp, "test_tag", "test_type")
+
+    patched_fero_client.post.assert_has_calls(
+        [
+            mock.call(
+                f"/api/analyses/{str(analysis.uuid)}/workspaces/inbox_url/",
+                {"file_tag": "test_tag", "prediction_type": "test_type"},
+            )
+        ]
+    )
+    analysis._s3_upload.assert_has_calls(
+        [mock.call({"upload_type": "s3", "other_info": "test_value"}, "test_tag", fp)]
+    )
+    analysis._azure_upload.assert_has_calls([])

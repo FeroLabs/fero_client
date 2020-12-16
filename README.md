@@ -98,6 +98,8 @@ The `Analysis.make_prediction` method, as its name implies, makes a prediction u
 
 The return value will either be a data frame with each target value predicted by Fero added to each row or keys for each target added to each dictionary depending on the initial input type. These values will have the suffixes `_low`, `_mid`, `_high` added to each target name to indicate the range of the prediction.
 
+Note: `Analysis.make_prediction` utilizes a fast bulk prediction operation supported by many Fero models. For some legacy blueprints, you may use `Analysis.make_prediction_serial` to fetch predictions one row at a time.
+
 #### Example
 
 ```python
