@@ -212,9 +212,7 @@ class Fero:
             allow_404=False,
         )
 
-    def get(
-        self, url: str, params=None, allow_404=False
-    ) -> Union[dict, bytes]:
+    def get(self, url: str, params=None, allow_404=False) -> Union[dict, bytes]:
         """Do a GET request with headers set."""
         return self._handle_response(
             requests.get(
