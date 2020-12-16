@@ -267,8 +267,7 @@ class Analysis:
 
         return col_name
 
-    @staticmethod
-    def _s3_upload(inbox_response, file_name, fp) -> None:
+    def _s3_upload(self, inbox_response, file_name, fp) -> None:
 
         files = {
             "file": (
@@ -276,11 +275,11 @@ class Analysis:
                 fp,
             )
         }
-
         res = requests.post(
             inbox_response["url"],
             data=inbox_response["fields"],
             files=files,
+            verify=self._client._verify
         )
 
         if res.status_code != 204:
