@@ -176,7 +176,7 @@ class Prediction:
             )
         if self.prediction_type == BULK_PREDICTION_TYPE:
             data_url = self._data["result_data"]["data"]["download_url"]
-            data = self._client.get(data_url, append_hostname=False)
+            data = self._client.get_preauthenticated(data_url)
             return pd.DataFrame(**data)
         else:
             data = self._data["result_data"]["data"]["values"]

@@ -213,16 +213,21 @@ class Fero:
         )
 
     def get(
-        self, url: str, params=None, allow_404=False, append_hostname=True
+        self, url: str, params=None, allow_404=False
     ) -> Union[dict, bytes]:
         """Do a GET request with headers set."""
-
         return self._handle_response(
             requests.get(
-                f"{self._hostname if append_hostname else ''}{url}",
+                f"{self._hostname}{url}",
                 params=params,
                 headers={"Authorization": f"JWT {self._fero_token}"},
                 verify=self._verify,
             ),
             allow_404=allow_404,
+        )
+
+    def get_preauthenticated(self, url, params=None) -> Union[dict, bytes]:
+        """Do a GET request without adjusting the url or auth headers"""
+        return self._handle_response(
+            requests.get(url, params=params, verify=self._verify)
         )
