@@ -279,7 +279,7 @@ class Analysis:
             inbox_response["url"],
             data=inbox_response["fields"],
             files=files,
-            verify=self._client._verify
+            verify=self._client._verify,
         )
 
         if res.status_code != 204:
