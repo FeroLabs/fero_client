@@ -920,7 +920,7 @@ def test_analysis_make_optimization_simple_case_categorical(
     )
     expected_optimization_config["input_data"]["bounds"][0] = {
         "factor": "Category 0",
-        "dtype": "factor_category"
+        "dtype": "factor_category",
     }
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(

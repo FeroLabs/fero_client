@@ -357,7 +357,8 @@ class Analysis:
         try:
             # Only support real and integer targets
             guess = next(
-                f["guess"] for f in self._schema["columns"]
+                f["guess"]
+                for f in self._schema["columns"]
                 if f["name"] == target_name and f["guess"] in ["real", "integer"]
             )
             return "target_float" if guess == "real" else "target_int"
