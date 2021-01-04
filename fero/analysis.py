@@ -71,8 +71,8 @@ class AnalysisSchema(Schema):
 
 class FactorSchema(Schema):
     name = fields.String(required=True)
-    min = fields.Float(required=False)
-    max = fields.Float(required=False)
+    min = fields.Number(required=False)
+    max = fields.Number(required=False)
 
 
 class CostSchema(FactorSchema):
@@ -502,7 +502,6 @@ class Analysis:
                     if dtype != "factor_category"
                     else {"factor": c["name"], "dtype": dtype}
                 )
-
         target_bounds = [
             {
                 "factor": c["name"],
@@ -551,15 +550,22 @@ class Analysis:
             }
 
         else:
-            dtype = self._get_factor_dtype(goal["factor"]["name"])
+            goal_name = goal["factor"]["name"]
+            goal_is_target = goal_name in self.target_names
+            dtype = (
+                self._get_target_dtype(goal_name)
+                if goal_is_target
+                else self._get_factor_dtype(goal_name)
+            )
             goal_bound = {
                 "factor": goal["factor"]["name"],
                 "lowerBound": goal["factor"]["min"],
                 "upperBound": goal["factor"]["max"],
-                "dtype": dtype if dtype is not None else "float",
+                "dtype": dtype
+                if dtype is not None
+                else f"{'target' if goal_is_target else 'factor'}_float",
             }
-
-            if dtype is None:
+            if goal_is_target:
                 goal_bound["confidenceInterval"] = ci_value
 
             bounds.append(goal_bound)
