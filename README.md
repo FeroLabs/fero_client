@@ -135,7 +135,7 @@ goal = {
 
 constraints = [{"name": "target", "min": 100.0, "max": 200}]
 
-opt = analysis.make("example_optimization", goal, constraints)
+opt = analysis.make_optimization("example_optimization", goal, constraints)
 ```
 
 By default, Fero will use the median values of fixed factors while computing the optimization. These can be overridden with custom values by passing a dictionary of `factor`:`value` pairs as the `fixed_factors` argument to the optimization function.
@@ -152,7 +152,7 @@ goal = {
 
 constraints = [{"name": "target", "min": 100.0, "max": 200}]
 
-opt = analysis.make("example_cost_optimization", goal, constraints)
+opt = analysis.make_optimization("example_cost_optimization", goal, constraints)
 ```
 
 In both cases, a `Prediction` object is return which will provide the data. By default, the result will be a `DataFrame` but it can also be configured to be a list of dictionaries if you're trying to avoid pandas.
@@ -168,7 +168,7 @@ goal = {
 
 constraints = [{"name": "target", "min": 100.0, "max": 200}]
 
-opt = analysis.make("example_optimization", goal, constraints)
+opt = analysis.make_optimization("example_optimization", goal, constraints)
 
 print(opt.get_results())
 """

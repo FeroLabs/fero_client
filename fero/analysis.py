@@ -59,6 +59,8 @@ class AnalysisSchema(Schema):
 
     latest_completed_model_modified = fields.DateTime(required=True, allow_none=True)
 
+    latest_completed_model_schema = fields.Dict(default=dict, missing=dict)
+
     schema_overrides = fields.Dict(default=dict, missing=dict)
 
     display_options = fields.Dict(allow_none=True, default=dict, missing=dict)
@@ -74,8 +76,8 @@ class AnalysisSchema(Schema):
 
 class FactorSchema(Schema):
     name = fields.String(required=True)
-    min = fields.Float(required=False)
-    max = fields.Float(required=False)
+    min = fields.Number(required=False)
+    max = fields.Number(required=False)
 
 
 class CostSchema(FactorSchema):
@@ -255,6 +257,13 @@ class Analysis:
             self._get_presentation_data()
 
         return self._presentation_data_cache
+
+    @property
+    def _schema(self):
+        if self._schema_cache is None:
+            self._schema_cache = self._data.get("latest_completed_model_schema", None)
+
+        return self._schema_cache
 
     @staticmethod
     def _make_col_name(col_name: str, cols: List[str]) -> str:
@@ -452,7 +461,20 @@ class Analysis:
             goal_data = next(
                 f for f in self._regression_factors if f["factor"] == factor_name
             )
-            return goal_data["dtype"]
+            return f"factor_{goal_data['dtype']}"
+        except StopIteration:
+            return None
+
+    def _get_target_dtype(self, target_name: str) -> Union[str, None]:
+        """Returns the dtype of a target or None if the target isn't found"""
+        try:
+            # Only support real and integer targets
+            guess = next(
+                f["guess"]
+                for f in self._schema["columns"]
+                if f["name"] == target_name and f["guess"] in ["real", "integer"]
+            )
+            return "target_float" if guess == "real" else "target_int"
         except StopIteration:
             return None
 
@@ -467,7 +489,7 @@ class Analysis:
         # If this is a factor makes sure it's not a float
         if goal_name not in self.target_names and self._get_factor_dtype(
             goal_name
-        ) not in ["float", "integer"]:
+        ) not in ["factor_float", "factor_int"]:
             raise FeroError("Goal must be a float or integer")
 
     def _verify_cost_goal(self, goal: dict):
@@ -478,7 +500,7 @@ class Analysis:
             if factor_type is None:
                 raise FeroError(f'"{factor_name}" is not a factor')
             # Implicitly find missing factors
-            if factor_type not in ["float", "integer"]:
+            if factor_type not in ["factor_float", "factor_int"]:
                 raise FeroError("Cost functions factors must be floats or integers")
 
     def _verify_constraints(self, constraints: List[dict]):
@@ -590,16 +612,15 @@ class Analysis:
                         "upperBound": c.get("max", None),
                         "dtype": dtype,
                     }
-                    if dtype != "category"
+                    if dtype != "factor_category"
                     else {"factor": c["name"], "dtype": dtype}
                 )
-
         target_bounds = [
             {
                 "factor": c["name"],
                 "lowerBound": c.get("min", None),
                 "upperBound": c.get("max", None),
-                "dtype": "float",
+                "dtype": self._get_target_dtype(c["name"]),
                 "confidenceInterval": ci_value,
             }
             for c in constraints
@@ -642,15 +663,22 @@ class Analysis:
             }
 
         else:
-            dtype = self._get_factor_dtype(goal["factor"]["name"])
+            goal_name = goal["factor"]["name"]
+            goal_is_target = goal_name in self.target_names
+            dtype = (
+                self._get_target_dtype(goal_name)
+                if goal_is_target
+                else self._get_factor_dtype(goal_name)
+            )
             goal_bound = {
                 "factor": goal["factor"]["name"],
                 "lowerBound": goal["factor"]["min"],
                 "upperBound": goal["factor"]["max"],
-                "dtype": dtype if dtype is not None else "float",
+                "dtype": dtype
+                if dtype is not None
+                else f"{'target' if goal_is_target else 'factor'}_float",
             }
-
-            if dtype is None:
+            if goal_is_target:
                 goal_bound["confidenceInterval"] = ci_value
 
             bounds.append(goal_bound)

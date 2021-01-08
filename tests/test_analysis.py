@@ -129,20 +129,20 @@ def expected_optimization_config():
                     "factor": "Factor 1",
                     "lowerBound": 60.0,
                     "upperBound": 200.0,
-                    "dtype": "float",
+                    "dtype": "factor_float",
                 },
                 {
                     "factor": "Target 1",
                     "lowerBound": 600.0,
                     "upperBound": 700.0,
-                    "dtype": "float",
+                    "dtype": "target_float",
                     "confidenceInterval": "exclude",
                 },
                 {
                     "factor": "Factor 2",
                     "lowerBound": 70.0,
                     "upperBound": 100.0,
-                    "dtype": "float",
+                    "dtype": "factor_float",
                 },
             ],
         },
@@ -1093,7 +1093,7 @@ def test_analysis_make_optimization_simple_case_categorical(
     )
     expected_optimization_config["input_data"]["bounds"][0] = {
         "factor": "Category 0",
-        "dtype": "category",
+        "dtype": "factor_category",
     }
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
@@ -1117,26 +1117,26 @@ def test_analysis_make_optimization_cost(
             "factor": "Factor 1",
             "lowerBound": 60.0,
             "upperBound": 200.0,
-            "dtype": "float",
+            "dtype": "factor_float",
         },
         {
             "factor": "Target 1",
             "lowerBound": 600.0,
             "upperBound": 700.0,
-            "dtype": "float",
+            "dtype": "target_float",
             "confidenceInterval": "exclude",
         },
         {
             "factor": "Factor 2",
             "lowerBound": 70.0,
             "upperBound": 100.0,
-            "dtype": "float",
+            "dtype": "factor_float",
         },
         {
             "factor": "Factor 3",
             "lowerBound": 100.0,
             "upperBound": 150.0,
-            "dtype": "float",
+            "dtype": "factor_float",
         },
         {
             "factor": "FERO_COST_FUNCTION",

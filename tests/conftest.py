@@ -28,6 +28,22 @@ def analysis_data():
         "latest_completed_model_score": 95,
         "latest_completed_model_score_qualifier": "good",
         "latest_completed_model_modified": "2020-09-22T17:26:31.747595Z",
+        "latest_completed_model_schema": {
+            "kind": "InterpretedSchema",
+            "columns": [
+                {"name": "Factor 1", "guess": "real", "notices": []},
+                {"name": "Factor 2", "guess": "real", "notices": []},
+                {"name": "Factor 3", "guess": "real", "notices": []},
+                {"name": "Category 0", "guess": "categorical", "notices": []},
+                {"name": "Target 1", "guess": "real", "notices": []},
+                {"name": "Target 2", "guess": "integer", "notices": []},
+            ],
+            "version": 1,
+            "rowCount": 20,
+            "globalErrors": [],
+            "globalWarnings": [],
+            "primaryKeyColumns": [],
+        },
         "display_options": None,
         "ac_name": "grain_analysis",
     }
