@@ -367,7 +367,7 @@ class Analysis:
     ) -> Union[pd.DataFrame, List[dict]]:
         """Makes a prediction from the provided data using the most recent trained model for the analysis.
         This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
-        bulk prediction, use `make_prediction_legacy`.
+        bulk prediction, use `make_prediction_serial`.
 
         `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
         to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
