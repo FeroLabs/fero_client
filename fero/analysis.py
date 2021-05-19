@@ -35,9 +35,11 @@ class AnalysisSchema(Schema):
 
     created_by = fields.Dict(required=True)
 
-    data_source_name = fields.String(required=True)
+    data_source_name = fields.String(required=False)
+    process_name = fields.String(required=False)
 
     data_source_deleted = fields.Boolean()
+    process_deleted = fields.Boolean()
 
     latest_revision = fields.Integer()
 
@@ -68,7 +70,8 @@ class AnalysisSchema(Schema):
 
     uuid = fields.UUID(required=True)
     name = fields.String(required=True)
-    data_source = fields.UUID(required=True)
+    data_source = fields.UUID(required=True, allow_none=True)
+    process = fields.UUID(required=True, allow_none=True)
     created = fields.DateTime(require=True)
     modified = fields.DateTime(require=True)
     blueprint_name = fields.String(required=True)
