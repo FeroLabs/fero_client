@@ -71,7 +71,7 @@ class AnalysisSchema(Schema):
     uuid = fields.UUID(required=True)
     name = fields.String(required=True)
     data_source = fields.UUID(required=True, allow_none=True)
-    process = fields.UUID(required=True, allow_none=True)
+    process = fields.UUID()
     created = fields.DateTime(require=True)
     modified = fields.DateTime(require=True)
     blueprint_name = fields.String(required=True)
