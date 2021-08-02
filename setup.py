@@ -9,7 +9,7 @@ import pathlib
 here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.md").read_text(encoding="utf-8")
-VERSION = "1.4.3"
+VERSION = "1.5.1"
 
 
 class VerifyVersionCommand(install):
