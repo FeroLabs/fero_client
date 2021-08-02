@@ -1,6 +1,9 @@
+from fero.datasource import DataSource
 import os
+import io
 import re
 import requests
+from azure.storage.blob import BlobClient
 from pathlib import Path
 from typing import Optional, Union, List
 from . import FeroError
@@ -149,6 +152,38 @@ class Fero:
                 f"There was an issue connecting to Fero. - Status Code: {response.status_code}"
             )
 
+    def _s3_upload(self, inbox_response, file_name, fp) -> None:
+
+        files = {
+            "file": (
+                file_name,
+                fp,
+            )
+        }
+        res = requests.post(
+            inbox_response["url"],
+            data=inbox_response["fields"],
+            files=files,
+            verify=self._verify,
+        )
+
+        if res.status_code != 204:
+            raise FeroError("Error Uploading File")
+
+    @staticmethod
+    def _azure_upload(inbox_response: dict, fp) -> None:
+        blob_client = BlobClient.from_blob_url(
+            f"https://{inbox_response['storage_name']}.blob.core.windows.net/{inbox_response['container']}/{inbox_response['blob']}?{inbox_response['sas_token']}"
+        )
+        blob_client.upload_blob(io.BytesIO(fp.read().encode()))
+
+    def upload_file(self, inbox_response, file_name, file_pointer):
+        """Uploads a file to object store specified by Fero inbox response"""
+        if inbox_response["upload_type"] == "azure":
+            self._azure_upload(inbox_response, file_pointer)
+        else:
+            self._s3_upload(inbox_response, file_name, file_pointer)
+
     def search_analyses(self, name: str = None) -> List[Analysis]:
         """Searches available analyses by name and returns a list of matching objects.
 
@@ -198,6 +233,17 @@ class Fero:
         """
         asset_data = self.get(f"/api/assets/{uuid}/")
         return Asset(self, asset_data)
+
+    def get_datasource(self, uuid: str) -> DataSource:
+        """Gets a Fero Data Source by uuid
+
+        :param uuid: UUID of requested object
+        :type uuid: str
+        :return: A data source object
+        :rtype: DataSource
+        """
+        source_data = self.get(f"/api/v2/data_source/{uuid}/")
+        return DataSource(self, source_data)
 
     def post(self, url: str, data: dict) -> Union[dict, bytes]:
         """Do a POST request with headers set."""

@@ -1,3 +1,4 @@
+from fero.datasource import DataSource
 from fero.analysis import Analysis
 from fero.asset import Asset
 import pytest
@@ -226,4 +227,17 @@ def test_search_assets(patch_fero_get, asset_data):
     assert assets[0].name == asset_data["name"]
     patch_fero_get.assert_called_with(
         "/api/assets/", params={"name": asset_data["name"]}
+    )
+
+
+def test_get_datasource_success(patch_fero_get, datasource_data):
+    """Test that an data source is returned by get_datasource"""
+
+    patch_fero_get.return_value = datasource_data
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    ds = client.get_datasource("9f79206e-94fc-4834-8f52-84008b12df86")
+    assert isinstance(ds, DataSource)
+    assert ds.name == datasource_data["name"]
+    patch_fero_get.assert_called_with(
+        "/api/v2/data_source/9f79206e-94fc-4834-8f52-84008b12df86/"
     )

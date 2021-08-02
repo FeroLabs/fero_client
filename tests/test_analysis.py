@@ -1366,8 +1366,8 @@ def test_analysis_upload_file_makes_expected_calls_azure(
         "other_info": "test_value",
     }
     analysis = Analysis(patched_fero_client, analysis_data)
-    analysis._azure_upload = mock.MagicMock()
-    analysis._s3_upload = mock.MagicMock()
+    analysis._client._azure_upload = mock.MagicMock()
+    analysis._client._s3_upload = mock.MagicMock()
     fp = io.StringIO("test_data")
     analysis._upload_file(fp, "test_tag", "test_type")
 
@@ -1379,10 +1379,10 @@ def test_analysis_upload_file_makes_expected_calls_azure(
             )
         ]
     )
-    analysis._azure_upload.assert_has_calls(
+    analysis._client._azure_upload.assert_has_calls(
         [mock.call({"upload_type": "azure", "other_info": "test_value"}, fp)]
     )
-    analysis._s3_upload.assert_has_calls([])
+    analysis._client._s3_upload.assert_has_calls([])
 
 
 def test_analysis_upload_file_makes_expected_calls_s3(
@@ -1395,8 +1395,8 @@ def test_analysis_upload_file_makes_expected_calls_s3(
         "other_info": "test_value",
     }
     analysis = Analysis(patched_fero_client, analysis_data)
-    analysis._azure_upload = mock.MagicMock()
-    analysis._s3_upload = mock.MagicMock()
+    analysis._client._azure_upload = mock.MagicMock()
+    analysis._client._s3_upload = mock.MagicMock()
     fp = io.StringIO("test_data")
     analysis._upload_file(fp, "test_tag", "test_type")
 
@@ -1408,7 +1408,7 @@ def test_analysis_upload_file_makes_expected_calls_s3(
             )
         ]
     )
-    analysis._s3_upload.assert_has_calls(
+    analysis._client._s3_upload.assert_has_calls(
         [mock.call({"upload_type": "s3", "other_info": "test_value"}, "test_tag", fp)]
     )
-    analysis._azure_upload.assert_has_calls([])
+    analysis._client._azure_upload.assert_has_calls([])

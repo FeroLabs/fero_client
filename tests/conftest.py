@@ -86,6 +86,45 @@ def asset_data():
 
 
 @pytest.fixture
+def datasource_data():
+    return {
+        "uuid": "9f79206e-94fc-4834-8f52-84008b12df86",
+        "name": "three_residences new",
+        "description": "",
+        "status": "R",
+        "schema": {
+            "columns": [
+                {"guess": "integer", "name": "s1_factor1"},
+                {"guess": "integer", "name": "s1_factor2"},
+                {"guess": "integer", "name": "s2_factor1"},
+                {"guess": "real", "name": "s3_factor1"},
+                {"guess": "integer", "name": "s3_factor2"},
+                {"guess": "real", "name": "s3_kpi"},
+                {"name": "dt", "guess": "datetime"},
+            ],
+            "version": 2,
+            "kind": "ParsedSchema",
+        },
+        "created": "2021-07-21T15:17:23.839599Z",
+        "modified": "2021-07-21T15:17:24.540926Z",
+        "error_notices": {"errors": []},
+        "primary_key_column": None,
+        "primary_datetime_column": "dt",
+        "overwrites": {
+            "columns": [],
+            "version": 1,
+            "kind": "DataSourceColumnOverwrites",
+        },
+        "download_url": None,
+        "username": "jaz",
+        "ac_name": "jazaccess",
+        "transformed_source": False,
+        "progress": 92,
+        "live_source": False,
+    }
+
+
+@pytest.fixture
 def patched_fero_client():
     with mock.patch.object(Fero, "post"):
         with mock.patch.object(Fero, "get"):

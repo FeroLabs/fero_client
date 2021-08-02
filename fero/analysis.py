@@ -2,9 +2,7 @@ import time
 import fero
 import uuid
 import io
-import requests
 from fero import FeroError
-from azure.storage.blob import BlobClient
 import pandas as pd
 from marshmallow import (
     Schema,
@@ -279,31 +277,6 @@ class Analysis:
 
         return col_name
 
-    def _s3_upload(self, inbox_response, file_name, fp) -> None:
-
-        files = {
-            "file": (
-                file_name,
-                fp,
-            )
-        }
-        res = requests.post(
-            inbox_response["url"],
-            data=inbox_response["fields"],
-            files=files,
-            verify=self._client._verify,
-        )
-
-        if res.status_code != 204:
-            raise FeroError("Error Uploading File")
-
-    @staticmethod
-    def _azure_upload(inbox_response: dict, fp) -> None:
-        blob_client = BlobClient.from_blob_url(
-            f"https://{inbox_response['storage_name']}.blob.core.windows.net/{inbox_response['container']}/{inbox_response['blob']}?{inbox_response['sas_token']}"
-        )
-        blob_client.upload_blob(io.BytesIO(fp.read().encode()))
-
     def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> str:
         """Uploads a single file to the uploaded files location. Returns id of workspace to check"""
 
@@ -313,11 +286,7 @@ class Analysis:
         )
 
         workspace_id = inbox_response.pop("workspace_id")
-
-        if inbox_response["upload_type"] == "azure":
-            self._azure_upload(inbox_response, fp)
-        else:
-            self._s3_upload(inbox_response, file_tag, fp)
+        self._client.upload_file(inbox_response, file_tag, fp)
         return workspace_id
 
     def _parse_regression_data(self):
