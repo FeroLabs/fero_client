@@ -45,19 +45,19 @@ class AnalysisSchema(Schema):
 
     latest_revision_model_state = fields.String(required=True)
 
-    latest_trained_revision = fields.Integer(required=True, allow_none=True)
+    latest_trained_revision = fields.Integer(required=False, allow_none=True)
 
     latest_trained_revision_model = fields.UUID(allow_none=True)
 
     latest_completed_model = fields.UUID(allow_none=True)
-
-    latest_completed_model_score = fields.Integer(required=True, allow_none=True)
+    # We should eventually make this required again when we update the server with defaults
+    latest_completed_model_score = fields.Integer(required=False, allow_none=True)
 
     latest_completed_model_score_qualifier = fields.String(
-        required=True, allow_none=True
+        required=False, allow_none=True
     )
 
-    latest_completed_model_modified = fields.DateTime(required=True, allow_none=True)
+    latest_completed_model_modified = fields.DateTime(required=False, allow_none=True)
 
     latest_completed_model_schema = fields.Dict(default=dict, missing=dict)
 
@@ -69,7 +69,7 @@ class AnalysisSchema(Schema):
     uuid = fields.UUID(required=True)
     name = fields.String(required=True)
     data_source = fields.UUID(required=True, allow_none=True)
-    process = fields.UUID()
+    process = fields.UUID(required=False, allow_none=True)
     created = fields.DateTime(require=True)
     modified = fields.DateTime(require=True)
     blueprint_name = fields.String(required=True)
