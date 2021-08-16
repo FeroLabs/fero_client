@@ -2,6 +2,7 @@ import time
 import fero
 import uuid
 import io
+import datetime
 from fero import FeroError
 import pandas as pd
 from marshmallow import (
@@ -73,6 +74,14 @@ class AnalysisSchema(Schema):
     created = fields.DateTime(require=True)
     modified = fields.DateTime(require=True)
     blueprint_name = fields.String(required=True)
+
+
+class RevisionSchema(Schema):
+    class Meta:
+        unknown = EXCLUDE
+
+    version = fields.Integer()
+    configured_blueprint = fields.Dict()
 
 
 class FactorSchema(Schema):
@@ -276,6 +285,44 @@ class Analysis:
             c += 1
 
         return col_name
+
+    def is_retraining(self) -> bool:
+        self._refresh_analysis()
+        training = self.latest_revision_model_state == "T"
+        latest_revision = self.latest_revision
+        if not training:
+            self._refresh_analysis()
+            # requery if a new version somehow got created when we refreshed.  Do this until they match
+            if self.latest_revision != latest_revision:
+                return self.is_retraining()
+
+        return training
+
+    def revise(self):
+
+        # don't revise if currently training
+        if self.is_retraining():
+            return
+
+        latest_revision = self._client.get(
+            f"/api/analyses/{self.uuid}/revisions/{self.latest_revision}/"
+        )
+        latest_revision = RevisionSchema().load(latest_revision)
+        latest_blueprint = latest_revision["configured_blueprint"]
+
+        self._client.post(
+            f"/api/analyses/{self.uuid}/revisions/",
+            {
+                "description": f"Revision created via fero client on {datetime.datetime.now().isoformat()}",
+                "configured_blueprint": latest_blueprint,
+            },
+        )
+        self._refresh_analysis()
+
+    def _refresh_analysis(self):
+        data = self._client.get(f"/api/analyses/{self.uuid}/")
+        schema = AnalysisSchema()
+        self._data = schema.load(data)
 
     def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> str:
         """Uploads a single file to the uploaded files location. Returns id of workspace to check"""
