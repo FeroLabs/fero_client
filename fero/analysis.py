@@ -287,6 +287,11 @@ class Analysis:
         return col_name
 
     def is_retraining(self) -> bool:
+        """Checks if an analysis is currently be retrained.
+
+        :return: True if the analysis is in the process of being retrained, false otherwise.
+        :rtype: bool
+        """
         self._refresh_analysis()
         training = self.latest_revision_model_state == "T"
         latest_revision = self.latest_revision
@@ -299,7 +304,12 @@ class Analysis:
         return training
 
     def revise(self):
+        """Triggers an analysis revision which causes the analysis to be retrained with any new data or changes in the process configurations.
 
+        This method will not revise the analysis if a new analysis is currently being trained.  It currently only supports revising an analysis with the previously selected options.
+
+        For more granular configuration of a revision please use the Fero Labs website.
+        """
         # don't revise if currently training
         if self.is_retraining():
             return
@@ -320,6 +330,7 @@ class Analysis:
         self._refresh_analysis()
 
     def _refresh_analysis(self):
+        """Reload the latest analysis data from the server"""
         data = self._client.get(f"/api/analyses/{self.uuid}/")
         schema = AnalysisSchema()
         self._data = schema.load(data)
