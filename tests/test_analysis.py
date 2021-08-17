@@ -1428,7 +1428,7 @@ def test_is_retraining_not_retraining(analysis_data, patched_fero_client):
 
 
 def test_is_retraining_retraining(analysis_data, patched_fero_client):
-    """Test that is_retraining() returns false if the analysis is training"""
+    """Test that is_retraining() returns true if the analysis is training"""
 
     analysis_data["latest_revision_model_state"] = "T"
     patched_fero_client.get.return_value = analysis_data.copy()
