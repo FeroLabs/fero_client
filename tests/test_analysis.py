@@ -1,6 +1,7 @@
-from fero import FeroError
 import io
+import datetime
 import pytest
+from fero import FeroError
 from unittest import mock
 from fero.analysis import Analysis, Prediction
 import pandas as pd
@@ -1412,3 +1413,94 @@ def test_analysis_upload_file_makes_expected_calls_s3(
         [mock.call({"upload_type": "s3", "other_info": "test_value"}, "test_tag", fp)]
     )
     analysis._client._azure_upload.assert_has_calls([])
+
+
+def test_is_retraining_not_retraining(analysis_data, patched_fero_client):
+    """Test that is_retraining() returns false if the analysis is not training"""
+
+    patched_fero_client.get.return_value = analysis_data.copy()
+    analysis_data["latest_revision_model_state"] = "T"
+    analysis = Analysis(patched_fero_client, analysis_data)
+    assert analysis.is_retraining() is False
+    patched_fero_client.get.assert_called_with(
+        f"/api/analyses/{analysis_data['uuid']}/"
+    )
+
+
+def test_is_retraining_retraining(analysis_data, patched_fero_client):
+    """Test that is_retraining() returns true if the analysis is training"""
+
+    analysis_data["latest_revision_model_state"] = "T"
+    patched_fero_client.get.return_value = analysis_data.copy()
+
+    analysis = Analysis(patched_fero_client, analysis_data)
+    assert analysis.is_retraining() is True
+    patched_fero_client.get.assert_called_with(
+        f"/api/analyses/{analysis_data['uuid']}/"
+    )
+
+
+def test_not_retraining_new_version_race_condition(analysis_data, patched_fero_client):
+    """Test that is_retraining is called again if the latest version"""
+    second_version = analysis_data.copy()
+    second_version["latest_revision"] = second_version["latest_revision"] + 1
+
+    patched_fero_client.get.side_effect = [
+        analysis_data,
+        second_version,
+        second_version,
+        second_version,
+    ]
+
+    analysis = Analysis(patched_fero_client, analysis_data)
+    assert analysis.is_retraining() is False
+    patched_fero_client.get.assert_has_calls(
+        [mock.call(f"/api/analyses/{analysis_data['uuid']}/") for _ in range(4)]
+    )
+
+
+def test_revise_makes_expected_calls(analysis_data, patched_fero_client, revision_data):
+    """Test that revise makes the expected calls to the server"""
+    analysis = Analysis(patched_fero_client, analysis_data)
+    patched_fero_client.get.side_effect = [
+        analysis_data,
+        analysis_data,
+        revision_data,
+        analysis_data,
+        analysis_data,
+    ]
+    patched_fero_client.post.return_value = revision_data
+
+    with mock.patch("datetime.datetime") as dt:
+        now = datetime.datetime(2021, 8, 4, 0, 0, 1)
+        dt.now.return_value = now
+        analysis.revise()
+
+        patched_fero_client.get.assert_has_calls(
+            [
+                mock.call(f"/api/analyses/{analysis_data['uuid']}/"),
+                mock.call(
+                    f"/api/analyses/{analysis_data['uuid']}/revisions/{analysis_data['latest_revision']}/"
+                ),
+                mock.call(f"/api/analyses/{analysis_data['uuid']}/"),
+            ]
+        )
+        patched_fero_client.post.assert_called_with(
+            f"/api/analyses/{analysis_data['uuid']}/revisions/",
+            {
+                "description": f"Revision created via fero client on {now.isoformat()}",
+                "configured_blueprint": revision_data["configured_blueprint"],
+            },
+        )
+
+
+def test_revise_does_not_revise_if_training(analysis_data, patched_fero_client):
+    """Test a revision is not made if the analysis is currently being trained"""
+
+    analysis = Analysis(patched_fero_client, analysis_data)
+    analysis_data["latest_revision_model_state"] = "T"
+    patched_fero_client.get.return_value = analysis_data
+
+    analysis.revise()
+    patched_fero_client.get.called_once_with(f"/api/analyses/{analysis_data['uuid']}/")
+    patched_fero_client.post.assert_not_called()
