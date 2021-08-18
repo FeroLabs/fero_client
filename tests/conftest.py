@@ -50,6 +50,34 @@ def analysis_data():
 
 
 @pytest.fixture
+def revision_data():
+    return {
+        "configured_blueprint": {
+            "target_labels": ["s3_kpi"],
+            "is_whitelist": False,
+            "exclude_labels": ["dt"],
+            "rolling_window_time": 1,
+            "include_exclude_labels": ["dt"],
+            "include_exclude_patterns": [],
+            "force_include_labels": [],
+            "force_include_patterns": [],
+            "factor_labels": [
+                "s3_factor2",
+                "s1_factor1",
+                "s1_factor2",
+                "s2_factor1",
+                "s3_factor1",
+            ],
+            "sensor_labels": [],
+            "factor_grouping": "all factors",
+            "factor_selection": "automatic",
+        },
+        "version": 0,
+        "description": "",
+    }
+
+
+@pytest.fixture
 def asset_data():
     return {
         "uuid": "fd57ba36-3c5d-40f5-ae0c-d7b76ab39ee5",
