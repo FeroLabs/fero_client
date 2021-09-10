@@ -271,9 +271,10 @@ class Analysis:
     @property
     def _schema(self):
         if self._schema_cache is None:
-            self._schema_cache = self._data.get("latest_completed_model_schema", None)
-
-        return self._schema_cache
+            v1_schema = self._data.get("latest_completed_model_schema", None)
+            if (v1_schema is None or len(v1_schema) == 0) and self.process is not None:
+                v1_schema = self._client.get(f"/api/processes/{self.process}/v1_interpreted_schema/")
+        return self._schema_cache = v1_schema
 
     @staticmethod
     def _make_col_name(col_name: str, cols: List[str]) -> str:
