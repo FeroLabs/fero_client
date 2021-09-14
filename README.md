@@ -140,13 +140,23 @@ opt = analysis.make_optimization("example_optimization", goal, constraints)
 
 By default, Fero will use the median values of fixed factors while computing the optimization. These can be overridden with custom values by passing a dictionary of `factor`:`value` pairs as the `fixed_factors` argument to the optimization function.
 
+```python
+
+fixed_factors = {
+  "value": 10,
+  "value2": 20
+}
+
+opt = analysis.make_optimization("example_optimization", goal, constraints, fixed_factors)
+```
+
 Fero also supports the idea of a cost optimization which will weight different factors by a cost multiplier to find the best combination of inputs. For example, to find the minimum cost between `value` and `value2` while meeting the expected values of `target` you could do the following
 
 ```python
 
 goal = {
   "goal": "minimize",
-  "type": "cost
+  "type": "cost",
   "cost_function": [{"name": "value", "min": 50.0, "max": 100.0, "cost": 5.0}, {"name": "value2", "min": 70.0, "max": 80.0.0, "cost": 9.0}]
 }
 
