@@ -276,7 +276,7 @@ class Analysis:
                 v1_schema = self._client.get(
                     f"/api/processes/{self.process}/v1_interpreted_schema/"
                 )
-        self._schema_cache = v1_schema
+            self._schema_cache = v1_schema
 
         return self._schema_cache
 
