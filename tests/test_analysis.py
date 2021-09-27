@@ -154,20 +154,22 @@ def expected_optimization_config():
 def prediction_request_response(expected_optimization_config):
 
     response = {
-        "uuid": "01bff6f2-8fb3-469e-813a-9b6cfd93e338",
-        "created_by": {"id": 2, "username": "fero"},
-        "created": "2020-09-30T12:35:44.897461Z",
-        "modified": "2020-09-30T12:35:46.111257Z",
-        "name": "g",
-        "description": "",
-        "prediction_type": "O",
-        "progress_url": "/api/prediction_results/f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7/progress/",
-        "latest_results": "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7",
-        "result_data": {},
-        "ready": False,
-        "prediction_tag": None,
-        "url": "/api/analyses/21621466-b198-45be-89f9-3a5eb2c7cf48/predictions/01bff6f2-8fb3-469e-813a-9b6cfd93e338/",
-        "latest_results_url": "/api/prediction_results/f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7/",
+        "latest_prediction": {
+            "uuid": "01bff6f2-8fb3-469e-813a-9b6cfd93e338",
+            "created_by": {"id": 2, "username": "fero"},
+            "created": "2020-09-30T12:35:44.897461Z",
+            "modified": "2020-09-30T12:35:46.111257Z",
+            "name": "g",
+            "description": "",
+            "prediction_type": "O",
+            "progress_url": "/api/prediction_results/f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7/progress/",
+            "latest_results": "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7",
+            "result_data": {},
+            "ready": False,
+            "prediction_tag": None,
+            "url": "/api/analyses/21621466-b198-45be-89f9-3a5eb2c7cf48/predictions/01bff6f2-8fb3-469e-813a-9b6cfd93e338/",
+            "latest_results_url": "/api/prediction_results/f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7/",
+        }
     }
 
     response["input_data"] = expected_optimization_config["input_data"]
@@ -1069,8 +1071,8 @@ def test_analysis_make_optimization_simple_case(
 
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
-        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
-        expected_optimization_config,
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/workspaces/",
+        {"request": expected_optimization_config, "visible": False},
     )
     test_analysis_with_data._client.get.assert_called()
 
@@ -1098,8 +1100,8 @@ def test_analysis_make_optimization_simple_case_categorical(
     }
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
-        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
-        expected_optimization_config,
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/workspaces/",
+        {"request": expected_optimization_config, "visible": False},
     )
     test_analysis_with_data._client.get.assert_called()
 
@@ -1173,8 +1175,8 @@ def test_analysis_make_optimization_cost(
 
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
-        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
-        expected_optimization_config,
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/workspaces/",
+        {"request": expected_optimization_config, "visible": False},
     )
 
 
@@ -1200,8 +1202,8 @@ def test_analysis_make_optimization_simple_case_basis_override(
 
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
-        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
-        expected_optimization_config,
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/workspaces/",
+        {"request": expected_optimization_config, "visible": False},
     )
 
 
@@ -1228,8 +1230,8 @@ def test_analysis_make_optimization_include_confidence(
 
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
-        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
-        expected_optimization_config,
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/workspaces/",
+        {"request": expected_optimization_config, "visible": False},
     )
 
 
@@ -1254,8 +1256,8 @@ def test_analysis_make_optimization_synchronous_false(
 
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
-        f"/api/analyses/{str(test_analysis_with_data.uuid)}/predictions/",
-        expected_optimization_config,
+        f"/api/analyses/{str(test_analysis_with_data.uuid)}/workspaces/",
+        {"request": expected_optimization_config, "visible": False},
     )
     test_analysis_with_data._client.get.assert_not_called()
 
