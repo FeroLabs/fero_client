@@ -729,9 +729,12 @@ class Analysis:
         """Make the prediction request and poll unitl complete if this request is synchronous"""
 
         response_data = self._client.post(
-            f"/api/analyses/{str(self.uuid)}/predictions/", prediction_request
+            f"/api/analyses/{str(self.uuid)}/workspaces/",
+            {"request": prediction_request, "visible": False},
         )
-        prediction = Prediction(self._client, response_data["latest_results"])
+        prediction = Prediction(
+            self._client, response_data["latest_prediction"]["latest_results"]
+        )
 
         # If synchronous block until the prediction is complete
         while synchronous and not prediction.complete:
