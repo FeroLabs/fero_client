@@ -68,7 +68,7 @@ local_client = Fero(hostname="https://fero.self.signed", verify=False)
 
 ## Finding An Analysis
 
-An `Analysis` object is the how Fero exposes ML models to the API. The Fero client provides two different methods to find an `Analysis`. The first is `Fero.get_analysis` which takes a single UUID string and attempts to lookup the analysis by its unique id. The second method is `Fero.search_analyses` which will return a list of available `Analysis` objects. If no keyword arguments are provided, it will return all analyses you have available on the Fero website. Optionally, `name` can be provided to filter to only analyses matching that name.
+An `Analysis` object is the how Fero exposes ML models to the API. The Fero client provides two different methods to find an `Analysis`. The first is `Fero.get_analysis` which takes a single UUID string and attempts to lookup the analysis by its unique id. The second method is `Fero.search_analyses` which will return an iterator of available `Analysis` objects. If no keyword arguments are provided, it will return all analyses you have available on the Fero website. Optionally, `name` can be provided to filter to only analyses matching that name.
 
 #### Examples
 
@@ -189,7 +189,7 @@ print(opt.get_results())
 
 ## Finding an Asset
 
-An `Asset` object is how Fero exposes ML time series models to the API. The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single string and attempts to lookup the asset by its unique id. The second method is `Fero.search_assets`, which will return a list of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
+An `Asset` object is how Fero exposes ML time series models to the API. The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single string and attempts to lookup the asset by its unique id. The second method is `Fero.search_assets`, which will return an iterator of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
 
 #### Examples
 
@@ -211,13 +211,14 @@ favorite_only = fero_client.search_assets(name="favorite")
 
 Along with associated properties such as `name` and `uuid`, an `Asset` provides a few methods for interacting with Fero.
 
-The first thing to call when working with an asset is `Asset.has_trained_model`, which is simply a boolean check that a model has finished training. This will be false if the Asset is still training or there was an error training and it has not been revised. Once you have a model trained you then begin working with the asset to leverage the model. 
+The first thing to call when working with an asset is `Asset.has_trained_model`, which is simply a boolean check that a model has finished training. This will be false if the Asset is still training or there was an error training and it has not been revised. Once you have a model trained you then begin working with the asset to leverage the model.
 
 ### Making a prediction
 
-The `Asset.predict` method, as its name implies, makes predictions using the latest model associated with the asset. Fero computes predictions for all controllable factors and with those results, predictions for all target variables. Predictions are provided for the 5 time intervals following the end of the training dataset. (Interval size is determined during model configuration and training.) Optionally, you may call `Asset.predict` with an argument specifying values for one or more of the controllable factors; Fero will predict all targets using your specified values in place of its controllable factor predictions where applicable. 
+The `Asset.predict` method, as its name implies, makes predictions using the latest model associated with the asset. Fero computes predictions for all controllable factors and with those results, predictions for all target variables. Predictions are provided for the 5 time intervals following the end of the training dataset. (Interval size is determined during model configuration and training.) Optionally, you may call `Asset.predict` with an argument specifying values for one or more of the controllable factors; Fero will predict all targets using your specified values in place of its controllable factor predictions where applicable.
 
 #### Examples
+
 ```python
 # With no inputs
 prediction = asset.predict()
@@ -245,7 +246,7 @@ new_factor_values = pd.DataFrame({
 prediction = asset.predict(new_factor_values)
 
 print(prediction.columns)
-['specified:Factor1', 
+['specified:Factor1',
  'mean:Factor2', 'p5:Factor2', 'p25:Factor2', 'p75:Factor2', 'p95:Factor2',
  'mean:Target1', 'p5:Target1', 'p25:Target1', 'p75:Target1', 'p95:Target1']
 

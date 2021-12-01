@@ -1,8 +1,8 @@
-import fero
 import pandas as pd
 from fero import FeroError
 from marshmallow import Schema, fields, EXCLUDE
 from typing import Union, Optional, Mapping
+from .common import FeroObject
 
 
 class AssetSchema(Schema):
@@ -67,7 +67,7 @@ class AssetSchema(Schema):
     modified = fields.DateTime(require=True)
 
 
-class Asset:
+class Asset(FeroObject):
     """An object for interacting with a specific Asset on Fero.
 
     The Asset is the primary way to access a model associated with an asset or time-series data set.
@@ -75,10 +75,7 @@ class Asset:
     and evaluating horizon times to configured thresholds.
     """
 
-    def __init__(self, client: "fero.Fero", data: dict):
-        self._client = client
-        schema = AssetSchema()
-        self._data = schema.load(data)
+    schema_class = AssetSchema
 
     def __getattr__(self, name: str):
         return self._data.get(name)

@@ -3,12 +3,14 @@ import os
 import io
 import re
 import requests
+from urllib.parse import urlparse
 from azure.storage.blob import BlobClient
 from pathlib import Path
-from typing import Optional, Union, List
+from typing import Dict, Iterator, Optional, Union, Type
 from . import FeroError
 from .analysis import Analysis
 from .asset import Asset
+from .common import FeroObject
 
 FERO_CONF_FILE = ".fero"
 
@@ -177,6 +179,28 @@ class Fero:
         )
         blob_client.upload_blob(io.BytesIO(fp.read().encode()))
 
+    def _paginated_get(
+        self, url: str, object_class: Type[FeroObject], params: Dict[str, str]
+    ) -> Iterator[FeroObject]:
+
+        next_url = url
+
+        while next_url is not None:
+            parsed_url = urlparse(next_url)
+
+            # we use the path here in case the server has custom ports behind a load balancer or
+            # proxy
+            next_url = parsed_url.path
+            if params is None and parsed_url.query != "":
+                next_url += f"?{parsed_url.query}"
+            data = self.get(next_url, params=params)
+            for result in data.get("results", []):
+                yield object_class(self, result)
+
+            next_url = data.get("next", None)
+            # further params should come from the next_url
+            params = None
+
     def upload_file(self, inbox_response, file_name, file_pointer):
         """Uploads a file to object store specified by Fero inbox response"""
         if inbox_response["upload_type"] == "azure":
@@ -184,19 +208,18 @@ class Fero:
         else:
             self._s3_upload(inbox_response, file_name, file_pointer)
 
-    def search_analyses(self, name: str = None) -> List[Analysis]:
-        """Searches available analyses by name and returns a list of matching objects.
+    def search_analyses(self, name: str = None) -> Iterator[Analysis]:
+        """Searches available analyses by name and returns an iterator of matching objects.
 
         :param name: Name of analysis to filter by.
         :type name: str, optional
         :return: a list of analyses
-        :rtype: List[Analysis]
+        :rtype: Iterator[Analysis]
         """
         params = {}
         if name is not None:
             params["name"] = name
-        analysis_data = self.get("/api/analyses/", params=params)
-        return [Analysis(self, a) for a in analysis_data["results"]]
+        return self._paginated_get("/api/analyses/", Analysis, params=params)
 
     def get_analysis(self, uuid: str) -> Analysis:
         """Gets a Fero Analysis using the UUID.
@@ -209,19 +232,18 @@ class Fero:
         analysis_data = self.get(f"/api/analyses/{uuid}/")
         return Analysis(self, analysis_data)
 
-    def search_assets(self, name: str = None) -> List[Asset]:
-        """Searches available assets by name and returns a list of matching objects.
+    def search_assets(self, name: str = None) -> Iterator[Asset]:
+        """Searches available assets by name and returns an iterator of matching objects.
 
         :param name: Name of asset to filter by.
         :type name: str, optional
         :return: a list of assets
-        :rtype: List[Asset]
+        :rtype: Iterator[Asset]
         """
         params = {}
         if name is not None:
             params["name"] = name
-        asset_data = self.get("/api/assets/", params=params)
-        return [Asset(self, a) for a in asset_data["results"]]
+        return self._paginated_get("/api/assets/", Asset, params=params)
 
     def get_asset(self, uuid: str) -> Asset:
         """Gets a Fero Asset using the UUID.

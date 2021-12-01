@@ -14,6 +14,7 @@ from marshmallow import (
     EXCLUDE,
 )
 from typing import Union, List, Optional, IO
+from .common import FeroObject
 
 
 VALID_GOALS = ["minimize", "maximize"]
@@ -203,7 +204,7 @@ class Prediction:
                 )
 
 
-class Analysis:
+class Analysis(FeroObject):
     """An object for interacting with a specific Analysis on Fero.
 
     The Analysis is the primary way to access a model associated with a data set.
@@ -217,10 +218,7 @@ class Analysis:
     _factor_names: Union[list, None] = None
     _target_names: Union[list, None] = None
 
-    def __init__(self, client: "fero.Fero", data: dict):
-        self._client = client
-        schema = AnalysisSchema()
-        self._data = schema.load(data)
+    schema_class = AnalysisSchema
 
     def __getattr__(self, name: str):
         return self._data.get(name)

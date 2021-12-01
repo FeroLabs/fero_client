@@ -10,6 +10,8 @@ from marshmallow import (
     EXCLUDE,
 )
 
+from .common import FeroObject
+
 
 class DataSourceSchema(Schema):
     class Meta:
@@ -52,11 +54,9 @@ class DataSourceSchema(Schema):
     default_upload_config = fields.Dict(required=False)
 
 
-class DataSource:
-    def __init__(self, client: "fero.Fero", data: dict):
-        self._client = client
-        schema = DataSourceSchema()
-        self._data = schema.load(data)
+class DataSource(FeroObject):
+
+    schema_class = DataSourceSchema
 
     def __getattr__(self, name: str):
         return self._data.get(name)

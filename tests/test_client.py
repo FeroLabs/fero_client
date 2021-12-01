@@ -192,16 +192,41 @@ def test_get_analysis_success(patch_fero_get, analysis_data):
 
 
 def test_search_analyses(patch_fero_get, analysis_data):
-    """Test that a list analyses is returned by search_analyses"""
+    """Test that the correct iterator of analyses is returned by search_analyses"""
 
-    patch_fero_get.return_value = {"results": [analysis_data]}
+    patch_fero_get.return_value = {"next": None, "results": [analysis_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
-    analyses = client.search_analyses(analysis_data["name"])
+    analyses = [a for a in client.search_analyses(analysis_data["name"])]
     assert len(analyses) == 1
     assert isinstance(analyses[0], Analysis)
     assert analyses[0].name == analysis_data["name"]
     patch_fero_get.assert_called_with(
         "/api/analyses/", params={"name": analysis_data["name"]}
+    )
+
+
+def test_search_analyses_paginated(patch_fero_get, analysis_data):
+    """Test that a list analyses is returned by search_analyses"""
+
+    patch_fero_get.side_effect = [
+        {
+            "next": "http://test.com/api/analyses/?token=1234",
+            "results": [analysis_data],
+        },
+        {"next": None, "results": [analysis_data]},
+    ]
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    analyses = [a for a in client.search_analyses(analysis_data["name"])]
+    assert len(analyses) == 2
+    assert isinstance(analyses[0], Analysis)
+    assert analyses[0].name == analysis_data["name"]
+    assert isinstance(analyses[1], Analysis)
+    assert analyses[1].name == analysis_data["name"]
+    patch_fero_get.assert_has_calls(
+        [
+            mock.call("/api/analyses/", params={"name": analysis_data["name"]}),
+            mock.call("/api/analyses/?token=1234", params=None),
+        ]
     )
 
 
@@ -217,16 +242,41 @@ def test_get_asset_success(patch_fero_get, asset_data):
 
 
 def test_search_assets(patch_fero_get, asset_data):
-    """Test that a list of assets is returned by search_assets"""
+    """Test that an iterator of assets is returned by search_assets"""
 
-    patch_fero_get.return_value = {"results": [asset_data]}
+    patch_fero_get.return_value = {"next": None, "results": [asset_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
-    assets = client.search_assets(asset_data["name"])
+    assets = [a for a in client.search_assets(asset_data["name"])]
     assert len(assets) == 1
     assert isinstance(assets[0], Asset)
     assert assets[0].name == asset_data["name"]
     patch_fero_get.assert_called_with(
         "/api/assets/", params={"name": asset_data["name"]}
+    )
+
+
+def test_search_assets_paginated(patch_fero_get, asset_data):
+    """Test that an iterator of assets is returned by search_assets"""
+
+    patch_fero_get.side_effect = [
+        {
+            "next": "http://test.com/api/assets/?token=1234",
+            "results": [asset_data],
+        },
+        {"next": None, "results": [asset_data]},
+    ]
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    assets = [a for a in client.search_assets(asset_data["name"])]
+    assert len(assets) == 2
+    assert isinstance(assets[0], Asset)
+    assert assets[0].name == asset_data["name"]
+    assert isinstance(assets[1], Asset)
+    assert assets[1].name == asset_data["name"]
+    patch_fero_get.assert_has_calls(
+        [
+            mock.call("/api/assets/", params={"name": asset_data["name"]}),
+            mock.call("/api/assets/?token=1234", params=None),
+        ]
     )
 
 
