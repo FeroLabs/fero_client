@@ -220,9 +220,6 @@ class Analysis(FeroObject):
 
     schema_class = AnalysisSchema
 
-    def __getattr__(self, name: str):
-        return self._data.get(name)
-
     def __repr__(self):
         return f"<Analysis name={self.name}>"
 

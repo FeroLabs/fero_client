@@ -153,6 +153,44 @@ def datasource_data():
 
 
 @pytest.fixture
+def process_data():
+    return {
+        "api_id": "617da764-9c41-4135-87fe-463b2f01b42b",
+        "name": "Fixture Data",
+        "created": "2022-01-31T19:54:32.541903Z",
+        "modified": "2022-01-31T19:54:41.618842Z",
+        "latest_revision_version": 1,
+        "username": "fero",
+        "process_type": "A",
+        "product_type": None,
+        "kind": "process",
+        "latest_ready_snapshot": None,
+        "data_config": {
+            "config": {
+                "kind": "AdvancedDataConfig",
+                "liveData": [],
+                "keyJoins": [],
+                "initialFeed": {
+                    "name": "quality-example-data.csv",
+                    "datasource": "d8c5e93e-b39d-4b50-96d9-b394a0b99ad6",
+                    "kind": "InitialFeedDescription",
+                },
+            },
+            "version": 1,
+            "kind": "ProcessDataConfiguration",
+        },
+        "shutdown_configuration": None,
+        "primary_datetime_column": None,
+    }
+
+
+@pytest.fixture
+def process_data_continuous(process_data):
+    process_data["process_type"] = "C"
+    return process_data
+
+
+@pytest.fixture
 def patched_fero_client():
     with mock.patch.object(Fero, "post"):
         with mock.patch.object(Fero, "get"):

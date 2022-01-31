@@ -10,3 +10,6 @@ class FeroObject:
         self._client = client
         schema = self.schema_class()
         self._data = schema.load(data)
+
+    def __getattr__(self, name: str):
+        return self._data.get(name)

@@ -10,6 +10,7 @@ from typing import Dict, Iterator, Optional, Union, Type
 from . import FeroError
 from .analysis import Analysis
 from .asset import Asset
+from .process import Process
 from .common import FeroObject
 
 FERO_CONF_FILE = ".fero"
@@ -255,6 +256,30 @@ class Fero:
         """
         asset_data = self.get(f"/api/assets/{uuid}/")
         return Asset(self, asset_data)
+
+    def search_processes(self, name: str = None) -> Iterator[Analysis]:
+        """Searches available processes by name and returns an iterator of matching objects.
+
+        :param name: Name of analysis to filter by.
+        :type name: str, optional
+        :return: a list of processes
+        :rtype: Iterator[Process]
+        """
+        params = {}
+        if name is not None:
+            params["name"] = name
+        return self._paginated_get("/api/processes/", Process, params=params)
+
+    def get_process(self, uuid: str) -> Analysis:
+        """Gets a Fero Process using the UUID.
+
+        :param uuid: UUID of the analysis
+        :type uuid: str
+        :return: An Process object
+        :rtype: Analysis
+        """
+        process_data = self.get(f"/api/processes/{uuid}/")
+        return Process(self, process_data)
 
     def get_datasource(self, uuid: str) -> DataSource:
         """Gets a Fero Data Source by uuid
