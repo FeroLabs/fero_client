@@ -320,5 +320,9 @@ class Fero:
     def get_preauthenticated(self, url, params=None) -> Union[dict, bytes]:
         """Do a GET request without adjusting the url or auth headers"""
         return self._handle_response(
-            requests.get(url, params=params, verify=self._verify)
+            requests.get(
+                url,
+                params=params,
+                verify=self._verify,
+            )
         )
