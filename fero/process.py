@@ -102,7 +102,7 @@ class ProcessSchema(Schema):
 class Tag(FeroObject):
     """High level object representing a process tag.
 
-    A tag is a single measurement type for a process and specifies metadata associated with this measurement since
+    A tag is a single measurement type for a process and specifies metadata associated with this measurement such
     as limits and cost.
     """
 
@@ -248,7 +248,7 @@ class Process(FeroObject):
 
         Returns a pandas data frame consisting of the specified tags and bounded by an optional list of kpis.
         For all process types specifying a kpi will remove any tags from stages that are after
-        the stage the kpi is assigned too.  For advanced and batch process types not providing a kpi will
+        the stage the kpi is assigned to.  For advanced and batch process types not providing a kpi will
         get tags from all stages.  For a continuous process, a kpi must be specified.
 
         :param tags: List of Tags or tag names to include in the data frame

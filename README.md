@@ -290,3 +290,83 @@ print(prediction['index'])
 ]
 '''
 ```
+
+## Processes
+
+In Fero, a process represents how to combine and transform a variety of raw data sources into a single set of data for analysis based on the physical mechanics of how the industrial process works. Processes can be accessed individually via `api_id` or searched by name using the `Fero` client.
+
+Processes represent data via two main underlying entities, the `Tag` and the `Stage`. `Tags` are columns of a specific measurement in the underlying data. Stages are ordered grouping of various tags that represent logical parts of a process. For example, a steel process might have a stage for melting the steel and a different stage for measurements when casting the steel.
+
+### Example
+
+```python
+
+from fero import Fero
+fero_client = Fero()
+
+# get a single process
+process = fero_client.get_process('c6f69e96-db4d-43ed-8837-d5827cc81112')
+
+# search processes by name
+processes = [p for p in fero_client.search_processes(name="process X")]
+
+# get the tags
+tags = process.tags
+
+# get stages
+stages = process.stages
+```
+
+## Downloading Process Data
+
+`Process` objects can be used to download the pandas data frame that the process would produce for analysis. Because not all tags are generally used in a analysis, a list of tags is required before data can be downloaded. A target or key performance indicator (kpi) is also required for an analysis which can be set while requesting data. Functionally, this will limit that data returned to the stage of the kpi tag and any preceding stages. For advanced and batch processes, kpis are optional, however they are required for continuous processes because the data is computed using the observed times of the kpi.
+
+### Example
+
+```python
+
+# get all data for single process
+process = fero_client.get_process("9777bae7-95af-4bea-98b9-c703ab940a05")
+
+df = process.get_data(process.tags)
+
+print(df)
+"""
+       s1_factor1  s1_factor2  s2_factor1  s3_factor1  s3_factor2   s3_kpi
+0               0          14           7        28.5           0     49.5
+1               1           8           5        36.0           3     53.0
+2               2           2           3        39.5           6     52.5
+3               3          10           8        26.5           9     56.5
+4               4           4           6        41.5          12     67.5
+...           ...         ...         ...         ...         ...      ...
+10395       10395           4       10397        38.0       31185  52019.0
+10396       10396           0       10396        32.5       31188  52012.5
+10397       10397          14       10404        40.5       31191  52046.5
+10398       10398           0       10398        25.5       31194  52015.5
+10399       10399          14       10406        42.0       31197  52058.0
+
+[10400 rows x 6 columns]
+"""
+
+# limit the process to an earlier kpi
+
+df = process.get_data(['s1_factor1', 's3_kpi'], kpis=['s2_factor1'])
+
+"""
+                            dt  s2_factor1  s1_factor1
+0    2020-03-01 00:00:00+00:00          10        <NA>
+1    2020-03-01 00:01:00+00:00         162        <NA>
+2    2020-03-01 00:02:00+00:00          12          16
+3    2020-03-01 00:03:00+00:00          12          15
+4    2020-03-01 00:04:00+00:00          56         162
+...                        ...         ...         ...
+1994 2020-03-02 09:14:00+00:00        2006          65
+1995 2020-03-02 09:15:00+00:00        2007          20
+1996 2020-03-02 09:16:00+00:00         415         174
+1997 2020-03-02 09:17:00+00:00        2001         166
+1998 2020-03-02 09:18:00+00:00           0           2
+
+[1999 rows x 3 columns]
+"""
+
+```

@@ -320,7 +320,7 @@ def test_search_processes(patch_fero_get, process_data):
 
 
 def test_search_processes_paginated(patch_fero_get, process_data):
-    """Test that a list analyses is returned by search_analyses"""
+    """Test that a list process is returned by search_analyses"""
 
     patch_fero_get.side_effect = [
         {
