@@ -237,7 +237,7 @@ class Process(FeroObject):
         idxs = [self._tag_stage_index(k) for k in kpis]
         idxs = [i for i in idxs if i is not None]
 
-        return None if len(idxs) == 0 else self.stages[: max(idxs)]
+        return [] if len(idxs) == 0 else self.stages[: max(idxs) + 1]
 
     def get_data(
         self,
