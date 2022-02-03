@@ -9,6 +9,9 @@ jobs:
       - checkout
       - python/install-packages:
           pkg-manager: pip
+          pip-dependency-file: requirements.txt
+      - python/install-packages:
+          pkg-manager: pip
           pip-dependency-file: dev-requirements.txt
       - run:
           name: Flake8
@@ -23,9 +26,6 @@ jobs:
     executor: python/default
     steps:
       - checkout
-      - python/install-packages:
-          pkg-manager: pip
-          pip-dependency-file: requirements.txt
       - python/install-packages:
           pkg-manager: pip
           pip-dependency-file: dev-requirements.txt
