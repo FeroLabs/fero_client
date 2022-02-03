@@ -118,7 +118,7 @@ class Tag(FeroObject):
     __str__ = __repr__
 
     def __eq__(self, other: object) -> bool:
-        return isinstance(other, Tag) and self.proxy == other.proxy
+        return isinstance(other, Tag) and self._data == other._data
 
     @classmethod
     def tag_name(cls, instance: Union["Tag", str]) -> str:
@@ -137,11 +137,17 @@ class Stage(FeroObject):
     def __init__(self, process: "Process", client: "fero.Fero", data: dict):
         self._process = process
         super().__init__(client, data)
+        self._data["tags"] = [
+            Tag(process, client, tdata) for tdata in self._data["tags"]
+        ]
 
     def __repr__(self):
         return f"<Stage name={self.name} Process name={self._process}>"
 
     __str__ = __repr__
+
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Stage) and self._data == other._data
 
     @property
     def tag_names(self) -> Sequence[str]:
@@ -150,6 +156,7 @@ class Stage(FeroObject):
         :return: A list of tag names in the stage
         :rtype: Sequence[str]
         """
+        return [Tag.tag_name(t) for t in self.tags]
 
 
 class Process(FeroObject):
