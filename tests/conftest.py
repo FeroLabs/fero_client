@@ -153,6 +153,272 @@ def datasource_data():
 
 
 @pytest.fixture
+def process_data():
+    return {
+        "api_id": "617da764-9c41-4135-87fe-463b2f01b42b",
+        "name": "Fixture Data",
+        "created": "2022-01-31T19:54:32.541903Z",
+        "modified": "2022-01-31T19:54:41.618842Z",
+        "latest_revision_version": 1,
+        "username": "fero",
+        "process_type": "A",
+        "product_type": None,
+        "kind": "process",
+        "latest_ready_snapshot": None,
+        "data_config": {
+            "config": {
+                "kind": "AdvancedDataConfig",
+                "liveData": [],
+                "keyJoins": [],
+                "initialFeed": {
+                    "name": "quality-example-data.csv",
+                    "datasource": "d8c5e93e-b39d-4b50-96d9-b394a0b99ad6",
+                    "kind": "InitialFeedDescription",
+                },
+            },
+            "version": 1,
+            "kind": "ProcessDataConfiguration",
+        },
+        "shutdown_configuration": None,
+        "primary_datetime_column": None,
+    }
+
+
+@pytest.fixture
+def process_stages():
+
+    return {
+        "stages": [
+            {
+                "name": "Default Name Stage 1",
+                "configuration": {"toolkit": {"kind": "Advanced"}},
+                "tags": [
+                    {
+                        "name": "s1_factor1",
+                        "description": "",
+                        "display_format": None,
+                        "cost": None,
+                        "unit": "",
+                        "alias": "",
+                        "minimum": None,
+                        "maximum": None,
+                        "lower_limit": None,
+                        "upper_limit": None,
+                        "step_size": None,
+                        "proxy": 184,
+                        "disabled": False,
+                    },
+                    {
+                        "name": "s1_factor2",
+                        "description": "",
+                        "display_format": None,
+                        "cost": None,
+                        "unit": "",
+                        "alias": "",
+                        "minimum": None,
+                        "maximum": None,
+                        "lower_limit": None,
+                        "upper_limit": None,
+                        "step_size": None,
+                        "proxy": 185,
+                        "disabled": False,
+                    },
+                ],
+                "order": 0,
+                "proxy": 83,
+                "id": 98,
+            },
+            {
+                "name": "Default Name Stage 2",
+                "configuration": {"toolkit": {"kind": "Advanced"}},
+                "tags": [
+                    {
+                        "name": "s2_factor1",
+                        "description": "",
+                        "display_format": None,
+                        "cost": None,
+                        "unit": "",
+                        "alias": "",
+                        "minimum": None,
+                        "maximum": None,
+                        "lower_limit": None,
+                        "upper_limit": None,
+                        "step_size": None,
+                        "proxy": 186,
+                        "disabled": False,
+                    }
+                ],
+                "order": 1,
+                "proxy": 85,
+                "id": 100,
+            },
+            {
+                "name": "Default Name Stage 3",
+                "configuration": {"toolkit": {"kind": "Advanced"}},
+                "tags": [
+                    {
+                        "name": "s3_factor1",
+                        "description": "",
+                        "display_format": None,
+                        "cost": None,
+                        "unit": "",
+                        "alias": "",
+                        "minimum": None,
+                        "maximum": None,
+                        "lower_limit": None,
+                        "upper_limit": None,
+                        "step_size": None,
+                        "proxy": 187,
+                        "disabled": False,
+                    },
+                    {
+                        "name": "s3_factor2",
+                        "description": "",
+                        "display_format": None,
+                        "cost": None,
+                        "unit": "",
+                        "alias": "",
+                        "minimum": None,
+                        "maximum": None,
+                        "lower_limit": None,
+                        "upper_limit": None,
+                        "step_size": None,
+                        "proxy": 188,
+                        "disabled": False,
+                    },
+                    {
+                        "name": "s3_kpi",
+                        "description": "",
+                        "display_format": None,
+                        "cost": None,
+                        "unit": "",
+                        "alias": "",
+                        "minimum": None,
+                        "maximum": None,
+                        "lower_limit": None,
+                        "upper_limit": None,
+                        "step_size": None,
+                        "proxy": 189,
+                        "disabled": False,
+                    },
+                ],
+                "order": 2,
+                "proxy": 87,
+                "id": 102,
+            },
+        ],
+        "revision_version": 5,
+        "stage_version": 2,
+    }
+
+
+@pytest.fixture
+def process_tags():
+    return {
+        "tags": [
+            {
+                "name": "s1_factor1",
+                "description": "",
+                "display_format": None,
+                "cost": None,
+                "unit": "",
+                "alias": "",
+                "minimum": None,
+                "maximum": None,
+                "lower_limit": None,
+                "upper_limit": None,
+                "step_size": None,
+                "proxy": 184,
+                "disabled": False,
+            },
+            {
+                "name": "s1_factor2",
+                "description": "",
+                "display_format": None,
+                "cost": None,
+                "unit": "",
+                "alias": "",
+                "minimum": None,
+                "maximum": None,
+                "lower_limit": None,
+                "upper_limit": None,
+                "step_size": None,
+                "proxy": 185,
+                "disabled": False,
+            },
+            {
+                "name": "s2_factor1",
+                "description": "",
+                "display_format": None,
+                "cost": None,
+                "unit": "",
+                "alias": "",
+                "minimum": None,
+                "maximum": None,
+                "lower_limit": None,
+                "upper_limit": None,
+                "step_size": None,
+                "proxy": 186,
+                "disabled": False,
+            },
+            {
+                "name": "s3_factor1",
+                "description": "",
+                "display_format": None,
+                "cost": None,
+                "unit": "",
+                "alias": "",
+                "minimum": None,
+                "maximum": None,
+                "lower_limit": None,
+                "upper_limit": None,
+                "step_size": None,
+                "proxy": 187,
+                "disabled": False,
+            },
+            {
+                "name": "s3_factor2",
+                "description": "",
+                "display_format": None,
+                "cost": None,
+                "unit": "",
+                "alias": "",
+                "minimum": None,
+                "maximum": None,
+                "lower_limit": None,
+                "upper_limit": None,
+                "step_size": None,
+                "proxy": 188,
+                "disabled": False,
+            },
+            {
+                "name": "s3_kpi",
+                "description": "",
+                "display_format": None,
+                "cost": None,
+                "unit": "",
+                "alias": "",
+                "minimum": None,
+                "maximum": None,
+                "lower_limit": None,
+                "upper_limit": None,
+                "step_size": None,
+                "proxy": 189,
+                "disabled": False,
+            },
+        ],
+        "revision_version": 5,
+        "tag_version": 2,
+    }
+
+
+@pytest.fixture
+def process_data_continuous(process_data):
+    process_data["process_type"] = "C"
+    return process_data
+
+
+@pytest.fixture
 def patched_fero_client():
     with mock.patch.object(Fero, "post"):
         with mock.patch.object(Fero, "get"):

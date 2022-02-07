@@ -77,9 +77,6 @@ class Asset(FeroObject):
 
     schema_class = AssetSchema
 
-    def __getattr__(self, name: str):
-        return self._data.get(name)
-
     def __repr__(self):
         return f"<Asset name={self.name}>"
 

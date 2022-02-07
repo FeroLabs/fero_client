@@ -58,9 +58,6 @@ class DataSource(FeroObject):
 
     schema_class = DataSourceSchema
 
-    def __getattr__(self, name: str):
-        return self._data.get(name)
-
     def __repr__(self):
         return f"<Data Source name={self.name}>"
 

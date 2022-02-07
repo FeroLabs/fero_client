@@ -1,6 +1,7 @@
 from fero.datasource import DataSource
 from fero.analysis import Analysis
 from fero.asset import Asset
+from fero.process import Process
 import pytest
 from unittest import mock
 from pathlib import Path
@@ -290,4 +291,54 @@ def test_get_datasource_success(patch_fero_get, datasource_data):
     assert ds.name == datasource_data["name"]
     patch_fero_get.assert_called_with(
         "/api/v2/data_source/9f79206e-94fc-4834-8f52-84008b12df86/"
+    )
+
+
+def test_get_process_success(patch_fero_get, process_data):
+    """Test that an process is returned by get_process"""
+
+    patch_fero_get.return_value = process_data
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    process = client.get_process("some-uuid")
+    assert isinstance(process, Process)
+    assert process.name == process_data["name"]
+    patch_fero_get.assert_called_with("/api/processes/some-uuid/")
+
+
+def test_search_processes(patch_fero_get, process_data):
+    """Test that the correct iterator of processes is returned by search_processes"""
+
+    patch_fero_get.return_value = {"next": None, "results": [process_data]}
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    processes = [a for a in client.search_processes(process_data["name"])]
+    assert len(processes) == 1
+    assert isinstance(processes[0], Process)
+    assert processes[0].name == process_data["name"]
+    patch_fero_get.assert_called_with(
+        "/api/processes/", params={"name": process_data["name"]}
+    )
+
+
+def test_search_processes_paginated(patch_fero_get, process_data):
+    """Test that a list process is returned by search_analyses"""
+
+    patch_fero_get.side_effect = [
+        {
+            "next": "http://test.com/api/processes/?token=1234",
+            "results": [process_data],
+        },
+        {"next": None, "results": [process_data]},
+    ]
+    client = Fero(fero_token="fakeToken", hostname="http://test.com")
+    processes = [a for a in client.search_processes(process_data["name"])]
+    assert len(processes) == 2
+    assert isinstance(processes[0], Process)
+    assert processes[0].name == process_data["name"]
+    assert isinstance(processes[1], Process)
+    assert processes[1].name == process_data["name"]
+    patch_fero_get.assert_has_calls(
+        [
+            mock.call("/api/processes/", params={"name": process_data["name"]}),
+            mock.call("/api/processes/?token=1234", params=None),
+        ]
     )
