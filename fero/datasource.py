@@ -1,3 +1,5 @@
+"""This Module defines classes related to a fero datasource."""
+
 import os
 import time
 import fero
@@ -14,7 +16,15 @@ from .common import FeroObject
 
 
 class DataSourceSchema(Schema):
+    """A schema to store data related to a fero datasource."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     uuid = fields.UUID(required=True)
@@ -55,16 +65,23 @@ class DataSourceSchema(Schema):
 
 
 class DataSource(FeroObject):
+    """An object for interacting with a specific Data Source on Fero.
+
+    Adding data to a Data Source allows Fero to interface with that data.
+    This data can then be added to a Fero Process and later analyzed in
+    an Asset or Analysis.
+    """
 
     schema_class = DataSourceSchema
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Represent the `DataSource` by its name."""
         return f"<Data Source name={self.name}>"
 
     __str__ = __repr__
 
     def append_csv(self, file_path: str, wait_until_complete: bool = False):
-        """Appends a specified csv file to the data source.
+        """Append a specified csv file to the data source.
 
         :param file_path: Location of the csv file to append
         :type file_path: str
@@ -90,7 +107,7 @@ class DataSource(FeroObject):
         )
 
     def replace_csv(self, file_path: str, wait_until_complete: bool = False):
-        """Appends a specified csv file to the data source.
+        """Append a specified csv file to the data source.
 
         :param file_path: Location of the csv file to append
         :type file_path: str
@@ -118,7 +135,15 @@ class DataSource(FeroObject):
 
 
 class UploadedFilesSchema(Schema):
+    """A schema to store data related to files uploaded to fero."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     uuid = fields.UUID(required=True)
@@ -142,7 +167,10 @@ class UploadedFilesSchema(Schema):
 
 
 class UploadedFileStatus:
+    """An object to track the status of a file during its upload."""
+
     def __init__(self, client: "fero.Fero", id: str):
+        """Create an `UploadedFileStatus` from the uplolad ID to track the file's upload status."""
         self._id = id
         self._client = client
         self._status_data = None
@@ -150,7 +178,7 @@ class UploadedFileStatus:
 
     @staticmethod
     def _check_status_complete(status: Optional[dict]) -> bool:
-        """Checks status of the latest uploaded file response.
+        """Check status of the latest uploaded file response.
 
         Returns true if complete, false if not complete and raises an error if the status is error.
         """
@@ -174,10 +202,9 @@ class UploadedFileStatus:
         return True
 
     def get_upload_status(self) -> Union[dict, None]:
-        """Gets current status of the uploaded files object
+        """Get current status of the uploaded files object.
 
         :return: True if file upload is completely processed, false if still processing
-        :rtype: Union[dict, None]
         :raises FeroError: Raised if fero was unable to process the file
         """
         raw_data = self._client.get(
@@ -190,7 +217,7 @@ class UploadedFileStatus:
         return data
 
     def wait_until_complete(self) -> "UploadedFileStatus":
-
+        """Continuously check the status of the upload until it succeeds or fails."""
         status = self.get_upload_status()
         while not self._check_status_complete(status):
             time.sleep(0.5)

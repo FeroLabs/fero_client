@@ -1,3 +1,5 @@
+"""This Module holds the Fero client class, which is used to communicate with the Fero API."""
+
 from fero.datasource import DataSource
 import os
 import io
@@ -17,6 +19,8 @@ FERO_CONF_FILE = ".fero"
 
 
 class Fero:
+    """The basic client used for communicating the the Fero API."""
+
     def __init__(
         self,
         hostname: Optional[str] = "https://app.ferolabs.com",
@@ -25,7 +29,7 @@ class Fero:
         fero_token: Optional[str] = None,
         verify: bool = True,
     ):
-        """Creates a base client for communicating with the Fero API.
+        """Create a base client for communicating with the Fero API.
 
         This class uses a JWT to query the api in all cases, however it will attempt to obtain a token if a username
         and password are provided.  It attempts to procure the token in the following order.
@@ -76,21 +80,21 @@ class Fero:
 
     @property
     def fero_conf_contents(self) -> str:
-        """Cache the file content"""
+        """Cache the file content."""
         if self._fero_conf_content is None:
             self._get_fero_conf_contents()
 
         return self._fero_conf_content
 
     def _get_token_string_from_local(self) -> Union[str, None]:
-        """Checks the local system for the JWT token string"""
+        """Check the local system for the JWT token string."""
         if "FERO_TOKEN" in os.environ:
             return os.environ.get("FERO_TOKEN")
         jwt_match = re.search(r"FERO_TOKEN=([^\n]+)\n", self.fero_conf_contents)
         return jwt_match.group(1) if jwt_match else None
 
     def _get_fero_conf_contents(self) -> str:
-        """Loads the content of a .fero file in the user's home directory"""
+        """Load the content of a .fero file in the user's home directory."""
         home = Path.home()
         fero_conf = home / FERO_CONF_FILE
         if fero_conf.is_file():
@@ -100,7 +104,7 @@ class Fero:
             self._fero_conf_content = ""
 
     def _get_token_as_user(self) -> Union[str, None]:
-        """Gets the token with the username and password"""
+        """Get the token with the username and password."""
         req = requests.post(
             f"{self._hostname}/api/token/auth/",
             json={"username": self._username, "password": self._password},
@@ -110,7 +114,7 @@ class Fero:
         return req.json().get("token", None)
 
     def _jwt_from_local_user_pass(self) -> Union[str, None]:
-        """Checks the local system for username and password and queries fero for a JWT"""
+        """Check the local system for username and password and queries fero for a JWT."""
         if "FERO_USERNAME" in os.environ and "FERO_PASSWORD" in os.environ:
             self._username = os.environ.get("FERO_USERNAME")
             self._password = os.environ.get("FERO_PASSWORD")
@@ -137,7 +141,7 @@ class Fero:
     def _handle_response(
         response: requests.Response, allow_404: bool = False
     ) -> Optional[Union[dict, bytes]]:
-        """Check and decode a request response and raise a relevant error if needed"""
+        """Check and decode a request response and raise a relevant error if needed."""
         if 200 <= response.status_code < 300:
             if response.headers.get("content-type") == "application/json":
                 return response.json()
@@ -203,14 +207,14 @@ class Fero:
             params = None
 
     def upload_file(self, inbox_response, file_name, file_pointer):
-        """Uploads a file to object store specified by Fero inbox response"""
+        """Upload a file to object store specified by Fero inbox response."""
         if inbox_response["upload_type"] == "azure":
             self._azure_upload(inbox_response, file_pointer)
         else:
             self._s3_upload(inbox_response, file_name, file_pointer)
 
     def search_analyses(self, name: str = None) -> Iterator[Analysis]:
-        """Searches available analyses by name and returns an iterator of matching objects.
+        """Search available analyses by name and return an iterator of matching objects.
 
         :param name: Name of analysis to filter by.
         :type name: str, optional
@@ -223,7 +227,7 @@ class Fero:
         return self._paginated_get("/api/analyses/", Analysis, params=params)
 
     def get_analysis(self, uuid: str) -> Analysis:
-        """Gets a Fero Analysis using the UUID.
+        """Get a Fero Analysis using the UUID.
 
         :param uuid: UUID of the analysis
         :type uuid: str
@@ -234,7 +238,7 @@ class Fero:
         return Analysis(self, analysis_data)
 
     def search_assets(self, name: str = None) -> Iterator[Asset]:
-        """Searches available assets by name and returns an iterator of matching objects.
+        """Search available assets by name and return an iterator of matching objects.
 
         :param name: Name of asset to filter by.
         :type name: str, optional
@@ -247,7 +251,7 @@ class Fero:
         return self._paginated_get("/api/assets/", Asset, params=params)
 
     def get_asset(self, uuid: str) -> Asset:
-        """Gets a Fero Asset using the UUID.
+        """Get a Fero Asset using the UUID.
 
         :param uuid: UUID of the asset
         :type uuid: str
@@ -258,7 +262,7 @@ class Fero:
         return Asset(self, asset_data)
 
     def search_processes(self, name: str = None) -> Iterator[Analysis]:
-        """Searches available processes by name and returns an iterator of matching objects.
+        """Search available processes by name and return an iterator of matching objects.
 
         :param name: Name of analysis to filter by.
         :type name: str, optional
@@ -271,7 +275,7 @@ class Fero:
         return self._paginated_get("/api/processes/", Process, params=params)
 
     def get_process(self, uuid: str) -> Analysis:
-        """Gets a Fero Process using the UUID.
+        """Get a Fero Process using the UUID.
 
         :param uuid: UUID of the analysis
         :type uuid: str
@@ -282,7 +286,7 @@ class Fero:
         return Process(self, process_data)
 
     def get_datasource(self, uuid: str) -> DataSource:
-        """Gets a Fero Data Source by uuid
+        """Get a Fero Data Source by UUID.
 
         :param uuid: UUID of requested object
         :type uuid: str
@@ -294,7 +298,6 @@ class Fero:
 
     def post(self, url: str, data: dict) -> Union[dict, bytes]:
         """Do a POST request with headers set."""
-
         return self._handle_response(
             requests.post(
                 f"{self._hostname}{url}",
@@ -318,7 +321,7 @@ class Fero:
         )
 
     def get_preauthenticated(self, url, params=None) -> Union[dict, bytes]:
-        """Do a GET request without adjusting the url or auth headers"""
+        """Do a GET request without adjusting the url or auth headers."""
         return self._handle_response(
             requests.get(
                 url,

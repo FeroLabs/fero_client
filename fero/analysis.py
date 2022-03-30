@@ -1,3 +1,5 @@
+"""This module holds classes related to a fero analysis."""
+
 import time
 import fero
 import uuid
@@ -13,7 +15,7 @@ from marshmallow import (
     ValidationError,
     EXCLUDE,
 )
-from typing import Union, List, Optional, IO
+from typing import Any, Union, List, Optional, IO
 from .common import FeroObject
 
 
@@ -25,7 +27,15 @@ BULK_PREDICTION_TYPE = "M"
 
 
 class AnalysisSchema(Schema):
+    """A schema to store data related to a fero analysis."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     url = fields.String(required=True)
@@ -78,7 +88,15 @@ class AnalysisSchema(Schema):
 
 
 class RevisionSchema(Schema):
+    """A schema to store data related to a fero analysis revision."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     version = fields.Integer()
@@ -86,32 +104,43 @@ class RevisionSchema(Schema):
 
 
 class FactorSchema(Schema):
+    """A schema to store data related to a factor linked to a fero analysis optimization."""
+
     name = fields.String(required=True)
     min = fields.Number(required=False)
     max = fields.Number(required=False)
 
 
 class CostSchema(FactorSchema):
+    """A schema to store data related to a cost linked to a fero analysis optimization."""
+
     cost = fields.Float(required=True)
 
 
 class BaseGoalSchema(Schema):
+    """A base schema to store data related to the goal of a fero analysis optimization."""
 
     goal = fields.String(validate=validate.OneOf(VALID_GOALS))
 
 
 class StandardOptimizeGoal(BaseGoalSchema):
+    """A schema to store data related to a goal to min/max some tag in a fero analysis optimization."""
 
     factor = fields.Nested(FactorSchema(), required=True)
 
 
 class CostOptimizeGoal(BaseGoalSchema):
+    """A schema to store data related to a goal to minimize cost in a fero analysis optimization."""
+
     type = fields.String(validate=validate.OneOf(["COST"]), required=True)
     cost_function = fields.Nested(CostSchema, many=True, required=True)
 
     @validates_schema
-    def max_functions(self, data, **kwargs):
+    def max_functions(self, data: dict, **kwargs):
+        """Validate that there are no more than three cost functions in the `data`.
 
+        :raises ValidationError: when there are more than three cost functions specified in `data`
+        """
         if len(data["cost_function"]) > 3:
             raise ValidationError(
                 {"cost_function": ["No more than three costs functions allowed"]}
@@ -127,23 +156,31 @@ class Prediction:
     """
 
     def __init__(self, client: "fero.Fero", prediction_result_id: str):
+        """Create a `Prediction` using the ID from a set of prediction results."""
         self._client = client
         self.result_id = prediction_result_id
         self._data_cache = None
         self._complete = False
         self._result_id = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Represent the `Prediction` by its prediction result ID."""
         return f"<Prediction request_id={self.result_id}>"
 
-    def __getattr__(self, name: str):
+    def __getattr__(self, name: str) -> Any:
+        """
+        Access an entry in this object's schema.
+
+        :param name: the entry in the schema to access
+        :return: the data stored in this entry of the schema
+        """
         return self._data.get(name)
 
     __str__ = __repr__
 
     @property
     def _data(self):
-
+        """Get the data related to this prediction result if it is available."""
         # check if it's complete which also pulls data
         if not self.complete:
             return None
@@ -152,6 +189,7 @@ class Prediction:
 
     @property
     def status(self):
+        """Check the status of the prediction if it is available."""
         if not self.complete:
             return None
         if "result_data" in self._data and "status" in self._data["result_data"]:
@@ -160,7 +198,7 @@ class Prediction:
 
     @property
     def complete(self):
-        """Checks if the Prediction is complete"""
+        """Check if the Prediction is complete."""
         if not self._complete:
             self._data_cache = self._client.get(
                 f"/api/prediction_results/{self.result_id}/"
@@ -170,10 +208,11 @@ class Prediction:
         return self._complete
 
     def get_results(self, format="dataframe") -> Union[pd.DataFrame, List[dict]]:
-        """Serializes the prediction results of the prediction, by default this will be a pandas
+        """Serialize the prediction results of the prediction.
 
-        DataFrame, but specifying `format="record"` will instead return a list of dictionaries where each
-        key specifies a factor and the value is the prediction.
+        By default this will be a pandas DataFrame, but specifying `format="record"`
+        will instead return a list of dictionaries where each key specifies
+        a factor and the value is the prediction.
 
         :param format: The format to return the result as, defaults to "dataframe"
         :type format: str, optional
@@ -215,49 +254,55 @@ class Analysis(FeroObject):
     _presentation_data_cache: Union[dict, None] = None
     _reg_factors: Union[List[dict], None] = None
     _reg_targets: Union[List[dict], None] = None
-    _factor_names: Union[list, None] = None
-    _target_names: Union[list, None] = None
+    _factor_names: Union[List[str], None] = None
+    _target_names: Union[List[str], None] = None
 
     schema_class = AnalysisSchema
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Represent the `Analysis` by its name."""
         return f"<Analysis name={self.name}>"
 
     __str__ = __repr__
 
     @property
-    def _regression_factors(self):
+    def _regression_factors(self) -> Optional[List[dict]]:
+        """Get data on the factors of the Analysis."""
         if self._reg_factors is None:
             self._parse_regression_data()
 
         return self._reg_factors
 
     @property
-    def _regression_targets(self):
+    def _regression_targets(self) -> Optional[List[dict]]:
+        """Get data on the targets of the Analysis."""
         if self._reg_targets is None:
             self._parse_regression_data()
 
         return self._reg_targets
 
     @property
-    def factor_names(self):
-        """Names of the factors associated with the Analysis"""
+    def factor_names(self) -> Optional[List[str]]:
+        """Get the names of the factors associated with the Analysis."""
         if self._factor_names is None:
             self._parse_regression_data()
 
         return self._factor_names
 
     @property
-    def target_names(self):
-        """Names of the targets of the Analysis"""
+    def target_names(self) -> Optional[List[str]]:
+        """Get the names of the targets of the Analysis."""
         if self._target_names is None:
             self._parse_regression_data()
 
         return self._target_names
 
     @property
-    def _presentation_data(self):
-        """This is big and ugly, so keep it private but cached"""
+    def _presentation_data(self) -> Optional[dict]:
+        """Get the presentation data of this analysis.
+
+        This is big and ugly, so keep it private but cached.
+        """
         if self._presentation_data_cache is None:
             self._get_presentation_data()
 
@@ -265,6 +310,7 @@ class Analysis(FeroObject):
 
     @property
     def _schema(self):
+        """Get the schema for the process related to this Analysis."""
         if self._schema_cache is None:
             v1_schema = self._data.get("latest_completed_model_schema", None)
             if (v1_schema is None or len(v1_schema) == 0) and self.process is not None:
@@ -277,7 +323,7 @@ class Analysis(FeroObject):
 
     @staticmethod
     def _make_col_name(col_name: str, cols: List[str]) -> str:
-        """Mangles duplicate columns"""
+        """Mangle duplicate columns."""
         c = 0
         og_col_name = col_name
         while col_name in cols:
@@ -287,10 +333,9 @@ class Analysis(FeroObject):
         return col_name
 
     def is_retraining(self) -> bool:
-        """Checks if an analysis is currently be retrained.
+        """Check if an analysis is currently be retrained.
 
         :return: True if the analysis is in the process of being retrained, false otherwise.
-        :rtype: bool
         """
         self._refresh_analysis()
         training = self.latest_revision_model_state == "T"
@@ -304,7 +349,7 @@ class Analysis(FeroObject):
         return training
 
     def revise(self):
-        """Triggers an analysis revision which causes the analysis to be retrained with any new data or changes in the process configurations.
+        """Trigger an analysis revision which causes the analysis to be retrained with any new data or changes in the process configurations.
 
         This method will not revise the analysis if a new analysis is currently being trained.  It currently only supports revising an analysis with the previously selected options.
 
@@ -330,14 +375,13 @@ class Analysis(FeroObject):
         self._refresh_analysis()
 
     def _refresh_analysis(self):
-        """Reload the latest analysis data from the server"""
+        """Reload the latest analysis data from the server."""
         data = self._client.get(f"/api/analyses/{self.uuid}/")
         schema = AnalysisSchema()
         self._data = schema.load(data)
 
     def _upload_file(self, fp: IO, file_tag: str, prediction_type: str) -> str:
-        """Uploads a single file to the uploaded files location. Returns id of workspace to check"""
-
+        """Upload a single file to the uploaded files location and returns ID of workspace to check."""
         inbox_response = self._client.post(
             f"/api/analyses/{self.uuid}/workspaces/inbox_url/",
             {"file_tag": file_tag, "prediction_type": prediction_type},
@@ -348,7 +392,7 @@ class Analysis(FeroObject):
         return workspace_id
 
     def _parse_regression_data(self):
-        """Get and parse the regression simulator object from presentation data"""
+        """Get and parse the regression simulator object from presentation data."""
         reg_data = next(
             d
             for d in self._presentation_data["data"]
@@ -360,7 +404,7 @@ class Analysis(FeroObject):
         self._target_names = [t["name"] for t in self._reg_targets]
 
     def _flatten_result(self, result: dict, prediction_row: dict) -> dict:
-        """Flattens nested results returned by the api into a single dict and combines it with the provided data"""
+        """Flatten nested results returned by the api into a single dict and combine it with the provided data."""
         flat_result = {}
         cols = prediction_row.keys()
 
@@ -380,22 +424,23 @@ class Analysis(FeroObject):
         return flat_result
 
     def _get_presentation_data(self):
+        """Retrieve the presentation data of this analysis revision from the api."""
         self._presentation_data_cache = self._client.get(
             f"/api/revision_models/{self.latest_trained_revision_model}/presentation_data/"
         )
 
     def has_trained_model(self) -> bool:
-        """Checks whether this analysis has a trained model associated with it.
+        """Check whether this analysis has a trained model associated with it.
 
         :return: True if there is a model, False otherwise
-        :rtype: bool
         """
         return self.latest_completed_model is not None
 
     def make_prediction(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
     ) -> Union[pd.DataFrame, List[dict]]:
-        """Makes a prediction from the provided data using the most recent trained model for the analysis.
+        """Make a prediction from the provided data using the most recent trained model for the analysis.
+
         This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
         bulk prediction, use `make_prediction_serial`.
 
@@ -439,8 +484,9 @@ class Analysis(FeroObject):
     def make_prediction_serial(
         self, prediction_data: Union[pd.DataFrame, List[dict]]
     ) -> Union[pd.DataFrame, List[dict]]:
-        """Makes a prediction from the provided data using the most recent trained model for the analysis. This
-        computes predictions one row at a time. Therefore, while it is slower than `make_prediction`, this method
+        """Make a prediction from the provided data using the most recent trained model for the analysis.
+
+        This computes predictions one row at a time. Therefore, while it is slower than `make_prediction`, this method
         works for analyses that do not support bulk predictions and can be called with inputs that are too large to
         be transferred in a single call.
 
@@ -486,7 +532,7 @@ class Analysis(FeroObject):
         return pd.DataFrame(prediction_results) if is_df else prediction_results
 
     def _get_factor_dtype(self, factor_name: str) -> Union[str, None]:
-        """Returns the dtype of a factor or None if the factor isn't found"""
+        """Return the dtype of a factor or `None` if the factor isn't found."""
         try:
             goal_data = next(
                 f for f in self._regression_factors if f["factor"] == factor_name
@@ -496,7 +542,7 @@ class Analysis(FeroObject):
             return None
 
     def _get_target_dtype(self, target_name: str) -> Union[str, None]:
-        """Returns the dtype of a target or None if the target isn't found"""
+        """Return the dtype of a target or `None` if the target isn't found."""
         try:
             # Only support real and integer targets
             guess = next(
@@ -509,7 +555,7 @@ class Analysis(FeroObject):
             return None
 
     def _verify_standard_goal(self, goal: dict):
-        """Verifies the goal config relative to the analysis"""
+        """Verify the goal config relative to the analysis."""
         goal_name = goal["factor"]["name"]
 
         # The goal label must be a target or factor
@@ -523,7 +569,7 @@ class Analysis(FeroObject):
             raise FeroError("Goal must be a float or integer")
 
     def _verify_cost_goal(self, goal: dict):
-        """Verify that a cost goal is correct"""
+        """Verify that a cost goal is correct."""
         for factor in goal["cost_function"]:
             factor_name = factor["name"]
             factor_type = self._get_factor_dtype(factor_name)
@@ -534,7 +580,7 @@ class Analysis(FeroObject):
                 raise FeroError("Cost functions factors must be floats or integers")
 
     def _verify_constraints(self, constraints: List[dict]):
-        """verify provided constraints are in the analysis"""
+        """Verify provided constraints are in the analysis."""
         all_names = self.factor_names + self.target_names
         for constraint in constraints:
             constraint_name = constraint["name"]
@@ -544,7 +590,7 @@ class Analysis(FeroObject):
                 )
 
     def _cross_verify_optimization(self, goal: dict, constraints: List[dict]):
-        """Verify the config has the correct combined targets, costs and factors"""
+        """Verify the config has the correct combined targets, costs and factors."""
         is_cost = goal.get("type", None) == "COST"
 
         cost_factors = []
@@ -579,14 +625,14 @@ class Analysis(FeroObject):
             )
 
     def _verify_fixed_factors(self, fixed_factors: dict):
-        """Check that the provided fixed factors are in the analysis"""
+        """Check that the provided fixed factors are in the analysis."""
         all_columns = self.target_names + self.factor_names
         for key in fixed_factors.keys():
             if key not in all_columns:
                 raise FeroError(f'"{key}" is not a valid factor')
 
     def _get_basis_values(self):
-        """Gets median fixed values from presentation data"""
+        """Get median fixed values from presentation data."""
         reg_data = next(
             d
             for d in self._presentation_data["data"]
@@ -605,8 +651,7 @@ class Analysis(FeroObject):
     def _build_optimize_request(
         self, name, goal, constraints, fixed_factors, include_confidence_intervals
     ) -> dict:
-        """Formats the content for an optimization request"""
-
+        """Format the content for an optimization request."""
         is_cost = goal.get("type", None) == "COST"
         ci_value = "include" if include_confidence_intervals else "exclude"
         opt_request = {
@@ -721,8 +766,7 @@ class Analysis(FeroObject):
     def _request_prediction(
         self, prediction_request: dict, synchronous: bool
     ) -> Prediction:
-        """Make the prediction request and poll unitl complete if this request is synchronous"""
-
+        """Make the prediction request and poll unitl complete if this request is synchronous."""
         response_data = self._client.post(
             f"/api/analyses/{str(self.uuid)}/workspaces/",
             {"request": prediction_request, "visible": False},
@@ -738,7 +782,7 @@ class Analysis(FeroObject):
         return prediction
 
     def _poll_workspace_for_prediction(self, workspace_id: str):
-        """Poll workspace until it and a result exist"""
+        """Poll workspace until it and a result exist."""
         workspace_url = f"/api/analyses/{str(self.uuid)}/workspaces/{workspace_id}"
         workspace_data = None
         while workspace_data is None:
@@ -774,28 +818,32 @@ class Analysis(FeroObject):
 
         The expected config input looks as follows:
 
-        Example configuration for a standard (without cost) optimization
-        {
-            "goal": "maximize",
-            "factor": {"name": "factor1", "min": 5, "max": 10}
-        }
+        Example configuration for a standard (without cost) optimization::
 
-        Example configuration for a cost optimization
+            {
+                "goal": "maximize",
+                "factor": {"name": "factor1", "min": 5, "max": 10}
+            }
+
+        Example configuration for a cost optimization:
         Cost Goal Config
-        {
-            "type": "COST",
-            "goal": "minimize"
-            "cost_function": [
-                {"min": 5, "max": 10, "cost": 1000, "factor": "factor1},
-                {"min": 5, "max": 10, "cost": 500, "factor": "factor1}
-            ]
-        }
+        ::
 
-        The constraints configuration is a list of factors and their constraints
-        [
-            {"name": "factor2",  "min": 10, "max": 10}
-            {"name": "target1", "min": 100, "max": 500}
-        ]
+            {
+                "type": "COST",
+                "goal": "minimize"
+                "cost_function": [
+                    {"min": 5, "max": 10, "cost": 1000, "factor": "factor1},
+                    {"min": 5, "max": 10, "cost": 500, "factor": "factor1}
+                ]
+            }
+
+        The constraints configuration is a list of factors and their constraints::
+
+            [
+                {"name": "factor2",  "min": 10, "max": 10}
+                {"name": "target1", "min": 100, "max": 500}
+            ]
 
         :param name: Name for this optimizatino
         :type name: str
@@ -810,7 +858,6 @@ class Analysis(FeroObject):
         :return: The results of the optimization
         :rtype: Prediction
         """
-
         if self.blueprint_name == "fault":
             raise FeroError("Fault analysis optimization are not supported")
 
