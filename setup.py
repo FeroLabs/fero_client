@@ -45,7 +45,13 @@ setup(
     ],
     packages=["fero"],
     python_requires=">=3.7, <4",
-    install_requires=["requests", "pandas>=1.2.0,<1.5.0", "marshmallow>=3.8.0,<3.16.0", "azure-storage-blob", "pyarrow>=6.0.0,<7.0"],
+    install_requires=[
+        "requests",
+        "pandas>=1.2.0,<1.5.0",
+        "marshmallow>=3.8.0,<3.16.0",
+        "azure-storage-blob",
+        "pyarrow>=6.0.0,<7.0",
+    ],
     project_urls={
         "Bug Reports": "https://github.com/pypa/sampleproject/issues",
         "Source": "https://github.com/pypa/sampleproject/",
