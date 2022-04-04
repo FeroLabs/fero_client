@@ -1,3 +1,5 @@
+"""File to define installation of the `fero` package."""
+
 import os
 import sys
 
@@ -13,11 +15,12 @@ VERSION = "2.1.0"
 
 
 class VerifyVersionCommand(install):
-    """Custom command to verify that the git tag matches our version"""
+    """Custom command to verify that the git tag matches our version."""
 
     description = "verify that the git tag matches our version"
 
     def run(self):
+        """Verify that the git tag matches our version with this custom command."""
         tag = os.getenv("CIRCLE_TAG")
 
         if tag.lstrip("v") != VERSION:

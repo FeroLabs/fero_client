@@ -1,3 +1,5 @@
+"""A module to test the `Process` object and related classes."""
+
 import pytest
 import pandas as pd
 from pandas.testing import assert_frame_equal
@@ -44,7 +46,7 @@ def process_with_loaded_data(process_fixture, stage_fixture, tags_fixture):
 def test_process_get_stages(
     process_fixture, patched_fero_client, process_stages, stage_fixture
 ):
-    """Test that a process can get stages"""
+    """Test that a process can get stages."""
     patched_fero_client.get.return_value = process_stages
     assert process_fixture.stages == stage_fixture
     # test caching
@@ -58,7 +60,7 @@ def test_process_get_stages(
 def test_process_get_tags(
     process_fixture, patched_fero_client, process_tags, tags_fixture
 ):
-    """Test that a process can get tags"""
+    """Test that a process can get tags."""
     patched_fero_client.get.return_value = process_tags
     assert process_fixture.tags == tags_fixture
     # test caching
@@ -70,30 +72,30 @@ def test_process_get_tags(
 
 
 def test_get_tag_stage_with_tag(process_with_loaded_data):
-    """Test getting a stage by providing a tag name"""
+    """Test getting a stage by providing a tag name."""
     assert process_with_loaded_data.get_tag_stage("s2_factor1").id == 100
 
 
 def test_get_tag_stage_with_tag_use_tag_obj(process_with_loaded_data, tags_fixture):
-    """Test getting a stage by providing a tag"""
+    """Test getting a stage by providing a tag."""
     tag = next(tag for tag in tags_fixture if tag.name == "s2_factor1")
     assert process_with_loaded_data.get_tag_stage(tag).id == 100
 
 
 def test_get_tag_stage_no_tag(process_with_loaded_data):
-    """Test getting a stage that doesn't exist"""
+    """Test getting a stage that doesn't exist."""
     assert process_with_loaded_data.get_tag_stage("not_a_factor") is None
 
 
 def test_stages_by_kpis_with_tag_name(process_with_loaded_data, stage_fixture):
-    """Test getting stages by providing a kpi name"""
+    """Test getting stages by providing a kpi name."""
     assert (
         process_with_loaded_data.get_stages_by_kpis(["s2_factor1"]) == stage_fixture[:2]
     )
 
 
 def test_stages_by_kpis_with_tag_multiple(process_with_loaded_data, stage_fixture):
-    """Test getting stages by providing multiple kpi name"""
+    """Test getting stages by providing multiple kpi name."""
     assert (
         process_with_loaded_data.get_stages_by_kpis(["s2_factor1", "s1_factor1"])
         == stage_fixture[:2]
@@ -103,18 +105,18 @@ def test_stages_by_kpis_with_tag_multiple(process_with_loaded_data, stage_fixtur
 def test_stages_by_kpis_with_tag_use_tag_obj(
     process_with_loaded_data, tags_fixture, stage_fixture
 ):
-    """Test getting a stages by providing a tag kpi"""
+    """Test getting a stages by providing a tag kpi."""
     tag = next(tag for tag in tags_fixture if tag.name == "s2_factor1")
     assert process_with_loaded_data.get_stages_by_kpis([tag]) == stage_fixture[:2]
 
 
 def test_stages_by_kpis_no_tag(process_with_loaded_data):
-    """Test getting a stages if the kpi doesn't exist"""
+    """Test getting a stages if the kpi doesn't exist."""
     assert process_with_loaded_data.get_stages_by_kpis(["not_a_factor"]) == []
 
 
 def test_get_data_works(process_with_loaded_data, patched_fero_client):
-    """Test that get data makes the correct calls and loads a file"""
+    """Test that get data makes the correct calls and loads a file."""
     patched_fero_client.post.return_value = {
         "request_id": "abcd-1234",
         "data": {"download_url": "test.com", "success": True, "message": "success"},
@@ -148,7 +150,7 @@ def test_get_data_works(process_with_loaded_data, patched_fero_client):
 
 
 def test_get_data_continuous_no_kpi(process_with_loaded_data):
-    """Test that get data raises an error for a continuous process and with no kpis"""
+    """Test that get data raises an error for a continuous process and with no kpis."""
     process_with_loaded_data._data["process_type"] = "C"
 
     with pytest.raises(DataRequestError) as exc:
@@ -159,8 +161,7 @@ def test_get_data_continuous_no_kpi(process_with_loaded_data):
 
 
 def test_get_data_unsuccesful(process_with_loaded_data, patched_fero_client):
-    """Test that a fero error is raised if the server indicates an unsuccesful request"""
-
+    """Test that a fero error is raised if the server indicates an unsuccesful request."""
     patched_fero_client.post.return_value = {
         "request_id": "abcd-1234",
         "data": {

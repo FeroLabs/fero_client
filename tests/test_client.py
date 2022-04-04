@@ -1,3 +1,5 @@
+"""A module to test the `Fero` object."""
+
 from fero.datasource import DataSource
 from fero.analysis import Analysis
 from fero.asset import Asset
@@ -52,16 +54,14 @@ def patch_fero_get():
 
 
 def test_fero_client_with_jwt():
-    """Test that a client is created with a jwt provided"""
-
+    """Test that a client is created with a jwt provided."""
     client = Fero(fero_token="fakeToken")
     assert isinstance(client, Fero)
     assert client._fero_token == "fakeToken"
 
 
 def test_fero_client_username_pass_provided(patch_requests_post):
-    """Test that a client is created correctly with a provided username and password"""
-
+    """Test that a client is created correctly with a provided username and password."""
     client = Fero(username="fero", password="pass")
     assert isinstance(client, Fero)
 
@@ -74,7 +74,7 @@ def test_fero_client_username_pass_provided(patch_requests_post):
 
 
 def test_fero_client_env_token(monkeypatch):
-    """Test that a token is found in the env"""
+    """Test that a token is found in the env."""
     monkeypatch.setenv("FERO_TOKEN", "fakeToken")
 
     client = Fero()
@@ -83,8 +83,7 @@ def test_fero_client_env_token(monkeypatch):
 
 
 def test_fero_client_token_file(mock_conf_path):
-    """Test that a token is found in the .fero file"""
-
+    """Test that a token is found in the .fero file."""
     with open(str(mock_conf_path / ".fero"), "w") as fero_file:
         fero_file.write("FERO_TOKEN=fakeToken\n")
 
@@ -94,7 +93,7 @@ def test_fero_client_token_file(mock_conf_path):
 
 
 def test_fero_client_user_pass_file(patch_requests_post, mock_conf_path):
-    """Test that username and password are found in the .fero file"""
+    """Test that username and password are found in the .fero file."""
     with open(str(mock_conf_path / ".fero"), "w") as fero_file:
         fero_file.write("FERO_USERNAME=fero\nFERO_PASSWORD=pass\n")
 
@@ -110,14 +109,13 @@ def test_fero_client_user_pass_file(patch_requests_post, mock_conf_path):
 
 
 def test_fero_client_no_creds():
-    """Test that an exception is raised if there is no way to get a token"""
+    """Test that an exception is raised if there is no way to get a token."""
     with pytest.raises(FeroError):
         Fero()
 
 
 def test_fero_client_get_wrapper(patch_requests_get):
-    """Test that get requests have the correct headers added"""
-
+    """Test that get requests have the correct headers added."""
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     client.get("/some/url/", params={"n": "42"})
     patch_requests_get.assert_called_with(
@@ -129,8 +127,7 @@ def test_fero_client_get_wrapper(patch_requests_get):
 
 
 def test_fero_client_post_wrapper(patch_requests_post):
-    """Test that post requests have the correct headers added"""
-
+    """Test that post requests have the correct headers added."""
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     client.post("/some/url/", {"n": "42"})
     patch_requests_post.assert_called_with(
@@ -142,7 +139,7 @@ def test_fero_client_post_wrapper(patch_requests_post):
 
 
 def test_fero_get_raises_error_404(patch_requests_get, mock_response):
-    """Test that a FeroError with the expected message is raised if the url isn't found"""
+    """Test that a FeroError with the expected message is raised if the url isn't found."""
     mock_response.status_code = 404
     patch_requests_get.return_value = mock_response
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
@@ -153,7 +150,7 @@ def test_fero_get_raises_error_404(patch_requests_get, mock_response):
 
 
 def test_fero_get_raises_error_not_authorized(patch_requests_get, mock_response):
-    """Test that a FeroError with the expected message is raised if the request isn't authorized"""
+    """Test that a FeroError with the expected message is raised if the request isn't authorized."""
     mock_response.status_code = 403
     patch_requests_get.return_value = mock_response
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
@@ -169,7 +166,7 @@ def test_fero_get_raises_error_not_authorized(patch_requests_get, mock_response)
 
 
 def test_fero_get_raises_error_400(patch_requests_get, mock_response):
-    """Test that a FeroError with the expected message is raised if a 400 is returned"""
+    """Test that a FeroError with the expected message is raised if a 400 is returned."""
     mock_response.status_code = 400
     patch_requests_get.return_value = mock_response
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
@@ -182,8 +179,7 @@ def test_fero_get_raises_error_400(patch_requests_get, mock_response):
 
 
 def test_get_analysis_success(patch_fero_get, analysis_data):
-    """Test that an analysis is returned by get_analysis"""
-
+    """Test that an analysis is returned by get_analysis."""
     patch_fero_get.return_value = analysis_data
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     analysis = client.get_analysis("some-uuid")
@@ -193,8 +189,7 @@ def test_get_analysis_success(patch_fero_get, analysis_data):
 
 
 def test_search_analyses(patch_fero_get, analysis_data):
-    """Test that the correct iterator of analyses is returned by search_analyses"""
-
+    """Test that the correct iterator of analyses is returned by search_analyses."""
     patch_fero_get.return_value = {"next": None, "results": [analysis_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     analyses = [a for a in client.search_analyses(analysis_data["name"])]
@@ -207,8 +202,7 @@ def test_search_analyses(patch_fero_get, analysis_data):
 
 
 def test_search_analyses_paginated(patch_fero_get, analysis_data):
-    """Test that a list analyses is returned by search_analyses"""
-
+    """Test that a list analyses is returned by search_analyses."""
     patch_fero_get.side_effect = [
         {
             "next": "http://test.com/api/analyses/?token=1234",
@@ -232,8 +226,7 @@ def test_search_analyses_paginated(patch_fero_get, analysis_data):
 
 
 def test_get_asset_success(patch_fero_get, asset_data):
-    """Test that an asset is returned by get_asset"""
-
+    """Test that an asset is returned by get_asset."""
     patch_fero_get.return_value = asset_data
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     asset = client.get_asset("some-uuid")
@@ -243,8 +236,7 @@ def test_get_asset_success(patch_fero_get, asset_data):
 
 
 def test_search_assets(patch_fero_get, asset_data):
-    """Test that an iterator of assets is returned by search_assets"""
-
+    """Test that an iterator of assets is returned by search_assets."""
     patch_fero_get.return_value = {"next": None, "results": [asset_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     assets = [a for a in client.search_assets(asset_data["name"])]
@@ -257,8 +249,7 @@ def test_search_assets(patch_fero_get, asset_data):
 
 
 def test_search_assets_paginated(patch_fero_get, asset_data):
-    """Test that an iterator of assets is returned by search_assets"""
-
+    """Test that an iterator of assets is returned by search_assets."""
     patch_fero_get.side_effect = [
         {
             "next": "http://test.com/api/assets/?token=1234",
@@ -282,8 +273,7 @@ def test_search_assets_paginated(patch_fero_get, asset_data):
 
 
 def test_get_datasource_success(patch_fero_get, datasource_data):
-    """Test that an data source is returned by get_datasource"""
-
+    """Test that an data source is returned by get_datasource."""
     patch_fero_get.return_value = datasource_data
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     ds = client.get_datasource("9f79206e-94fc-4834-8f52-84008b12df86")
@@ -295,8 +285,7 @@ def test_get_datasource_success(patch_fero_get, datasource_data):
 
 
 def test_get_process_success(patch_fero_get, process_data):
-    """Test that an process is returned by get_process"""
-
+    """Test that an process is returned by get_process."""
     patch_fero_get.return_value = process_data
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     process = client.get_process("some-uuid")
@@ -306,8 +295,7 @@ def test_get_process_success(patch_fero_get, process_data):
 
 
 def test_search_processes(patch_fero_get, process_data):
-    """Test that the correct iterator of processes is returned by search_processes"""
-
+    """Test that the correct iterator of processes is returned by search_processes."""
     patch_fero_get.return_value = {"next": None, "results": [process_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     processes = [a for a in client.search_processes(process_data["name"])]
@@ -320,8 +308,7 @@ def test_search_processes(patch_fero_get, process_data):
 
 
 def test_search_processes_paginated(patch_fero_get, process_data):
-    """Test that a list process is returned by search_analyses"""
-
+    """Test that a list process is returned by search_analyses."""
     patch_fero_get.side_effect = [
         {
             "next": "http://test.com/api/processes/?token=1234",

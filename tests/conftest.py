@@ -1,3 +1,5 @@
+"""A Module to hold pytest fixtures for tests."""
+
 import pytest
 from unittest import mock
 from fero.client import Fero
@@ -5,6 +7,7 @@ from fero.client import Fero
 
 @pytest.fixture
 def analysis_data():
+    """Get sample data matching the Analysis schema."""
     return {
         "uuid": "21621466-b198-45be-89f9-3a5eb2c7cf48",
         "predictions_url": "/api/analyses/21621466-b198-45be-89f9-3a5eb2c7cf48/predictions/",
@@ -51,6 +54,7 @@ def analysis_data():
 
 @pytest.fixture
 def revision_data():
+    """Get sample data matching the Revision schema."""
     return {
         "configured_blueprint": {
             "target_labels": ["s3_kpi"],
@@ -79,6 +83,7 @@ def revision_data():
 
 @pytest.fixture
 def asset_data():
+    """Get sample data matching the Asset schema."""
     return {
         "uuid": "fd57ba36-3c5d-40f5-ae0c-d7b76ab39ee5",
         "url": "/api/assets/fd57ba36-3c5d-40f5-ae0c-d7b76ab39ee5/",
@@ -115,6 +120,7 @@ def asset_data():
 
 @pytest.fixture
 def datasource_data():
+    """Get sample data matching the Datasource schema."""
     return {
         "uuid": "9f79206e-94fc-4834-8f52-84008b12df86",
         "name": "three_residences new",
@@ -154,6 +160,7 @@ def datasource_data():
 
 @pytest.fixture
 def process_data():
+    """Get sample data matching the Process schema."""
     return {
         "api_id": "617da764-9c41-4135-87fe-463b2f01b42b",
         "name": "Fixture Data",
@@ -186,7 +193,7 @@ def process_data():
 
 @pytest.fixture
 def process_stages():
-
+    """Get sample data including a list of objects matching the Stage schema."""
     return {
         "stages": [
             {
@@ -314,6 +321,7 @@ def process_stages():
 
 @pytest.fixture
 def process_tags():
+    """Get sample data including a list of objects matching the Tag schema."""
     return {
         "tags": [
             {
@@ -414,12 +422,13 @@ def process_tags():
 
 @pytest.fixture
 def process_data_continuous(process_data):
+    """Get sample data matching the Process schema with a continuous process."""
     process_data["process_type"] = "C"
     return process_data
 
 
 @pytest.fixture
 def patched_fero_client():
-    with mock.patch.object(Fero, "post"):
-        with mock.patch.object(Fero, "get"):
-            yield Fero(fero_token="fakeToken")
+    """Get fero client object using mocked access."""
+    with mock.patch.object(Fero, "post"), mock.patch.object(Fero, "get"):
+        yield Fero(fero_token="fakeToken")

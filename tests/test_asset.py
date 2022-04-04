@@ -1,3 +1,5 @@
+"""A module to test the `Asset` object and related classes."""
+
 import pytest
 import json
 from fero.asset import Asset
@@ -215,8 +217,7 @@ def prediction_result_success_data():
 
 
 def test_creates_asset_correctly(asset_data, patched_fero_client):
-    """Test that a valid asset is created from valid data and a valid client"""
-
+    """Test that a valid asset is created from valid data and a valid client."""
     asset = Asset(patched_fero_client, asset_data)
 
     assert isinstance(asset, Asset)
@@ -224,13 +225,13 @@ def test_creates_asset_correctly(asset_data, patched_fero_client):
 
 
 def test_has_trained_model_true(asset_data, patched_fero_client):
-    """Test that has_trained_model is true if there is a latest configuration model"""
+    """Test that has_trained_model is true if there is a latest configuration model."""
     asset = Asset(patched_fero_client, asset_data)
     assert asset.has_trained_model() is True
 
 
 def test_has_trained_model_false(asset_data, patched_fero_client):
-    """Test that has_trained_model is false if there is no configuration model"""
+    """Test that has_trained_model is false if there is no configuration model."""
     asset_data["latest_completed_model"] = None
     asset = Asset(patched_fero_client, asset_data)
     assert asset.has_trained_model() is False
