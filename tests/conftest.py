@@ -430,5 +430,6 @@ def process_data_continuous(process_data):
 @pytest.fixture
 def patched_fero_client():
     """Get fero client object using mocked access."""
-    with mock.patch.object(Fero, "post"), mock.patch.object(Fero, "get"):
-        yield Fero(fero_token="fakeToken")
+    with mock.patch.object(Fero, "post"):
+        with mock.patch.object(Fero, "get"):
+            yield Fero(fero_token="fakeToken")

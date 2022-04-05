@@ -158,7 +158,7 @@ class Prediction:
     def __init__(self, client: "fero.Fero", prediction_result_id: str):
         """
         Create a `Prediction` using the ID from a set of prediction results.
-        
+
         :param client: a fero client to interface with the API
         :param prediction_result_id: the ID tied to the prediction's result
         """

@@ -156,7 +156,6 @@ class Tag(FeroObject):
 
     def __repr__(self) -> str:
         """Represent the `Tag` by its name and its `Process`."""
-        # TODO is this actually unique...? should be for a __repr__
         return f"<Tag name={self.name} Process name={self._process}>"
 
     __str__ = __repr__
@@ -201,7 +200,6 @@ class Stage(FeroObject):
 
     def __repr__(self) -> str:
         """Represent the `Stage` by its name and its `Process`."""
-        # TODO is this actually unique...? should be for a __repr__
         return f"<Stage name={self.name} Process name={self._process}>"
 
     __str__ = __repr__
@@ -231,7 +229,6 @@ class Process(FeroObject):
 
     def __repr__(self) -> str:
         """Represent the `Process` by its name."""
-        # TODO is this actually unique...? should be for a __repr__
         return f"<Process name={self.name}>"
 
     __str__ = __repr__
