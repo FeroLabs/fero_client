@@ -1,4 +1,4 @@
-"""A module to test the `Fero` object."""
+"""A module to test the `Fero` class."""
 
 from fero.datasource import DataSource
 from fero.analysis import Analysis
@@ -12,7 +12,7 @@ from fero import Fero, FeroError
 
 @pytest.fixture
 def mock_response():
-
+    """Create a mocked successful API response."""
     response = mock.MagicMock()
     response.json.return_value = {"token": "fakeToken"}
     response.content
@@ -24,6 +24,7 @@ def mock_response():
 
 @pytest.fixture()
 def patch_requests_post(mock_response):
+    """Create a mocked successful POST response."""
     with mock.patch("fero.client.requests.post") as post_function:
 
         post_function.return_value = mock_response
@@ -32,6 +33,7 @@ def patch_requests_post(mock_response):
 
 @pytest.fixture
 def patch_requests_get(mock_response):
+    """Create a mocked successful GET response."""
     with mock.patch("fero.client.requests.get") as get_function:
 
         get_function.return_value = mock_response
@@ -40,7 +42,7 @@ def patch_requests_get(mock_response):
 
 @pytest.fixture
 def mock_conf_path(monkeypatch, tmp_path_factory):
-
+    """Create a mocked successful POST response."""
     path = tmp_path_factory.mktemp("home-")
     monkeypatch.setattr(Path, "home", mock.MagicMock(return_value=path))
 
@@ -49,6 +51,7 @@ def mock_conf_path(monkeypatch, tmp_path_factory):
 
 @pytest.fixture
 def patch_fero_get():
+    """Create a mocked GET call from the fero client."""
     with mock.patch.object(Fero, "get") as mock_fero_get:
         yield mock_fero_get
 
@@ -166,7 +169,7 @@ def test_fero_get_raises_error_not_authorized(patch_requests_get, mock_response)
 
 
 def test_fero_get_raises_error_400(patch_requests_get, mock_response):
-    """Test that a FeroError with the expected message is raised if a 400 is returned."""
+    """Test that a `FeroError` with the expected message is raised if a 400 is returned."""
     mock_response.status_code = 400
     patch_requests_get.return_value = mock_response
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
@@ -189,7 +192,7 @@ def test_get_analysis_success(patch_fero_get, analysis_data):
 
 
 def test_search_analyses(patch_fero_get, analysis_data):
-    """Test that the correct iterator of analyses is returned by search_analyses."""
+    """Test that the correct iterator of analyses is returned by `search_analyses`."""
     patch_fero_get.return_value = {"next": None, "results": [analysis_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     analyses = [a for a in client.search_analyses(analysis_data["name"])]
@@ -202,7 +205,7 @@ def test_search_analyses(patch_fero_get, analysis_data):
 
 
 def test_search_analyses_paginated(patch_fero_get, analysis_data):
-    """Test that a list analyses is returned by search_analyses."""
+    """Test that a list analyses is returned by `search_analyses`."""
     patch_fero_get.side_effect = [
         {
             "next": "http://test.com/api/analyses/?token=1234",
@@ -226,7 +229,7 @@ def test_search_analyses_paginated(patch_fero_get, analysis_data):
 
 
 def test_get_asset_success(patch_fero_get, asset_data):
-    """Test that an asset is returned by get_asset."""
+    """Test that an asset is returned by `get_asset`."""
     patch_fero_get.return_value = asset_data
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     asset = client.get_asset("some-uuid")
@@ -236,7 +239,7 @@ def test_get_asset_success(patch_fero_get, asset_data):
 
 
 def test_search_assets(patch_fero_get, asset_data):
-    """Test that an iterator of assets is returned by search_assets."""
+    """Test that an iterator of assets is returned by `search_assets`."""
     patch_fero_get.return_value = {"next": None, "results": [asset_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     assets = [a for a in client.search_assets(asset_data["name"])]
@@ -249,7 +252,7 @@ def test_search_assets(patch_fero_get, asset_data):
 
 
 def test_search_assets_paginated(patch_fero_get, asset_data):
-    """Test that an iterator of assets is returned by search_assets."""
+    """Test that an iterator of assets is returned by `search_assets`."""
     patch_fero_get.side_effect = [
         {
             "next": "http://test.com/api/assets/?token=1234",
@@ -273,7 +276,7 @@ def test_search_assets_paginated(patch_fero_get, asset_data):
 
 
 def test_get_datasource_success(patch_fero_get, datasource_data):
-    """Test that an data source is returned by get_datasource."""
+    """Test that an data source is returned by `get_datasource`."""
     patch_fero_get.return_value = datasource_data
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     ds = client.get_datasource("9f79206e-94fc-4834-8f52-84008b12df86")
@@ -285,7 +288,7 @@ def test_get_datasource_success(patch_fero_get, datasource_data):
 
 
 def test_get_process_success(patch_fero_get, process_data):
-    """Test that an process is returned by get_process."""
+    """Test that an process is returned by `get_process`."""
     patch_fero_get.return_value = process_data
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     process = client.get_process("some-uuid")
@@ -295,7 +298,7 @@ def test_get_process_success(patch_fero_get, process_data):
 
 
 def test_search_processes(patch_fero_get, process_data):
-    """Test that the correct iterator of processes is returned by search_processes."""
+    """Test that the correct iterator of processes is returned by `search_processes`."""
     patch_fero_get.return_value = {"next": None, "results": [process_data]}
     client = Fero(fero_token="fakeToken", hostname="http://test.com")
     processes = [a for a in client.search_processes(process_data["name"])]
@@ -308,7 +311,7 @@ def test_search_processes(patch_fero_get, process_data):
 
 
 def test_search_processes_paginated(patch_fero_get, process_data):
-    """Test that a list process is returned by search_analyses."""
+    """Test that a list process is returned by `search_analyses`."""
     patch_fero_get.side_effect = [
         {
             "next": "http://test.com/api/processes/?token=1234",

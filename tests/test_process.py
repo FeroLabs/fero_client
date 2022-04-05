@@ -1,4 +1,4 @@
-"""A module to test the `Process` object and related classes."""
+"""A module to test `Process` and related classes."""
 
 import pytest
 import pandas as pd
@@ -10,11 +10,13 @@ from io import BytesIO
 
 @pytest.fixture
 def process_fixture(process_data, patched_fero_client):
+    """Get a sample `Process` object."""
     return Process(patched_fero_client, process_data)
 
 
 @pytest.fixture
 def stage_fixture(process_fixture, process_stages):
+    """Get a sample list of `Stage` objects."""
     return [
         Stage(process_fixture, process_fixture._client, sdata)
         for sdata in process_stages["stages"]
@@ -23,6 +25,7 @@ def stage_fixture(process_fixture, process_stages):
 
 @pytest.fixture
 def tags_fixture(process_fixture, process_tags):
+    """Get a sample list of `Tag` objects."""
     return [
         Tag(process_fixture, process_fixture._client, tdata)
         for tdata in process_tags["tags"]
@@ -31,7 +34,7 @@ def tags_fixture(process_fixture, process_tags):
 
 @pytest.fixture
 def process_with_loaded_data(process_fixture, stage_fixture, tags_fixture):
-
+    """Get a sample `Process` object with loaded stages and tags."""
     with mock.patch.object(
         Process, "stages", new_callable=mock.PropertyMock
     ) as mock_stages:

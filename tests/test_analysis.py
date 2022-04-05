@@ -1,4 +1,4 @@
-"""A module to test the `Analysis` object and related classes."""
+"""A module to test `Analysis` and related classes."""
 
 import io
 import datetime
@@ -17,6 +17,7 @@ def test_analysis(
     prediction_request_response,
     prediction_results_response_completed,
 ):
+    """Create a sample `Analysis` object."""
     patched_fero_client.post.return_value = prediction_request_response
     patched_fero_client.get.return_value = prediction_results_response_completed
 
@@ -25,7 +26,7 @@ def test_analysis(
 
 @pytest.fixture
 def test_analysis_with_data(test_analysis):
-
+    """Create a sample `Analysis` holding data for the prediction simulator."""
     test_analysis._presentation_data_cache = {
         "data": [
             {
@@ -108,7 +109,7 @@ def test_analysis_with_data(test_analysis):
 
 @pytest.fixture
 def expected_optimization_config():
-
+    """Create a sample optimization configuration."""
     return {
         "name": "test optimization",
         "description": "",
@@ -154,7 +155,7 @@ def expected_optimization_config():
 
 @pytest.fixture
 def prediction_request_response(expected_optimization_config):
-
+    """Get a sample prediction request resopnse using the sample optimization configuration."""
     response = {
         "latest_prediction": {
             "uuid": "01bff6f2-8fb3-469e-813a-9b6cfd93e338",
@@ -181,7 +182,7 @@ def prediction_request_response(expected_optimization_config):
 
 @pytest.fixture
 def prediction_results_response_started():
-
+    """Get sample results for a prediction when the prediction has started but not completed."""
     return {
         "request": "c9448486-0c59-487f-9c9c-345d98103fcb",
         "revision_model": "e751f70e-aeb4-46ee-b860-bfc37f3767a7",
@@ -193,6 +194,7 @@ def prediction_results_response_started():
 
 @pytest.fixture
 def prediction_results_response_completed(prediction_results_response_started):
+    """Get sample results for a prediction when the prediction has completed."""
     prediction_results_response_started["result_data"] = {
         "status": "SUCCESS",
         "version": 1,
@@ -235,6 +237,7 @@ def prediction_results_response_completed(prediction_results_response_started):
 
 @pytest.fixture
 def prediction_data():
+    """Get sample data returned by a prediction."""
     return [
         {"value1": 1.0, "value2": 2, "value3": 3.3},
         {"value1": 4.0, "value2": 5, "value3": 6.3},
@@ -243,11 +246,13 @@ def prediction_data():
 
 @pytest.fixture
 def prediction_dataframe(prediction_data):
+    """Get sample data returned by a prediction in the form of a Dataframe."""
     return pd.DataFrame(prediction_data)
 
 
 @pytest.fixture
 def prediction_result_data_single_v1():
+    """Get sample data returned by a prediction in the form of a Dataframe."""
     return {
         "status": "SUCCESS",
         "version": 1,
@@ -260,6 +265,7 @@ def prediction_result_data_single_v1():
 
 @pytest.fixture
 def prediction_result_data_bulk_v1():
+    """Get sample data returned by a v1 bulk prediction."""
     return {
         "status": "SUCCESS",
         "version": 1,
@@ -276,6 +282,7 @@ def prediction_result_data_bulk_v1():
 
 @pytest.fixture
 def prediction_result_data_single_v2():
+    """Get sample data returned by a v2 single prediction."""
     return {
         "status": "SUCCESS",
         "version": 2,
@@ -304,6 +311,7 @@ def prediction_result_data_single_v2():
 
 @pytest.fixture
 def prediction_result_data_bulk_v2():
+    """Get sample data returned by a v2 bulk prediction."""
     return {
         "status": "SUCCESS",
         "version": 2,
@@ -332,6 +340,7 @@ def prediction_result_data_bulk_v2():
 
 @pytest.fixture
 def batch_prediction_success_data_cache():
+    """Get sample data by a successful batch prediction."""
     return {
         "request": "request_id",
         "revision_model": "revision_model_id",
@@ -351,7 +360,7 @@ def batch_prediction_success_data_cache():
 
 @pytest.fixture
 def batch_prediction_failure_data_cache():
-
+    """Get sample data by an unsuccessful batch prediction."""
     return {
         "request": "request_id",
         "revision_model": "revision_model_id",
