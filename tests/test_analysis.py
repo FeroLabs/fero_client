@@ -423,6 +423,7 @@ def test_make_prediction_dictionaries(
         {"value1": 4.0, "value2": 5, "value3": 6.3},
     ]
 
+
 def test_make_prediction_dataframe(
     analysis_data,
     patched_fero_client,
@@ -457,6 +458,7 @@ def test_make_prediction_dataframe(
         expected,
         check_like=True,
     )
+
 
 def test_make_prediction_prediction_failure(
     analysis_data,
