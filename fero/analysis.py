@@ -213,7 +213,7 @@ class Prediction:
         return self._complete
 
     def get_results(self, format="dataframe") -> Union[pd.DataFrame, List[dict]]:
-        """Serialize the prediction results of the prediction.
+        """Return the prediction results of the prediction.
 
         By default this will be a pandas DataFrame, but specifying `format="record"`
         will instead return a list of dictionaries where each key specifies
@@ -304,10 +304,7 @@ class Analysis(FeroObject):
 
     @property
     def _presentation_data(self) -> Optional[dict]:
-        """Get the presentation data of this analysis.
-
-        This is big and ugly, so keep it private but cached.
-        """
+        """Get the presentation data of this analysis."""
         if self._presentation_data_cache is None:
             self._get_presentation_data()
 
@@ -338,7 +335,7 @@ class Analysis(FeroObject):
         return col_name
 
     def is_retraining(self) -> bool:
-        """Check if an analysis is currently be retrained.
+        """Check if an analysis is currently being retrained.
 
         :return: True if the analysis is in the process of being retrained, false otherwise.
         """
@@ -446,8 +443,7 @@ class Analysis(FeroObject):
     ) -> Union[pd.DataFrame, List[dict]]:
         """Make a prediction from the provided data using the most recent trained model for the analysis.
 
-        This method is optimized for analyses that support fast, bulk prediction. For analyses that do not support
-        bulk prediction, use `make_prediction_serial`.
+        This method is optimized for analyses that support fast, bulk prediction.
 
         `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
         to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
@@ -485,56 +481,6 @@ class Analysis(FeroObject):
             )
         output = prediction.get_results()
         return list(output.T.to_dict().values()) if is_dict_list else output
-
-    def make_prediction_serial(
-        self, prediction_data: Union[pd.DataFrame, List[dict]]
-    ) -> Union[pd.DataFrame, List[dict]]:
-        """Make a prediction from the provided data using the most recent trained model for the analysis.
-
-        This computes predictions one row at a time. Therefore, while it is slower than `make_prediction`, this method
-        works for analyses that do not support bulk predictions and can be called with inputs that are too large to
-        be transferred in a single call.
-
-        `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
-        to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
-        or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
-        Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
-
-        :param prediction_data:  Either a data frame or list of dictionaries specifying values to be used in the model.
-        :type prediction_data: Union[pd.DataFrame, List[dict]]
-        :raises FeroError: Raised if no model has been trained or the server returns an error message
-        :return: A data frame or list of dictionaries depending on how the function was called
-        :rtype: Union[pd.DataFrame, List[dict]]
-        """
-        if not self.has_trained_model:
-            raise FeroError("No model has been trained on this analysis.")
-
-        is_df = isinstance(prediction_data, pd.DataFrame)
-
-        # convert to dictionary for serialization
-        if is_df:
-            prediction_data = [dict(row) for _, row in prediction_data.iterrows()]
-
-        prediction_results = []
-        # make a prediction for each row
-        for row in prediction_data:
-
-            prediction_request = {"values": row}
-            prediction_result = self._client.post(
-                f"/api/revision_models/{str(self.latest_completed_model)}/predict/",
-                prediction_request,
-            )
-            if prediction_result.get("status") != "SUCCESS":
-                raise FeroError(
-                    prediction_result.get(
-                        "message", "The prediction failed for unknown reasons."
-                    )
-                )
-
-            prediction_results.append(self._flatten_result(prediction_result, row))
-
-        # convert back to a data frame if need
-        return pd.DataFrame(prediction_results) if is_df else prediction_results
 
     def _get_factor_dtype(self, factor_name: str) -> Union[str, None]:
         """Return the dtype of a factor or `None` if the factor isn't found."""

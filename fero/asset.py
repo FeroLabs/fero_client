@@ -101,10 +101,7 @@ class Asset(FeroObject):
 
     @property
     def _presentation_data(self):
-        """Get the presentation data of this asset.
-
-        This is big and ugly, so keep it private but cached
-        """
+        """Get the presentation data of this asset."""
         if self._presentation_data_cache is None:
             self._get_presentation_data()
 
