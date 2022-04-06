@@ -129,7 +129,7 @@ restructuredtext-lint==1.4.0
     # via flake8-rst-docstrings
 rfc3986==2.0.0
     # via twine
-rich==12.1.0
+rich==12.2.0
     # via twine
 six==1.16.0
     # via
