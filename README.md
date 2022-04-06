@@ -1,21 +1,19 @@
 # fero_client
 
-`fero` is a client side python library intended to help users interact with the Fero Machine Learning website. The primary entrypoint for interacting with the Fero Application is via the `Fero` client class
+`fero` is a client side Python library intended to help users interact with [Fero](https://app.ferolabs.com). 
 
 ## Quickstart
 
 ```python
 from fero import Fero
 
-# create a client
+# Create a Fero client object
 fero_client = Fero()
 
-# get an analysis
-analyses = fero_client.search_analyses(name="quality-example-data")
+# Get a specific analysis by its unique identifier
+analyses = fero_client.get_analysis('5dfbbb63-8ad4-4638-9fdb-61e39952d3cf')
 
-analysis = analyses[0]
-
-# Create a data frame with the expected input columns
+# Create a pandas dataframe with factor values for this analysis
 df = pd.DataFrame([{"value": 5, "value2": 2}])
 
 # Make a prediction
@@ -25,23 +23,6 @@ print(prediction)
 '''
       value	  value2	target_high	 target_low	  target_mid
 0	  5	      2	        100	         75	          88
-'''
-
-# get an asset
-assets = fero_client.search_assets(name="my-favorite-asset")
-asset = assets[0]
-
-# see the current predictions
-prediction = asset.predict()
-
-print(prediction)
-'''
-                        mean:Factor1  p5:Factor1  p25:Factor1 ... p75:Target1  p95:Target1
-2020-12-25T00:00:00Z    7.937         7.253       7.688       ... 1.921        2.197
-2020-12-25T01:00:00Z    8.059         6.962       7.721       ... 1.924        2.202
-2020-12-25T02:00:00Z    8.193         6.754       7.692       ... 1.871        2.318
-2020-12-25T03:00:00Z    8.349         6.552       7.619       ... 1.830        2.375
-2020-12-25T04:00:00Z    8.492         6.199       7.498       ... 1.762        2.425
 '''
 ```
 
@@ -53,22 +34,22 @@ The simplest way to provide your Fero login credentials to the API is as argumen
 fero_client = Fero(username="<your username>", password="<your password>")
 ```
 
-However, while this is fine for interactive shells it's not ideal for a publicly viewable script. To account for this `Fero` also supports setting the `FERO_USERNAME` and `FERO_PASSWORD` environment variables or storing your username and password in a `.fero` in the home directory. This file needs to be in the the following format.
+While this is fine for interactive shells, it is not ideal for a publicly viewable script. To account for this `Fero` also supports setting the `FERO_USERNAME` and `FERO_PASSWORD` environment variables or storing your username and password in a `.fero` file in the home directory. This file needs to be in the the following format.
 
 ```
 FERO_USERNAME=fero_user
 FERO_PASSWORD=shouldBeAGoodPassword
 ```
 
-If you're using the `Fero` client to access an on premise installation, both the hostname for the local Fero site can be provided with `hostname="https://local.fero-site"` and an internal CA via `verify="path/to/ca-bundle`. Verify is passed directly to requests so can be completely disabled by passing `False`
+If you are using the `Fero` client to access an on-premises installation, both the hostname for the local Fero server can be provided with `hostname="https://local.fero-site"` and an internal SSL certification via `verify="path/to/ca-bundle`. (See [here](https://docs.python-requests.org/en/master/user/advanced/#ssl-cert-verification) for additional details.) Verify is passed directly to the underlying Python `requests` package; thus, if you desire, verification can be disabled by passing `verify=False`.
 
 ```python
 local_client = Fero(hostname="https://fero.self.signed", verify=False)
 ```
 
-## Finding An Analysis
+## Finding a Fero Analysis
 
-An `Analysis` object is the how Fero exposes ML models to the API. The Fero client provides two different methods to find an `Analysis`. The first is `Fero.get_analysis` which takes a single UUID string and attempts to lookup the analysis by its unique id. The second method is `Fero.search_analyses` which will return an iterator of available `Analysis` objects. If no keyword arguments are provided, it will return all analyses you have available on the Fero website. Optionally, `name` can be provided to filter to only analyses matching that name.
+The Fero client provides two different methods to find an `Analysis`. The first is `Fero.get_analysis` which takes a single unique identifier string (UUID) and attempts to lookup the analysis this ID. The second method is `Fero.search_analyses` which will return an iterator of available `Analysis` objects. If no keyword arguments are provided, it will return all analyses you have available on Fero. Optionally, `name` can be provided to filter to only analyses matching that name.
 
 #### Examples
 
@@ -76,27 +57,36 @@ An `Analysis` object is the how Fero exposes ML models to the API. The Fero clie
 from fero import Fero
 fero_client = Fero()
 
-# get a specific analysis
+# Get a specific analysis
 analysis = fero_client.get_analysis('5dfbbb63-8ad4-4638-9fdb-61e39952d3cf')
 
-# get all available analyses
+# Get all available analyses
 all_analyses = fero_client.search_analyses()
 
-# only get "quality" analyses
-quality_only =  fero_client.search_analyses(name="quality")
+# Only get "plant_A" analyses
+plant_A_only =  fero_client.search_analyses(name="plant_A")
 ```
 
 ## Using an Analysis
 
 Along with associated properties such as `name` and `uuid`, an `Analysis` provides a variety of methods for interacting with Fero.
 
-The first thing to call when working with an analysis is `Analysis.has_trained_model` which is simply a boolean check that a model has finished training. This will be false if the Analysis is still training or there was an error training and it has not been revised. Once you have a model trained you then begin working with the analysis to leverage the model.
+The first thing to call when working with an Analysis is `Analysis.has_trained_model` which checks whether the Analysis is ready to use. This will be false if the Analysis is still being configured or if there was an error during configuration. 
 
 ### Making a simple prediction
 
-The `Analysis.make_prediction` method, as its name implies, makes a prediction using the latest model associated with the analysis. This function can take either a pandas data frame with columns matching the expected inputs(factors) for the model or a list of dictionaries with each dictionary containing a key/value pairs for each factor. A prediction will be made for each row in the data frame or each dictionary in the list.
+The `Analysis.make_prediction` method makes a prediction using the latest revision of the Analysis. This function can take either a pandas dataframe with columns matching the expected factors or a list of dictionaries with each dictionary containing a key/value pairs for each factor. A prediction will be made for each row in the dataframe or each dictionary in the list.
 
-The return value will either be a data frame with each target value predicted by Fero added to each row or keys for each target added to each dictionary depending on the initial input type. These values will have the suffixes `_low`, `_mid`, `_high` added to each target name to indicate the range of the prediction.
+The return value will either be a dataframe or a dictionary, depending on the initial input type. These values will have the suffixes `_lowX`, `_mid`, `_highX` added to each target name to indicate the prediction intervals. Specifically:
+- `target_low90` corresponds to the 5% prediction level,
+- `target_low50` corresponds to the 25% prediction level,
+- `target_mid` corresponds to the mean prediction,
+- `target_high50` corresponds to the 75% prediction level, and
+- `target_high90` corresponds to the 95% prediction level.
+
+The naming convention indicates that:
+- 50% of the time, the corresponding measurement should fall between `(target_low50, target_high50)`, and
+- 90% of the time, the corresponding measurement should fall between `(target_low90, target_high90)`.
 
 #### Example
 
@@ -109,14 +99,15 @@ prediction = analysis.make_prediction(df)
 
 print(prediction)
 '''
-      value	  value2	target_high	 target_low	  target_mid
-0	  5	      2	        100	         75	          88
+value	  value2	target_low90  target_low50 target_mid target_high50  target_high90
+5	      2	      10 	          20	         30         40              50
 '''
 
 # Using a list of dicts
-print(analysis.make_prediction(raw_data))
+prediction = analysis.make_prediction(raw_data)
+print(prediction)
 '''
-[{"value": 5, "value2": 2, "target_high": 100, "target_low": 75, "target_mid": 88}]
+[{"value": 5, "value2": 2, "target_low90": 10, "target_low": 20, "target_mid": 30, "target_high50": 40, "target_high90": 50}]
 '''
 ```
 
