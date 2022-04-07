@@ -21,8 +21,8 @@ prediction = analysis.make_prediction(df)
 
 print(prediction)
 '''
-      value	  value2	target_low90  target_low50 target_mid target_high50  target_high90
-0	  5	      2	        70	          75	       80         88             92
+   value   value2  target_low90  target_low50 target_mid target_high50  target_high90
+0      5        2            70            75         80            88             92
 '''
 ```
 
@@ -99,8 +99,8 @@ prediction = analysis.make_prediction(df)
 
 print(prediction)
 '''
-value	  value2	target_low90  target_low50 target_mid target_high50  target_high90
-5	      2	        10 	          20	       30         40             50
+   value   value2  target_low90  target_low50 target_mid target_high50  target_high90
+0      5        2            10            20         30            40             50
 '''
 
 # Using a list of dicts
@@ -170,10 +170,10 @@ constraints = [{"name": "target", "min": 100.0, "max": 200}]
 opt = analysis.make_optimization("example_optimization", goal, constraints)
 
 print(opt.get_results())
-"""
-      value	  value2	 target (5%)  target (Mean)	  target (95%)
-0	  60	  40	     100	      150             175
-"""
+'''
+   value   value2   target (5%)   target (Mean)   target (95%)
+0     60       40           100             150            175
+'''
 ```
 
 ## Finding a Fero Asset
@@ -282,8 +282,6 @@ print(prediction["index"])
 
 ## Fero Processes
 
-In Fero, a process represents how to combine and transform raw data sources into a single set of data for analysis based on the physical mechanics of the industrial process. 
-
 The Fero client provides two different methods to find a `Process`. The first is `Fero.get_process` which takes a single unique identifier string (UUID) and attempts to look up the analysis matching this ID. The second method is `Fero.search_processes` which will return an iterator of available `Process` objects. If no keyword arguments are provided, it will return all processes you have available on Fero. Optionally, `name` can be provided to filter to only processes matching that name.
 
 Processes represent data via two main underlying entities, the `Tag` and the `Stage`. A `Tag` is a column of a specific measurement in the underlying data. A `Stage` is a logical part of a process consisting of various tags and an order relative to the other stages. For example, a steel process might have first stage for melting the steel and a later stage for casting the steel, each with corresponding measurements in the form of tags.
@@ -322,7 +320,7 @@ process = fero_client.get_process("9777bae7-95af-4bea-98b9-c703ab940a05")
 df = process.get_data(process.tags)
 
 print(df)
-"""
+'''
        s1_factor1  s1_factor2  s2_factor1  s3_factor1  s3_factor2   s3_kpi
 0               0          14           7        28.5           0     49.5
 1               1           8           5        36.0           3     53.0
@@ -337,13 +335,13 @@ print(df)
 10399       10399          14       10406        42.0       31197  52058.0
 
 [10400 rows x 6 columns]
-"""
+'''
 
 # Limit the process to an earlier kpi
 
 df = process.get_data(["s1_factor1", "s3_kpi"], kpis=["s2_factor1"])
 
-"""
+'''
                             dt  s2_factor1  s1_factor1
 0    2020-03-01 00:00:00+00:00          10        <NA>
 1    2020-03-01 00:01:00+00:00         162        <NA>
@@ -358,6 +356,6 @@ df = process.get_data(["s1_factor1", "s3_kpi"], kpis=["s2_factor1"])
 1998 2020-03-02 09:18:00+00:00           0           2
 
 [1999 rows x 3 columns]
-"""
+'''
 
 ```
