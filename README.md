@@ -1,6 +1,6 @@
 # fero_client
 
-`fero` is a client side Python library intended to help users interact with [Fero](https://app.ferolabs.com). 
+`fero` is a client-side Python library intended to help users interact with [Fero](https://app.ferolabs.com). 
 
 ## Quickstart
 
@@ -28,7 +28,7 @@ print(prediction)
 
 ## Providing Credentials
 
-The simplest way to provide your Fero login credentials to the API is as arguments to the `Fero` object on initialization.
+The simplest way to provide your Fero login credentials is as arguments to the `Fero` object on initialization.
 
 ```python
 fero_client = Fero(username="<your username>", password="<your password>")
@@ -71,7 +71,7 @@ plant_A_only =  fero_client.search_analyses(name="plant_A")
 
 Along with associated properties such as `name` and `uuid`, an `Analysis` provides a variety of methods for interacting with Fero.
 
-The first thing to call when working with an Analysis is `Analysis.has_trained_model` which checks whether the Analysis is ready to use. This will be false if the Analysis is still being configured or if there was an error during configuration. 
+The first thing to call when working with an Analysis is `Analysis.has_trained_model`, which checks whether the Analysis is ready to use. This will be false if the Analysis is still being configured or if there was an error during configuration. 
 
 ### Making a simple prediction
 
@@ -139,7 +139,7 @@ fixed_factors = {
 opt = analysis.make_optimization("example_optimization", goal, constraints, fixed_factors)
 ```
 
-Fero also supports the idea of a cost optimization, which will weight different factors by specified cost multipliers to find the best combination of inputs. For example, to find the minimum combined cost of `value` and `value2` while meeting the expected values of `target` you could do the following:
+Fero also supports the idea of a cost optimization, which will weight different factors by specified cost multipliers to find the best combination of inputs. For example, to find the minimum combined cost of `value` and `value2` while meeting the expected values of `target`, you could do the following:
 
 ```python
 
@@ -282,9 +282,11 @@ print(prediction["index"])
 
 ## Processes
 
-In Fero, a process represents how to combine and transform a variety of raw data sources into a single set of data for analysis based on the physical mechanics of how the industrial process works. The Fero client provides two different methods to find a `Process`. The first is `Fero.get_process` which takes a single unique identifier string (UUID) and attempts to look up the analysis matching this ID. The second method is `Fero.search_processes` which will return an iterator of available `Process` objects. If no keyword arguments are provided, it will return all processes you have available on Fero. Optionally, `name` can be provided to filter to only processes matching that name.
+In Fero, a process represents how to combine and transform raw data sources into a single set of data for analysis based on the physical mechanics of the industrial process. 
 
-Processes represent data via two main underlying entities, the `Tag` and the `Stage`. A `Tag` is a column of a specific measurement in the underlying data. A `Stage` is a logical part of a process consisting of various tags and an order relative to the other stages. For example, a steel process might have first stage for melting the steel and a later stage for casting the steel.
+The Fero client provides two different methods to find a `Process`. The first is `Fero.get_process` which takes a single unique identifier string (UUID) and attempts to look up the analysis matching this ID. The second method is `Fero.search_processes` which will return an iterator of available `Process` objects. If no keyword arguments are provided, it will return all processes you have available on Fero. Optionally, `name` can be provided to filter to only processes matching that name.
+
+Processes represent data via two main underlying entities, the `Tag` and the `Stage`. A `Tag` is a column of a specific measurement in the underlying data. A `Stage` is a logical part of a process consisting of various tags and an order relative to the other stages. For example, a steel process might have first stage for melting the steel and a later stage for casting the steel, each with corresponding measurements in the form of tags.
 
 ### Example
 
