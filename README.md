@@ -11,9 +11,9 @@ from fero import Fero
 fero_client = Fero()
 
 # Get a specific analysis by its unique identifier
-analyses = fero_client.get_analysis('5dfbbb63-8ad4-4638-9fdb-61e39952d3cf')
+analysis = fero_client.get_analysis("5dfbbb63-8ad4-4638-9fdb-61e39952d3cf")
 
-# Create a pandas dataframe with factor values for this analysis
+# Create a pandas DataFrame with factor values for this analysis
 df = pd.DataFrame([{"value": 5, "value2": 2}])
 
 # Make a prediction
@@ -21,8 +21,8 @@ prediction = analysis.make_prediction(df)
 
 print(prediction)
 '''
-      value	  value2	target_high	 target_low	  target_mid
-0	  5	      2	        100	         75	          88
+      value	  value2	target_low90  target_low50 target_mid target_high50  target_high90
+0	  5	      2	        70	          75	       80         88             92
 '''
 ```
 
@@ -34,7 +34,7 @@ The simplest way to provide your Fero login credentials to the API is as argumen
 fero_client = Fero(username="<your username>", password="<your password>")
 ```
 
-While this is fine for interactive shells, it is not ideal for a publicly viewable script. To account for this `Fero` also supports setting the `FERO_USERNAME` and `FERO_PASSWORD` environment variables or storing your username and password in a `.fero` file in the home directory. This file needs to be in the the following format.
+While this is fine for interactive shells, it is not ideal for a publicly viewable script. To account for this, `Fero` also supports setting the `FERO_USERNAME` and `FERO_PASSWORD` environment variables or storing your username and password in a `.fero` file in the home directory. This file needs to be in the the following format.
 
 ```
 FERO_USERNAME=fero_user
@@ -49,7 +49,7 @@ local_client = Fero(hostname="https://fero.self.signed", verify=False)
 
 ## Finding a Fero Analysis
 
-The Fero client provides two different methods to find an `Analysis`. The first is `Fero.get_analysis` which takes a single unique identifier string (UUID) and attempts to lookup the analysis this ID. The second method is `Fero.search_analyses` which will return an iterator of available `Analysis` objects. If no keyword arguments are provided, it will return all analyses you have available on Fero. Optionally, `name` can be provided to filter to only analyses matching that name.
+The Fero client provides two different methods to find an `Analysis`. The first is `Fero.get_analysis` which takes a single unique identifier string (UUID) and attempts to look up the analysis matching this ID. The second method is `Fero.search_analyses` which will return an iterator of available `Analysis` objects. If no keyword arguments are provided, it will return all analyses you have available on Fero. Optionally, `name` can be provided to filter to only analyses matching that name.
 
 #### Examples
 
@@ -58,7 +58,7 @@ from fero import Fero
 fero_client = Fero()
 
 # Get a specific analysis
-analysis = fero_client.get_analysis('5dfbbb63-8ad4-4638-9fdb-61e39952d3cf')
+analysis = fero_client.get_analysis("5dfbbb63-8ad4-4638-9fdb-61e39952d3cf")
 
 # Get all available analyses
 all_analyses = fero_client.search_analyses()
@@ -75,9 +75,9 @@ The first thing to call when working with an Analysis is `Analysis.has_trained_m
 
 ### Making a simple prediction
 
-The `Analysis.make_prediction` method makes a prediction using the latest revision of the Analysis. This function can take either a pandas dataframe with columns matching the expected factors or a list of dictionaries with each dictionary containing a key/value pairs for each factor. A prediction will be made for each row in the dataframe or each dictionary in the list.
+The `Analysis.make_prediction` method makes a prediction using the latest revision of the Analysis. This function can take either a pandas `DataFrame` with columns matching the expected factors or a list of dictionaries with each dictionary containing a key/value pairs for each factor. A prediction will be made for each row in the `DataFrame` or each dictionary in the list.
 
-The return value will either be a dataframe or a dictionary, depending on the initial input type. These values will have the suffixes `_lowX`, `_mid`, `_highX` added to each target name to indicate the prediction intervals. Specifically:
+The return value will either be a `DataFrame` or a dictionary, depending on the initial input type. These values will have the suffixes `_lowX`, `_mid`, `_highX` added to each target name to indicate the prediction intervals. Specifically:
 - `target_low90` corresponds to the 5% prediction level,
 - `target_low50` corresponds to the 25% prediction level,
 - `target_mid` corresponds to the mean prediction,
@@ -93,14 +93,14 @@ The naming convention indicates that:
 ```python
 raw_data = [{"value": 5, "value2": 2}]
 
-# Using a data frame
+# Using a DataFrame
 df = pd.DataFrame([raw_data])
 prediction = analysis.make_prediction(df)
 
 print(prediction)
 '''
 value	  value2	target_low90  target_low50 target_mid target_high50  target_high90
-5	      2	      10 	          20	         30         40              50
+5	      2	        10 	          20	       30         40             50
 '''
 
 # Using a list of dicts
@@ -113,7 +113,7 @@ print(prediction)
 
 ### Optimize
 
-A more advanced usage of an `Analysis` is to create an optimization which will make a prediction that satistifies a specified `goal` within the context of `constraints` on other factors or targets. For example, if you wanted to the minimum value of `value` while keeping `target` within a set constraints you would provide the following goal and constraint configurations.
+A more advanced usage of an `Analysis` is to create an optimization which will make a prediction that satistifies a specified `goal` within the context of `constraints` on other factors or targets. For example, if you wanted to the minimize value of `value` while keeping `target` within a set range, you would provide the following goal and constraint configurations.
 
 ```python
 
@@ -139,7 +139,7 @@ fixed_factors = {
 opt = analysis.make_optimization("example_optimization", goal, constraints, fixed_factors)
 ```
 
-Fero also supports the idea of a cost optimization which will weight different factors by a cost multiplier to find the best combination of inputs. For example, to find the minimum cost between `value` and `value2` while meeting the expected values of `target` you could do the following
+Fero also supports the idea of a cost optimization, which will weight different factors by specified cost multipliers to find the best combination of inputs. For example, to find the minimum combined cost of `value` and `value2` while meeting the expected values of `target` you could do the following:
 
 ```python
 
@@ -154,7 +154,7 @@ constraints = [{"name": "target", "min": 100.0, "max": 200}]
 opt = analysis.make_optimization("example_cost_optimization", goal, constraints)
 ```
 
-In both cases, a `Prediction` object is return which will provide the data. By default, the result will be a `DataFrame` but it can also be configured to be a list of dictionaries if you're trying to avoid pandas.
+In both cases, a `Prediction` object is returned, which will provide access to the results of the optimization. By default, the result will be a `DataFrame` but it can also be configured to be a list of dictionaries by specifying `format="record"` in `get_results`.
 
 #### Example
 
@@ -172,13 +172,13 @@ opt = analysis.make_optimization("example_optimization", goal, constraints)
 print(opt.get_results())
 """
       value	  value2	 target (5%)  target (Mean)	  target (95%)
-0	  60	     40	        100	         150             175
+0	  60	  40	     100	      150             175
 """
 ```
 
 ## Finding an Asset
 
-An `Asset` object is how Fero exposes ML time series models to the API. The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single string and attempts to lookup the asset by its unique id. The second method is `Fero.search_assets`, which will return an iterator of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
+The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single unique identifier string (UUID) and attempts to look up the asset matching this ID. The second method is `Fero.search_assets`, which will return an iterator of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
 
 #### Examples
 
@@ -186,25 +186,25 @@ An `Asset` object is how Fero exposes ML time series models to the API. The Fero
 from fero import Fero
 fero_client = Fero()
 
-# get a specific asset
-asset = fero_client.get_asset('fd57ba36-3c5d-40f5-ae0c-d7b76ab39ee5')
+# Get a specific asset
+asset = fero_client.get_asset("fd57ba36-3c5d-40f5-ae0c-d7b76ab39ee5")
 
-# get all available assets
+# Get all available assets
 all_assets = fero_client.search_assets()
 
-# get only "favorite" assets
-favorite_only = fero_client.search_assets(name="favorite")
+# Get only "plant_B" assets
+plant_B_only = fero_client.search_assets(name="plant_B")
 ```
 
 ## Using an Asset
 
 Along with associated properties such as `name` and `uuid`, an `Asset` provides a few methods for interacting with Fero.
 
-The first thing to call when working with an asset is `Asset.has_trained_model`, which is simply a boolean check that a model has finished training. This will be false if the Asset is still training or there was an error training and it has not been revised. Once you have a model trained you then begin working with the asset to leverage the model.
+The first thing to call when working with an asset is `Asset.has_trained_model`, which checks whether the Asset is ready to use. This will be false if the Asset is still being configured or if there was an error during configuration.
 
 ### Making a prediction
 
-The `Asset.predict` method, as its name implies, makes predictions using the latest model associated with the asset. Fero computes predictions for all controllable factors and with those results, predictions for all target variables. Predictions are provided for the 5 time intervals following the end of the training dataset. (Interval size is determined during model configuration and training.) Optionally, you may call `Asset.predict` with an argument specifying values for one or more of the controllable factors; Fero will predict all targets using your specified values in place of its controllable factor predictions where applicable.
+The `Asset.predict` method makes a prediction using the latest revision of the Asset. Fero computes predictions for all controllable factors and with those results, predictions for all target variables. Predictions are provided for the 5 time intervals following the end of the training dataset. (Interval size is determined during model configuration and training.) Optionally, you may call `Asset.predict` with an argument specifying values for one or more of the controllable factors; Fero will predict all targets using your specified values in place of its controllable factor predictions where applicable.
 
 #### Examples
 
@@ -227,7 +227,7 @@ print(prediction)
 2020-12-25T04:00:00Z    8.492         6.199       7.498       ... 1.762        2.425
 '''
 
-# Provide specified values as a data frame
+# Provide specified values as a DataFrame
 new_factor_values = pd.DataFrame({
     "Factor1": [8.0, 8.1, 8.2, 8.3, 8.4]
 })
@@ -265,26 +265,26 @@ print(list(prediction.keys())
 ]
 '''
 
-print(prediction['mean:Factor2'])
+print(prediction["mean:Factor2"])
 '''
 [
     13.452, 13.119, 13.084, 13.003, 12.976
 ]
 '''
 
-print(prediction['index'])
+print(prediction["index"])
 '''
 [
-    2020-12-25T00:00:00Z, 2020-12-25T01:00:00Z, 2020-12-25T02:00:00Z, 2020-12-25T03:00:00Z, 2020-12-25T04:00:00Z
+    2020-12-25T00:00:00Z, 2020-12-25T01:00:00Z,2020-12-25T02:00:00Z, 2020-12-25T03:00:00Z, 2020-12-25T04:00:00Z
 ]
 '''
 ```
 
 ## Processes
 
-In Fero, a process represents how to combine and transform a variety of raw data sources into a single set of data for analysis based on the physical mechanics of how the industrial process works. Processes can be accessed individually via `api_id` or searched by name using the `Fero` client.
+In Fero, a process represents how to combine and transform a variety of raw data sources into a single set of data for analysis based on the physical mechanics of how the industrial process works. The Fero client provides two different methods to find a `Process`. The first is `Fero.get_process` which takes a single unique identifier string (UUID) and attempts to look up the analysis matching this ID. The second method is `Fero.search_processes` which will return an iterator of available `Process` objects. If no keyword arguments are provided, it will return all processes you have available on Fero. Optionally, `name` can be provided to filter to only processes matching that name.
 
-Processes represent data via two main underlying entities, the `Tag` and the `Stage`. `Tags` are columns of a specific measurement in the underlying data. Stages are ordered grouping of various tags that represent logical parts of a process. For example, a steel process might have a stage for melting the steel and a different stage for measurements when casting the steel.
+Processes represent data via two main underlying entities, the `Tag` and the `Stage`. A `Tag` is a column of a specific measurement in the underlying data. A `Stage` is a logical part of a process consisting of various tags and an order relative to the other stages. For example, a steel process might have first stage for melting the steel and a later stage for casting the steel.
 
 ### Example
 
@@ -293,28 +293,28 @@ Processes represent data via two main underlying entities, the `Tag` and the `St
 from fero import Fero
 fero_client = Fero()
 
-# get a single process
-process = fero_client.get_process('c6f69e96-db4d-43ed-8837-d5827cc81112')
+# Get a single process
+process = fero_client.get_process("c6f69e96-db4d-43ed-8837-d5827cc81112")
 
-# search processes by name
+# Search processes by name
 processes = [p for p in fero_client.search_processes(name="process X")]
 
-# get the tags
+# Get the tags of the process
 tags = process.tags
 
-# get stages
+# Get stages of the process
 stages = process.stages
 ```
 
 ## Downloading Process Data
 
-`Process` objects can be used to download the pandas data frame that the process would produce for analysis. Because not all tags are generally used in a analysis, a list of tags is required before data can be downloaded. A target or key performance indicator (kpi) is also required for an analysis which can be set while requesting data. Functionally, this will limit that data returned to the stage of the kpi tag and any preceding stages. For advanced and batch processes, kpis are optional, however they are required for continuous processes because the data is computed using the observed times of the kpi.
+A `Process` object can be used to download the pandas `DataFrame` that the process would produce for analysis. Because not all tags are generally used in a analysis, a list of desired tags is required before data can be downloaded. Additionally, a target or key performance indicator (kpi) tag can be set while requesting data. Functionally, this will limit the data returned to the stage of the kpi tag and any preceding stages. For advanced and batch processes, kpis are optional; however, they are required for continuous processes because the data is computed using the observed times of the kpi.
 
 ### Example
 
 ```python
 
-# get all data for single process
+# Get all data for single process
 process = fero_client.get_process("9777bae7-95af-4bea-98b9-c703ab940a05")
 
 df = process.get_data(process.tags)
@@ -337,9 +337,9 @@ print(df)
 [10400 rows x 6 columns]
 """
 
-# limit the process to an earlier kpi
+# Limit the process to an earlier kpi
 
-df = process.get_data(['s1_factor1', 's3_kpi'], kpis=['s2_factor1'])
+df = process.get_data(["s1_factor1", "s3_kpi"], kpis=["s2_factor1"])
 
 """
                             dt  s2_factor1  s1_factor1
