@@ -176,7 +176,7 @@ print(opt.get_results())
 """
 ```
 
-## Finding an Asset
+## Finding a Fero Asset
 
 The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single unique identifier string (UUID) and attempts to look up the asset matching this ID. The second method is `Fero.search_assets`, which will return an iterator of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
 
@@ -275,12 +275,12 @@ print(prediction["mean:Factor2"])
 print(prediction["index"])
 '''
 [
-    2020-12-25T00:00:00Z, 2020-12-25T01:00:00Z,2020-12-25T02:00:00Z, 2020-12-25T03:00:00Z, 2020-12-25T04:00:00Z
+    2020-12-25T00:00:00Z, 2020-12-25T01:00:00Z, 2020-12-25T02:00:00Z, 2020-12-25T03:00:00Z, 2020-12-25T04:00:00Z
 ]
 '''
 ```
 
-## Processes
+## Fero Processes
 
 In Fero, a process represents how to combine and transform raw data sources into a single set of data for analysis based on the physical mechanics of the industrial process. 
 
