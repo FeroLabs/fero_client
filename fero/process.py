@@ -1,3 +1,5 @@
+"""This module defines classes related to a fero process."""
+
 import fero
 import requests
 from tempfile import NamedTemporaryFile
@@ -18,20 +20,27 @@ CHUNK_SIZE = 1048576
 
 
 class DataRequestError(FeroError):
+    """Raised when data cannot be generated."""
+
     pass
 
 
 class FeroProcessTypes:
+    """An Enum class representing the type of fero process."""
+
     ADVANCED = "A"
     BATCH = "B"
     CONTINUOUS = "C"
 
     @classmethod
     def validator(cls):
+        """Validate that a given process type is one of the possible options."""
         return validate.OneOf([cls.ADVANCED, cls.BATCH, cls.CONTINUOUS])
 
 
 class SnapShotStatus:
+    """An Enum class representing the status of a process snpashot."""
+
     READY = "R"
     INITIALIZED = "I"
     PROCESSING = "P"
@@ -39,11 +48,20 @@ class SnapShotStatus:
 
     @classmethod
     def validator(cls):
+        """Validate that a given snapshot status is one of the possible options."""
         return validate.OneOf([cls.READY, cls.INITIALIZED, cls.PROCESSING, cls.ERROR])
 
 
 class TagSchema(Schema):
+    """A schema to store data related to a fero process tag."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     name = fields.String(required=True)
@@ -62,7 +80,15 @@ class TagSchema(Schema):
 
 
 class StageSchema(Schema):
+    """A schema to store data related to a fero process stage."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     id = fields.Integer(required=True)
@@ -73,6 +99,7 @@ class StageSchema(Schema):
 
 
 class NestedSnapshotSchema(Schema):
+    """A schema to store data related to a fero process snapshot."""
 
     uuid = fields.String(required=True)
     status = fields.String(
@@ -82,7 +109,15 @@ class NestedSnapshotSchema(Schema):
 
 
 class ProcessSchema(Schema):
+    """A schema to store data related to a fero process."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     api_id = fields.String(required=True)
@@ -109,19 +144,34 @@ class Tag(FeroObject):
     schema_class = TagSchema
 
     def __init__(self, process: "Process", client: "fero.Fero", data: dict):
+        """
+        Create a new representation of a Tag from the given data.
+
+        :param process: The process this tag belongs to
+        :param client: The fero client object that gives access to the `process`
+        :param data: A dictionary holding values for the fields of a `TagSchema`
+        """
         self._process = process
         super().__init__(client, data)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Represent the `Tag` by its name and its `Process`."""
         return f"<Tag name={self.name} Process name={self._process}>"
 
     __str__ = __repr__
 
     def __eq__(self, other: object) -> bool:
+        """Check whether `other` is a Tag with the same data as this tag."""
         return isinstance(other, Tag) and self._data == other._data
 
     @classmethod
     def tag_name(cls, instance: Union["Tag", str]) -> str:
+        """
+        Get the name of a given tag.
+
+        :param instance: Either the `Tag` or the string name of the tag
+        :return: The name of the specified tag
+        """
         return instance if isinstance(instance, str) else instance.name
 
 
@@ -135,26 +185,34 @@ class Stage(FeroObject):
     schema_class = StageSchema
 
     def __init__(self, process: "Process", client: "fero.Fero", data: dict):
+        """
+        Create a new representation of a Stage from the given data.
+
+        :param process: The process this stage belongs to
+        :param client: The fero client object that gives access to the `process`
+        :param data: A dictionary holding values for the fields of a `StageSchema`
+        """
         self._process = process
         super().__init__(client, data)
         self._data["tags"] = [
             Tag(process, client, tdata) for tdata in self._data["tags"]
         ]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Represent the `Stage` by its name and its `Process`."""
         return f"<Stage name={self.name} Process name={self._process}>"
 
     __str__ = __repr__
 
     def __eq__(self, other) -> bool:
+        """Check whether `other` is a Stage with the same data as this stage."""
         return isinstance(other, Stage) and self._data == other._data
 
     @property
     def tag_names(self) -> Sequence[str]:
-        """The names of the tags in the stage
+        """Get the names of the tags in the stage.
 
         :return: A list of tag names in the stage
-        :rtype: Sequence[str]
         """
         return [Tag.tag_name(t) for t in self.tags]
 
@@ -169,7 +227,8 @@ class Process(FeroObject):
 
     schema_class = ProcessSchema
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Represent the `Process` by its name."""
         return f"<Process name={self.name}>"
 
     __str__ = __repr__
@@ -177,10 +236,11 @@ class Process(FeroObject):
     @property
     @memoized(maxsize=1)
     def stages(self) -> Sequence[Stage]:
-        """Memoized request to get stages from Fero
+        """Get the stages for this process from Fero.
+
+        Request is memoized to avoid unnecessary additional calls.
 
         :return: A List of stages
-        :rtype: List[Stage]
         """
         return [
             Stage(self, self._client, stage_data)
@@ -192,10 +252,11 @@ class Process(FeroObject):
     @property
     @memoized(maxsize=1)
     def tags(self) -> Sequence[Tag]:
-        """Memoized request to get tags from Fero
+        """Get the tags for this process from Fero.
+
+        Request is memoized to avoid unnecessary additional calls.
 
         :return: List of tags associated with the process
-        :rtype: Sequence[Tag]
         """
         return [
             Tag(self, self._client, tag_data)
@@ -216,23 +277,19 @@ class Process(FeroObject):
         return stage_idx
 
     def get_tag_stage(self, tag: Union[Tag, str]) -> Union[Stage, None]:
-        """Returns the process stage specified in the stage or None if the tag is not found.
+        """Return the process stage specified in the stage or None if the tag is not found.
 
         :param tag: Tag to search for
-        :type tag: Union[Tag, str]
         :return: [description]
-        :rtype: Union[Stage, None]
         """
         stage_idx = self._tag_stage_index(tag)
         return None if stage_idx is None else self.stages[stage_idx]
 
     def get_stages_by_kpis(self, kpis: Sequence[Union[Tag, str]]) -> Sequence[Stage]:
-        """Get a list of stages that would be used by a process for the given kpis
+        """Get a list of stages that would be used by a process for the given kpis.
 
         :param kpis: List of kpi tags
-        :type kpis: Sequence[Union[Tag, str]]
         :return: a list of stages
-        :rtype: Sequence[Stage]
         """
         idxs = [self._tag_stage_index(k) for k in kpis]
         idxs = [i for i in idxs if i is not None]
@@ -244,7 +301,7 @@ class Process(FeroObject):
         tags: Sequence[Union[Tag, str]],
         kpis: Optional[Sequence[Union[Tag, str]]] = None,
     ) -> pd.DataFrame:
-        """Downloads a pandas data frame with specified process data.
+        """Download a pandas data frame with specified process data.
 
         Returns a pandas data frame consisting of the specified tags and bounded by an optional list of kpis.
         For all process types specifying a kpi will remove any tags from stages that are after

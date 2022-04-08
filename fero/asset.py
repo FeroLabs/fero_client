@@ -1,3 +1,5 @@
+"""This module holds classes related to a fero asset."""
+
 import pandas as pd
 from fero import FeroError
 from marshmallow import Schema, fields, EXCLUDE
@@ -6,7 +8,15 @@ from .common import FeroObject
 
 
 class AssetSchema(Schema):
+    """A schema to store data related to a fero asset."""
+
     class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
         unknown = EXCLUDE
 
     url = fields.String(required=True)
@@ -77,19 +87,21 @@ class Asset(FeroObject):
 
     schema_class = AssetSchema
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Represent the `Asset` by its name."""
         return f"<Asset name={self.name}>"
 
     __str__ = __repr__
 
     def _get_presentation_data(self):
+        """Retrieve the presentation data of this asset from the api."""
         self._presentation_data_cache = self._client.get(
             f"/api/configuration_models/{self.latest_trained_configuration_model}/presentation_data/"
         )["data"]
 
     @property
     def _presentation_data(self):
-        """This is big and ugly, so keep it private but cached"""
+        """Get the presentation data of this asset."""
         if self._presentation_data_cache is None:
             self._get_presentation_data()
 
@@ -108,18 +120,18 @@ class Asset(FeroObject):
             return pd.DataFrame(**default_predictions)
 
     def has_trained_model(self) -> bool:
-        """Checks whether this asset has a trained model associated with it.
+        """Check whether this asset has a trained model associated with it.
 
         :return: True if there is a model, False otherwise
-        :rtype: bool
         """
         return self.latest_completed_model is not None
 
     def predict(
         self, specified_values: Optional[Union[pd.DataFrame, Mapping[str, list]]] = None
-    ) -> pd.DataFrame:
-        """Makes predictions using the most recent trained asset configuration. Predictions are made
-        at regular intervals for the specified horizon time following the end of the training set.
+    ) -> Union[pd.DataFrame, Mapping[str, list]]:
+        """Make predictions using the most recent trained asset configuration.
+
+        Predictions are made at regular intervals for the specified horizon time following the end of the training set.
 
         `predict` returns a DataFrame with predictions for each controllable factor and the target
         for each timestamp in the prediction horizon. `predict` optionally accepts a DataFrame or list
@@ -129,10 +141,8 @@ class Asset(FeroObject):
 
         :param specified_values:  Either a data frame or mapping to factors to value lists, specifying values
             to use for controllable factors in the predictions.
-        :type specified_values: Union[pd.DataFrame, Mapping[str, list]]
         :raises FeroError: Raised if no model has been trained or the server returns an error message
         :return: A data frame or list of dictionaries depending on how the function was called
-        :rtype: Union[pd.DataFrame, Mapping[str, list]]
         """
         if not self.has_trained_model:
             raise FeroError("No model has been trained for this asset.")

@@ -1,3 +1,5 @@
+"""A module to test `Analysis` and related classes."""
+
 import io
 import datetime
 import pytest
@@ -15,6 +17,7 @@ def test_analysis(
     prediction_request_response,
     prediction_results_response_completed,
 ):
+    """Create a sample `Analysis` object."""
     patched_fero_client.post.return_value = prediction_request_response
     patched_fero_client.get.return_value = prediction_results_response_completed
 
@@ -23,7 +26,7 @@ def test_analysis(
 
 @pytest.fixture
 def test_analysis_with_data(test_analysis):
-
+    """Create a sample `Analysis` holding data for the prediction simulator."""
     test_analysis._presentation_data_cache = {
         "data": [
             {
@@ -106,7 +109,7 @@ def test_analysis_with_data(test_analysis):
 
 @pytest.fixture
 def expected_optimization_config():
-
+    """Create a sample optimization configuration."""
     return {
         "name": "test optimization",
         "description": "",
@@ -152,7 +155,7 @@ def expected_optimization_config():
 
 @pytest.fixture
 def prediction_request_response(expected_optimization_config):
-
+    """Get a sample prediction request resopnse using the sample optimization configuration."""
     response = {
         "latest_prediction": {
             "uuid": "01bff6f2-8fb3-469e-813a-9b6cfd93e338",
@@ -179,7 +182,7 @@ def prediction_request_response(expected_optimization_config):
 
 @pytest.fixture
 def prediction_results_response_started():
-
+    """Get sample results for a prediction when the prediction has started but not completed."""
     return {
         "request": "c9448486-0c59-487f-9c9c-345d98103fcb",
         "revision_model": "e751f70e-aeb4-46ee-b860-bfc37f3767a7",
@@ -191,6 +194,7 @@ def prediction_results_response_started():
 
 @pytest.fixture
 def prediction_results_response_completed(prediction_results_response_started):
+    """Get sample results for a prediction when the prediction has completed."""
     prediction_results_response_started["result_data"] = {
         "status": "SUCCESS",
         "version": 1,
@@ -233,6 +237,7 @@ def prediction_results_response_completed(prediction_results_response_started):
 
 @pytest.fixture
 def prediction_data():
+    """Get sample data returned by a prediction."""
     return [
         {"value1": 1.0, "value2": 2, "value3": 3.3},
         {"value1": 4.0, "value2": 5, "value3": 6.3},
@@ -241,11 +246,13 @@ def prediction_data():
 
 @pytest.fixture
 def prediction_dataframe(prediction_data):
+    """Get sample data returned by a prediction in the form of a Dataframe."""
     return pd.DataFrame(prediction_data)
 
 
 @pytest.fixture
 def prediction_result_data_single_v1():
+    """Get sample data returned by a prediction in the form of a Dataframe."""
     return {
         "status": "SUCCESS",
         "version": 1,
@@ -258,6 +265,7 @@ def prediction_result_data_single_v1():
 
 @pytest.fixture
 def prediction_result_data_bulk_v1():
+    """Get sample data returned by a v1 bulk prediction."""
     return {
         "status": "SUCCESS",
         "version": 1,
@@ -274,6 +282,7 @@ def prediction_result_data_bulk_v1():
 
 @pytest.fixture
 def prediction_result_data_single_v2():
+    """Get sample data returned by a v2 single prediction."""
     return {
         "status": "SUCCESS",
         "version": 2,
@@ -302,6 +311,7 @@ def prediction_result_data_single_v2():
 
 @pytest.fixture
 def prediction_result_data_bulk_v2():
+    """Get sample data returned by a v2 bulk prediction."""
     return {
         "status": "SUCCESS",
         "version": 2,
@@ -330,6 +340,7 @@ def prediction_result_data_bulk_v2():
 
 @pytest.fixture
 def batch_prediction_success_data_cache():
+    """Get sample data by a successful batch prediction."""
     return {
         "request": "request_id",
         "revision_model": "revision_model_id",
@@ -349,7 +360,7 @@ def batch_prediction_success_data_cache():
 
 @pytest.fixture
 def batch_prediction_failure_data_cache():
-
+    """Get sample data by an unsuccessful batch prediction."""
     return {
         "request": "request_id",
         "revision_model": "revision_model_id",
@@ -363,8 +374,7 @@ def batch_prediction_failure_data_cache():
 
 
 def test_creates_analysis_correctly(analysis_data, patched_fero_client):
-    """Test that a valid analysis is created from valid data and a valid client"""
-
+    """Test that a valid analysis is created from valid data and a valid client."""
     analysis = Analysis(patched_fero_client, analysis_data)
 
     assert isinstance(analysis, Analysis)
@@ -372,14 +382,13 @@ def test_creates_analysis_correctly(analysis_data, patched_fero_client):
 
 
 def test_has_trained_model_true(analysis_data, patched_fero_client):
-    """Test that has_trained_model is true if there is a latest revision model"""
-
+    """Test that has_trained_model is true if there is a latest revision model."""
     analysis = Analysis(patched_fero_client, analysis_data)
     assert analysis.has_trained_model() is True
 
 
 def test_has_trained_model_false(analysis_data, patched_fero_client):
-    """Test that has_trained_model is true if there is no revision model"""
+    """Test that has_trained_model is true if there is no revision model."""
     analysis_data["latest_completed_model"] = None
     analysis = Analysis(patched_fero_client, analysis_data)
     assert analysis.has_trained_model() is False
@@ -392,8 +401,7 @@ def test_make_prediction_dictionaries(
     prediction_dataframe,
     batch_prediction_success_data_cache,
 ):
-    """Test that make prediction returns expected response as a dictionary of predictions"""
-
+    """Test that make prediction returns expected response as a dictionary of predictions."""
     analysis = Analysis(patched_fero_client, analysis_data)
     analysis._upload_file = mock.MagicMock()
     analysis._upload_file.return_value = "test_workspace_id"
@@ -416,121 +424,13 @@ def test_make_prediction_dictionaries(
     ]
 
 
-def test_make_prediction_serial_dictionaries_v1(
-    analysis_data,
-    patched_fero_client,
-    prediction_data,
-    prediction_result_data_single_v1,
-):
-    """Test that make prediction returns expected response with a dictionary of predictions"""
-    patched_fero_client.post.return_value = prediction_result_data_single_v1
-    analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction_serial(prediction_data)
-
-    patched_fero_client.post.assert_has_calls(
-        [
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[0]},
-            ),
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[1]},
-            ),
-        ]
-    )
-    assert isinstance(results, list)
-    assert results == [
-        {
-            "value1": 1.0,
-            "value2": 2,
-            "value3": 3.3,
-            "Target 1_high": 5.0,
-            "Target 1_low": 1.0,
-            "Target 1_mid": 3.0,
-            "target2_high": 1.0,
-            "target2_low": 1.0,
-            "target2_mid": 1.0,
-        },
-        {
-            "value1": 4.0,
-            "value2": 5,
-            "value3": 6.3,
-            "Target 1_high": 5.0,
-            "Target 1_low": 1.0,
-            "Target 1_mid": 3.0,
-            "target2_high": 1.0,
-            "target2_low": 1.0,
-            "target2_mid": 1.0,
-        },
-    ]
-
-
-def test_make_prediction_serial_dictionaries_v2(
-    analysis_data,
-    patched_fero_client,
-    prediction_data,
-    prediction_result_data_single_v2,
-):
-    """Test that make prediction returns expected response with a dictionary of predictions"""
-    patched_fero_client.post.return_value = prediction_result_data_single_v2
-    analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction_serial(prediction_data)
-
-    patched_fero_client.post.assert_has_calls(
-        [
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[0]},
-            ),
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[1]},
-            ),
-        ]
-    )
-    assert isinstance(results, list)
-    assert results == [
-        {
-            "value1": 1.0,
-            "value2": 2,
-            "value3": 3.3,
-            "Target 1_high90": 5.0,
-            "Target 1_high50": 4.0,
-            "Target 1_low90": 1.0,
-            "Target 1_low50": 2.0,
-            "Target 1_mid": 3.0,
-            "target2_high90": 1.0,
-            "target2_high50": 1.0,
-            "target2_low90": 1.0,
-            "target2_low50": 1.0,
-            "target2_mid": 1.0,
-        },
-        {
-            "value1": 4.0,
-            "value2": 5,
-            "value3": 6.3,
-            "Target 1_high90": 5.0,
-            "Target 1_high50": 4.0,
-            "Target 1_low90": 1.0,
-            "Target 1_low50": 2.0,
-            "Target 1_mid": 3.0,
-            "target2_high90": 1.0,
-            "target2_high50": 1.0,
-            "target2_low90": 1.0,
-            "target2_low50": 1.0,
-            "target2_mid": 1.0,
-        },
-    ]
-
-
 def test_make_prediction_dataframe(
     analysis_data,
     patched_fero_client,
     prediction_dataframe,
     batch_prediction_success_data_cache,
 ):
-    """Test that make prediction returns expected response as a dataframe"""
+    """Test that make prediction returns expected response as a dataframe."""
     analysis = Analysis(patched_fero_client, analysis_data)
     analysis._upload_file = mock.MagicMock()
     analysis._upload_file.return_value = "test_workspace_id"
@@ -560,246 +460,13 @@ def test_make_prediction_dataframe(
     )
 
 
-def test_make_prediction_serial_dataframe_v1(
-    analysis_data,
-    patched_fero_client,
-    prediction_dataframe,
-    prediction_result_data_single_v1,
-    prediction_data,
-):
-    """Test that make prediction returns expected response with a dataframe"""
-    patched_fero_client.post.return_value = prediction_result_data_single_v1
-    analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction_serial(prediction_dataframe)
-    patched_fero_client.post.assert_has_calls(
-        [
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[0]},
-            ),
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[1]},
-            ),
-        ]
-    )
-
-    assert isinstance(results, pd.DataFrame)
-    expected = pd.DataFrame(
-        [
-            {
-                "value1": 1.0,
-                "value2": 2.0,
-                "value3": 3.3,
-                "Target 1_high": 5.0,
-                "Target 1_low": 1.0,
-                "Target 1_mid": 3.0,
-                "target2_high": 1.0,
-                "target2_low": 1.0,
-                "target2_mid": 1.0,
-            },
-            {
-                "value1": 4.0,
-                "value2": 5.0,
-                "value3": 6.3,
-                "Target 1_high": 5.0,
-                "Target 1_low": 1.0,
-                "Target 1_mid": 3.0,
-                "target2_high": 1.0,
-                "target2_low": 1.0,
-                "target2_mid": 1.0,
-            },
-        ]
-    )
-    assert_frame_equal(
-        results,
-        expected,
-        check_like=True,
-    )
-
-
-def test_make_prediction_serial_dataframe_v2(
-    analysis_data,
-    patched_fero_client,
-    prediction_dataframe,
-    prediction_result_data_single_v2,
-    prediction_data,
-):
-    """Test that make prediction returns expected response with a dataframe"""
-    patched_fero_client.post.return_value = prediction_result_data_single_v2
-    analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction_serial(prediction_dataframe)
-    patched_fero_client.post.assert_has_calls(
-        [
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[0]},
-            ),
-            mock.call(
-                f"/api/revision_models/{str(analysis_data['latest_completed_model'])}/predict/",
-                {"values": prediction_data[1]},
-            ),
-        ]
-    )
-
-    assert isinstance(results, pd.DataFrame)
-    expected = pd.DataFrame(
-        [
-            {
-                "value1": 1.0,
-                "value2": 2.0,
-                "value3": 3.3,
-                "Target 1_high90": 5.0,
-                "Target 1_high50": 4.0,
-                "Target 1_low90": 1.0,
-                "Target 1_low50": 2.0,
-                "Target 1_mid": 3.0,
-                "target2_high90": 1.0,
-                "target2_high50": 1.0,
-                "target2_low90": 1.0,
-                "target2_low50": 1.0,
-                "target2_mid": 1.0,
-            },
-            {
-                "value1": 4.0,
-                "value2": 5.0,
-                "value3": 6.3,
-                "Target 1_high90": 5.0,
-                "Target 1_high50": 4.0,
-                "Target 1_low90": 1.0,
-                "Target 1_low50": 2.0,
-                "Target 1_mid": 3.0,
-                "target2_high90": 1.0,
-                "target2_high50": 1.0,
-                "target2_low90": 1.0,
-                "target2_low50": 1.0,
-                "target2_mid": 1.0,
-            },
-        ]
-    )
-    assert_frame_equal(
-        results,
-        expected,
-        check_like=True,
-    )
-
-
-def test_make_prediction_serial_dataframe_duplicate_cols_v1(
-    analysis_data, patched_fero_client, prediction_result_data_single_v1
-):
-    """Test that make prediction returns managled columns if the column names would overlap"""
-
-    dupe_data = [
-        {"value1": 1.0, "value2": 2, "value3": 3.3, "Target 1_high": 5.5},
-        {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high": 5.5},
-    ]
-
-    patched_fero_client.post.return_value = prediction_result_data_single_v1
-    analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction_serial(dupe_data)
-
-    assert isinstance(results, list)
-    assert results == [
-        {
-            "value1": 1.0,
-            "value2": 2,
-            "value3": 3.3,
-            "Target 1_high.0": 5.0,
-            "Target 1_low": 1.0,
-            "Target 1_mid": 3.0,
-            "target2_high": 1.0,
-            "target2_low": 1.0,
-            "target2_mid": 1.0,
-            "Target 1_high": 5.5,
-        },
-        {
-            "value1": 4.0,
-            "value2": 5,
-            "value3": 6.3,
-            "Target 1_high.0": 5.0,
-            "Target 1_low": 1.0,
-            "Target 1_mid": 3.0,
-            "target2_high": 1.0,
-            "target2_low": 1.0,
-            "target2_mid": 1.0,
-            "Target 1_high": 5.5,
-        },
-    ]
-
-
-def test_make_prediction_serial_dataframe_duplicate_cols_v2(
-    analysis_data, patched_fero_client, prediction_result_data_single_v2
-):
-    """Test that make prediction returns managled columns if the column names would overlap"""
-
-    dupe_data = [
-        {"value1": 1.0, "value2": 2, "value3": 3.3, "Target 1_high90": 5.5},
-        {"value1": 4.0, "value2": 5, "value3": 6.3, "Target 1_high90": 5.5},
-    ]
-
-    patched_fero_client.post.return_value = prediction_result_data_single_v2
-    analysis = Analysis(patched_fero_client, analysis_data)
-    results = analysis.make_prediction_serial(dupe_data)
-
-    assert isinstance(results, list)
-    assert results == [
-        {
-            "value1": 1.0,
-            "value2": 2.0,
-            "value3": 3.3,
-            "Target 1_high90.0": 5.0,
-            "Target 1_high50": 4.0,
-            "Target 1_low90": 1.0,
-            "Target 1_low50": 2.0,
-            "Target 1_mid": 3.0,
-            "target2_high90": 1.0,
-            "target2_high50": 1.0,
-            "target2_low90": 1.0,
-            "target2_low50": 1.0,
-            "target2_mid": 1.0,
-            "Target 1_high90": 5.5,
-        },
-        {
-            "value1": 4.0,
-            "value2": 5.0,
-            "value3": 6.3,
-            "Target 1_high90.0": 5.0,
-            "Target 1_high50": 4.0,
-            "Target 1_low90": 1.0,
-            "Target 1_low50": 2.0,
-            "Target 1_mid": 3.0,
-            "target2_high90": 1.0,
-            "target2_high50": 1.0,
-            "target2_low90": 1.0,
-            "target2_low50": 1.0,
-            "target2_mid": 1.0,
-            "Target 1_high90": 5.5,
-        },
-    ]
-
-
-def test_make_prediction_serial_prediction_failure(
-    analysis_data, patched_fero_client, prediction_data
-):
-    """Test that  a FeroError is raised if a prediction fails"""
-
-    with pytest.raises(FeroError):
-        patched_fero_client.post.return_value = {
-            "status": "FAILED",
-            "message": "Something broke!",
-        }
-        analysis = Analysis(patched_fero_client, analysis_data)
-        analysis.make_prediction_serial(prediction_data)
-
-
 def test_make_prediction_prediction_failure(
     analysis_data,
     patched_fero_client,
     prediction_data,
     batch_prediction_failure_data_cache,
 ):
-    """Test that  a FeroError is raised if a prediction fails"""
-
+    """Test that a FeroError is raised if a prediction fails."""
     with pytest.raises(FeroError):
         analysis = Analysis(patched_fero_client, analysis_data)
         analysis._upload_file = mock.MagicMock()
@@ -814,7 +481,7 @@ def test_make_prediction_prediction_failure(
 
 
 def test_analysis_factor_names(test_analysis_with_data):
-    """Test that factor names are parsed correctly"""
+    """Test that factor names are parsed correctly."""
     assert test_analysis_with_data.factor_names == [
         "Factor 1",
         "Factor 2",
@@ -824,13 +491,12 @@ def test_analysis_factor_names(test_analysis_with_data):
 
 
 def test_analysis_target_names(test_analysis_with_data):
-    """Test that factor names are parsed correctly"""
+    """Test that factor names are parsed correctly."""
     assert test_analysis_with_data.target_names == ["Target 1", "Target 2"]
 
 
 def test_make_optimization_fault_blueprint(test_analysis_with_data):
-    """Test that a FeroError is raised if this is a fault blueprint"""
-
+    """Test that a FeroError is raised if this is a fault blueprint."""
     test_analysis_with_data._data["blueprint_name"] = "fault"
 
     with pytest.raises(FeroError):
@@ -848,8 +514,7 @@ def test_make_optimization_fault_blueprint(test_analysis_with_data):
 
 
 def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
-    """Test that a FeroError is raised if the goal doesn't include columns in the analysis"""
-
+    """Test that a FeroError is raised if the goal doesn't include columns in the analysis."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -862,8 +527,7 @@ def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
 
 
 def test_make_optimization_no_constraints(test_analysis_with_data):
-    """Test that a FeroError is raised if constraints are specified"""
-
+    """Test that a FeroError is raised if constraints are specified."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -876,8 +540,7 @@ def test_make_optimization_no_constraints(test_analysis_with_data):
 
 
 def test_make_optimization_bad_goals(test_analysis_with_data):
-    """Test that a FeroError is raised if the goal field isn't valid"""
-
+    """Test that a FeroError is raised if the goal field isn't valid."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -890,8 +553,7 @@ def test_make_optimization_bad_goals(test_analysis_with_data):
 
 
 def test_make_optimization_wrong_format_goal_factors(test_analysis_with_data):
-    """Test that a FeroError is raised if the factor is malformed"""
-
+    """Test that a FeroError is raised if the factor is malformed."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -904,8 +566,7 @@ def test_make_optimization_wrong_format_goal_factors(test_analysis_with_data):
 
 
 def test_make_optimization_type_not_cost(test_analysis_with_data):
-    """Test that a FeroError is raised if the goal config is a type, but not cost"""
-
+    """Test that a FeroError is raised if the goal config is a type, but not cost."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -921,8 +582,7 @@ def test_make_optimization_type_not_cost(test_analysis_with_data):
 
 
 def test_make_optimization_type_cost_no_cost_function(test_analysis_with_data):
-    """Test that a FeroError is raised if the type is cost but there is no cost_function key"""
-
+    """Test that a FeroError is raised if the type is cost but there is no cost_function key."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -936,8 +596,7 @@ def test_make_optimization_type_cost_no_cost_function(test_analysis_with_data):
 
 
 def test_make_optimization_type_cost_malformed_cost_function(test_analysis_with_data):
-    """Test that a type COST optimization raises a fero error if the cost functions are malformed"""
-
+    """Test that a type COST optimization raises a fero error if the cost functions are malformed."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -953,8 +612,7 @@ def test_make_optimization_type_cost_malformed_cost_function(test_analysis_with_
 
 
 def test_make_optimization_type_cost_more_than_three(test_analysis_with_data):
-    """Test that a type COST optimization raises a fero error if more than 3 cost functions are specified"""
-
+    """Test that a type COST optimization raises a fero error if more than 3 cost functions are specified."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -973,8 +631,7 @@ def test_make_optimization_type_cost_more_than_three(test_analysis_with_data):
 
 
 def test_make_optimization_type_cost_target_in_function(test_analysis_with_data):
-    """Test that a type COST optimization raises a Fero Error if a target is in the cost function"""
-
+    """Test that a type COST optimization raises a Fero Error if a target is in the cost function."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -991,8 +648,7 @@ def test_make_optimization_type_cost_target_in_function(test_analysis_with_data)
 
 
 def test_make_optimization_type_cost_target_not_in_constraints(test_analysis_with_data):
-    """Test that a type COST optimization raises a Fero Error if a target is not a constraint in a cost optimization"""
-
+    """Test that a type COST optimization raises a Fero Error if a target is not a constraint in a cost optimization."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -1008,8 +664,7 @@ def test_make_optimization_type_cost_target_not_in_constraints(test_analysis_wit
 
 
 def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
-    """Test that a FeroError is raised if the constraints are not in the analysis"""
-
+    """Test that a FeroError is raised if the constraints are not in the analysis."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -1022,7 +677,7 @@ def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
 
 
 def test_make_optimization_categorical_goal(test_analysis_with_data):
-    """Test that a FeroError is raised if the goal is category"""
+    """Test that a FeroError is raised if the goal is category."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -1035,8 +690,7 @@ def test_make_optimization_categorical_goal(test_analysis_with_data):
 
 
 def test_make_optimization_type_cost_categorical_function(test_analysis_with_data):
-    """Test that a type COST optimization raises a Fero Error if a category is a cost funciton"""
-
+    """Test that a type COST optimization raises a Fero Error if a category is a cost funciton."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -1054,8 +708,7 @@ def test_make_optimization_type_cost_categorical_function(test_analysis_with_dat
 def test_analysis_make_optimization_simple_case(
     test_analysis_with_data, expected_optimization_config
 ):
-    """Test that make_optimzation makes expected requests and returns a prediction"""
-
+    """Test that make_optimzation makes expected requests and returns a prediction."""
     pred = test_analysis_with_data.make_optimization(
         "test optimization",
         {
@@ -1080,8 +733,7 @@ def test_analysis_make_optimization_simple_case(
 def test_analysis_make_optimization_simple_case_categorical(
     test_analysis_with_data, expected_optimization_config
 ):
-    """Test that make_optimzation makes expected requests with a categorical value and returns a prediction"""
-
+    """Test that make_optimzation makes expected requests with a categorical value and returns a prediction."""
     pred = test_analysis_with_data.make_optimization(
         "test optimization",
         {
@@ -1109,8 +761,7 @@ def test_analysis_make_optimization_simple_case_categorical(
 def test_analysis_make_optimization_cost(
     test_analysis_with_data, expected_optimization_config
 ):
-    """Test that make_optimzation makes expected requests and prediction for a cost optimization"""
-
+    """Test that make_optimzation makes expected requests and prediction for a cost optimization."""
     expected_optimization_config["input_data"]["objectives"] = [
         {"factor": "FERO_COST_FUNCTION", "goal": "maximize"}
     ]
@@ -1183,8 +834,7 @@ def test_analysis_make_optimization_cost(
 def test_analysis_make_optimization_simple_case_basis_override(
     test_analysis_with_data, expected_optimization_config
 ):
-    """Test that make_optimzation makes expected requests and returns a prediction with basis_value overrides"""
-
+    """Test that make_optimzation makes expected requests and returns a prediction with basis_value overrides."""
     expected_optimization_config["input_data"]["basisValues"]["Factor 1"] = 150.0
     pred = test_analysis_with_data.make_optimization(
         "test optimization",
@@ -1210,8 +860,7 @@ def test_analysis_make_optimization_simple_case_basis_override(
 def test_analysis_make_optimization_include_confidence(
     test_analysis_with_data, expected_optimization_config
 ):
-    """Test that make_optimzation makes expected requests and returns a prediction with confidence intervals requested"""
-
+    """Test that make_optimzation makes expected requests and returns a prediction with confidence intervals requested."""
     expected_optimization_config["input_data"]["bounds"][1][
         "confidenceInterval"
     ] = "include"
@@ -1238,8 +887,7 @@ def test_analysis_make_optimization_include_confidence(
 def test_analysis_make_optimization_synchronous_false(
     test_analysis_with_data, expected_optimization_config
 ):
-    """Test that make_optimzation makes expected requests and returns a prediction with synchronous false"""
-
+    """Test that make_optimzation makes expected requests and returns a prediction with synchronous false."""
     pred = test_analysis_with_data.make_optimization(
         "test optimization",
         {
@@ -1265,7 +913,7 @@ def test_analysis_make_optimization_synchronous_false(
 def test_prediction_complete_false(
     patched_fero_client, prediction_results_response_started
 ):
-    """Test that prediction.complete is false if not completed"""
+    """Test that prediction.complete is false if not completed."""
     patched_fero_client.get.return_value = prediction_results_response_started
 
     pred = Prediction(patched_fero_client, "c9448486-0c59-487f-9c9c-345d98103fcb")
@@ -1275,7 +923,7 @@ def test_prediction_complete_false(
 def test_prediction_complete_true(
     patched_fero_client, prediction_results_response_completed
 ):
-    """Test that prediction.complete is true if completed"""
+    """Test that prediction.complete is true if completed."""
     patched_fero_client.get.return_value = prediction_results_response_completed
 
     pred = Prediction(patched_fero_client, "c9448486-0c59-487f-9c9c-345d98103fcb")
@@ -1285,8 +933,7 @@ def test_prediction_complete_true(
 def test_prediction_get_result_not_complete(
     patched_fero_client, prediction_results_response_started
 ):
-    """Test that a Fero Error is raised if get_result is called before a prediction is complete"""
-
+    """Test that a Fero Error is raised if get_result is called before a prediction is complete."""
     patched_fero_client.get.return_value = prediction_results_response_started
     pred = Prediction(patched_fero_client, "c9448486-0c59-487f-9c9c-345d98103fcb")
 
@@ -1299,8 +946,7 @@ def test_prediction_get_result_not_complete(
 def test_prediction_get_result_dataframe(
     patched_fero_client, prediction_results_response_completed
 ):
-    """Test that the expected data frame is generated by get_results"""
-
+    """Test that the expected data frame is generated by get_results."""
     patched_fero_client.get.return_value = prediction_results_response_completed
     pred = Prediction(patched_fero_client, "c9448486-0c59-487f-9c9c-345d98103fcb")
 
@@ -1338,8 +984,7 @@ def test_prediction_get_result_dataframe(
 def test_prediction_get_result_dict(
     patched_fero_client, prediction_results_response_completed
 ):
-    """Test that the expected list of dicts is returned for format records"""
-
+    """Test that the expected list of dicts is returned for format records."""
     patched_fero_client.get.return_value = prediction_results_response_completed
     pred = Prediction(patched_fero_client, "c9448486-0c59-487f-9c9c-345d98103fcb")
 
@@ -1362,7 +1007,7 @@ def test_prediction_get_result_dict(
 def test_analysis_upload_file_makes_expected_calls_azure(
     analysis_data, patched_fero_client
 ):
-    """Test that _upload_file makes the expected calls and returns the expected values"""
+    """Test that _upload_file makes the expected calls and returns the expected values."""
     patched_fero_client.post.return_value = {
         "upload_type": "azure",
         "workspace_id": "uuid",
@@ -1391,7 +1036,7 @@ def test_analysis_upload_file_makes_expected_calls_azure(
 def test_analysis_upload_file_makes_expected_calls_s3(
     analysis_data, patched_fero_client
 ):
-    """Test that _upload_file makes the expected calls and returns the expected values"""
+    """Test that _upload_file makes the expected calls and returns the expected values."""
     patched_fero_client.post.return_value = {
         "upload_type": "s3",
         "workspace_id": "uuid",
@@ -1418,8 +1063,7 @@ def test_analysis_upload_file_makes_expected_calls_s3(
 
 
 def test_is_retraining_not_retraining(analysis_data, patched_fero_client):
-    """Test that is_retraining() returns false if the analysis is not training"""
-
+    """Test that is_retraining() returns false if the analysis is not training."""
     patched_fero_client.get.return_value = analysis_data.copy()
     analysis_data["latest_revision_model_state"] = "T"
     analysis = Analysis(patched_fero_client, analysis_data)
@@ -1430,8 +1074,7 @@ def test_is_retraining_not_retraining(analysis_data, patched_fero_client):
 
 
 def test_is_retraining_retraining(analysis_data, patched_fero_client):
-    """Test that is_retraining() returns true if the analysis is training"""
-
+    """Test that is_retraining() returns true if the analysis is training."""
     analysis_data["latest_revision_model_state"] = "T"
     patched_fero_client.get.return_value = analysis_data.copy()
 
@@ -1443,7 +1086,7 @@ def test_is_retraining_retraining(analysis_data, patched_fero_client):
 
 
 def test_not_retraining_new_version_race_condition(analysis_data, patched_fero_client):
-    """Test that is_retraining is called again if the latest version"""
+    """Test that is_retraining is called again if the latest version."""
     second_version = analysis_data.copy()
     second_version["latest_revision"] = second_version["latest_revision"] + 1
 
@@ -1462,7 +1105,7 @@ def test_not_retraining_new_version_race_condition(analysis_data, patched_fero_c
 
 
 def test_revise_makes_expected_calls(analysis_data, patched_fero_client, revision_data):
-    """Test that revise makes the expected calls to the server"""
+    """Test that revise makes the expected calls to the server."""
     analysis = Analysis(patched_fero_client, analysis_data)
     patched_fero_client.get.side_effect = [
         analysis_data,
@@ -1497,8 +1140,7 @@ def test_revise_makes_expected_calls(analysis_data, patched_fero_client, revisio
 
 
 def test_revise_does_not_revise_if_training(analysis_data, patched_fero_client):
-    """Test a revision is not made if the analysis is currently being trained"""
-
+    """Test a revision is not made if the analysis is currently being trained."""
     analysis = Analysis(patched_fero_client, analysis_data)
     analysis_data["latest_revision_model_state"] = "T"
     patched_fero_client.get.return_value = analysis_data

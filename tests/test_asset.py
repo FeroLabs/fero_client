@@ -1,3 +1,5 @@
+"""A module to test the `Asset` class."""
+
 import pytest
 import json
 from fero.asset import Asset
@@ -7,12 +9,14 @@ from pandas.testing import assert_frame_equal
 
 @pytest.fixture
 def test_asset(asset_data, patched_fero_client, prediction_result_success_data):
+    """Get a sample `Asset` object."""
     patched_fero_client.post.return_value = prediction_result_success_data
     return Asset(patched_fero_client, asset_data)
 
 
 @pytest.fixture
 def default_predictions():
+    """Get sample dataframe of asset predictions."""
     return pd.DataFrame(
         **{
             "data": [
@@ -162,6 +166,7 @@ def default_predictions():
 
 @pytest.fixture
 def test_asset_with_data(test_asset, default_predictions):
+    """Get a sample `Asset` with loaded Scenario Simulator predictions."""
     test_asset._presentation_data_cache = [
         {
             "id": "sensor_forecaster",
@@ -186,6 +191,7 @@ def test_asset_with_data(test_asset, default_predictions):
 
 @pytest.fixture
 def prediction_result_success_data():
+    """Get sample data for a successful asset prediction."""
     return {
         "status": "SUCCESS",
         "data": {
@@ -215,8 +221,7 @@ def prediction_result_success_data():
 
 
 def test_creates_asset_correctly(asset_data, patched_fero_client):
-    """Test that a valid asset is created from valid data and a valid client"""
-
+    """Test that a valid asset is created from valid data and a valid client."""
     asset = Asset(patched_fero_client, asset_data)
 
     assert isinstance(asset, Asset)
@@ -224,19 +229,20 @@ def test_creates_asset_correctly(asset_data, patched_fero_client):
 
 
 def test_has_trained_model_true(asset_data, patched_fero_client):
-    """Test that has_trained_model is true if there is a latest configuration model"""
+    """Test that `has_trained_model` is true if there is a latest configuration model."""
     asset = Asset(patched_fero_client, asset_data)
     assert asset.has_trained_model() is True
 
 
 def test_has_trained_model_false(asset_data, patched_fero_client):
-    """Test that has_trained_model is false if there is no configuration model"""
+    """Test that `has_trained_model` is false if there is no configuration model."""
     asset_data["latest_completed_model"] = None
     asset = Asset(patched_fero_client, asset_data)
     assert asset.has_trained_model() is False
 
 
 def test_predict_default(test_asset_with_data, default_predictions):
+    """Test that default the prediction gives the expected result."""
     result = test_asset_with_data.predict()
     assert_frame_equal(result, default_predictions)
 
@@ -244,6 +250,7 @@ def test_predict_default(test_asset_with_data, default_predictions):
 def test_predict_specified_factor_df(
     test_asset_with_data, default_predictions, prediction_result_success_data
 ):
+    """Test a prediction with a manually specified `DataFrame` of factors."""
     specified = pd.DataFrame(
         {"Factor 4": default_predictions["mean:Factor 4"].to_list()}
     )
@@ -268,6 +275,7 @@ def test_predict_specified_factor_df(
 def test_predict_specified_factor_dict(
     test_asset_with_data, default_predictions, prediction_result_success_data
 ):
+    """Test a prediction with a manually specified `dict` of factors."""
     specified = {"Factor 4": default_predictions["mean:Factor 4"].to_list()}
     result = test_asset_with_data.predict(specified)
     success_df = pd.DataFrame(**prediction_result_success_data["data"])
