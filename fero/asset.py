@@ -23,9 +23,9 @@ class AssetSchema(Schema):
 
     configurations_url = fields.String(required=True)
 
-    data_source_name = fields.String(required=True)
+    process = fields.UUID(required=True)
 
-    data_source_deleted = fields.Boolean()
+    process_deleted = fields.Boolean()
 
     current_bound = fields.Dict(allow_none=True, default=dict, missing=dict)
 
@@ -74,6 +74,7 @@ class AssetSchema(Schema):
     uuid = fields.UUID(required=True)
     name = fields.String(required=True)
     created = fields.DateTime(require=True)
+    created_by = fields.Dict(required=True)
     modified = fields.DateTime(require=True)
 
 
