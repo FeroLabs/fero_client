@@ -17,7 +17,9 @@ class DataSourceSchema(Schema):
 
     uuid = fields.UUID(required=True)
 
-    primary_key_column = fields.String(required=True, allow_none=True)
+    # deprecated in favor of primary_key_columns
+    primary_key_column = fields.String(required=False, allow_none=True)
+    primary_key_columns = fields.List(fields.String, required=False, allow_none=True)
     primary_datetime_column = fields.String(required=True, allow_none=True)
 
     schema = fields.Dict(required=True, allow_none=True)
