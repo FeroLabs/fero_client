@@ -11,7 +11,6 @@ from marshmallow import (
     Schema,
     fields,
     validate,
-    validators,
     validates_schema,
     ValidationError,
     EXCLUDE,
