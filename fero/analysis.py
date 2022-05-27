@@ -113,18 +113,23 @@ class FactorSchema(Schema):
     @validates_schema
     def relative_min_and_max(self, data: dict, **kwargs):
         """Validate that either both min and max or none, or they are both defined, and min < max
-        
+
         :raises ValidationError: if min >= max or only one is defined.
         """
         if data["min"] is None and data["max"] is None:
             return
         elif data["min"] is None:
-            raise ValidationError({"max": ["A value for 'max' must be provided when 'min' is present."]})
+            raise ValidationError(
+                {"max": ["A value for 'max' must be provided when 'min' is present."]}
+            )
         elif data["max"] is None:
-            raise ValidationError({"min": ["A value for 'min' must be provided when 'max' is present."]})
+            raise ValidationError(
+                {"min": ["A value for 'min' must be provided when 'max' is present."]}
+            )
         elif data["min"] >= data["max"]:
-            raise ValidationError({"min": ["The value of 'min' must be less than the value of 'max'."]})
-
+            raise ValidationError(
+                {"min": ["The value of 'min' must be less than the value of 'max'."]}
+            )
 
 
 class CostSchema(FactorSchema):
@@ -181,7 +186,11 @@ class CostOptimizeGoal(BaseGoalSchema):
         """
         if len(data["cost_function"]) > 3:
             raise ValidationError(
-                {"cost_function": ["No more than three factors allowed in the cost function."]}
+                {
+                    "cost_function": [
+                        "No more than three factors allowed in the cost function."
+                    ]
+                }
             )
 
 
@@ -566,22 +575,41 @@ class Analysis(FeroObject):
                 raise FeroError(f'"{factor_name}" is not a factor in this model.')
             # Implicitly find missing factors
             if factor_type not in ["factor_float", "factor_int"]:
-                raise FeroError("The data type of all cost function factors must be float or integer.")
+                raise FeroError(
+                    "The data type of all cost function factors must be float or integer."
+                )
 
     def _verify_constraints(self, constraints: List[dict]):
         """Verify provided constraints are in the analysis."""
         for constraint in constraints:
             constraint_name = constraint["name"]
-            constraint_type = self._get_factor_dtype(constraint_name) if constraint_name in self.factor_names else self._get_target_dtype(constraint_name) if constraint_name in self.target_names else None
+            constraint_type = (
+                self._get_factor_dtype(constraint_name)
+                if constraint_name in self.factor_names
+                else self._get_target_dtype(constraint_name)
+                if constraint_name in self.target_names
+                else None
+            )
             if constraint_type is None:
                 raise FeroError(
                     f'Constraint "{constraint_name}" is not part of this model.'
                 )
-            elif constraint_type == "factor_category" and (constraint.get("min", None) is not None or constraint.get("max", None) is not None):
+            elif constraint_type == "factor_category" and (
+                constraint.get("min", None) is not None
+                or constraint.get("max", None) is not None
+            ):
                 raise FeroError(
                     f'Categorical factor "{constraint_name}" should not define a min or max value.'
                 )
-            elif constraint_type in ["factor_int", "factor_float", "target_int", "target_float"] and (constraint.get("min", None) is None or constraint.get("max", None) is None):
+            elif constraint_type in [
+                "factor_int",
+                "factor_float",
+                "target_int",
+                "target_float",
+            ] and (
+                constraint.get("min", None) is None
+                or constraint.get("max", None) is None
+            ):
                 raise FeroError(
                     f'Numeric constraint "{constraint_name}" requires a min and max value.'
                 )
