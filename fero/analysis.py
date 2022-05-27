@@ -171,7 +171,10 @@ class StandardOptimizeGoal(BaseGoalSchema):
 
         :raises ValidationError: if no min or max parameter is defined
         """
-        if data["factor"].get("min", None) is None or data["factor"].get("max", None) is None:
+        if (
+            data["factor"].get("min", None) is None
+            or data["factor"].get("max", None) is None
+        ):
             raise ValidationError(
                 {"factor": ["Optimization goal factor must include a min and max."]}
             )
@@ -903,7 +906,9 @@ class Analysis(FeroObject):
         constraints_schema = FactorSchema(many=True)
         constraints_validation = constraints_schema.validate(constraints)
         if constraints_validation:
-            raise FeroError(f"Error validating constraints <f{str(constraints_validation)}>")
+            raise FeroError(
+                f"Error validating constraints <f{str(constraints_validation)}>"
+            )
 
         if cost_goal:
             self._verify_cost_goal(goal)
