@@ -113,7 +113,7 @@ class FactorSchema(Schema):
 
     @validates_schema
     def relative_min_and_max(self, data: dict, **kwargs):
-        """Validate that either both min and max or none, or they are both defined, and min < max
+        """Validate that either both min and max or none, or they are both defined, and min < max.
 
         :raises ValidationError: if min >= max or only one is defined.
         """
