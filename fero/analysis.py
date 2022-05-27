@@ -107,8 +107,9 @@ class FactorSchema(Schema):
     """A schema to store data related to a factor linked to a fero analysis optimization."""
 
     name = fields.String(required=True)
-    min = fields.Number(required=False)
-    max = fields.Number(required=False)
+    min = fields.Number(required=False, default=None)
+    max = fields.Number(required=False, default=None)
+    cost = fields.Number(required=False)
 
     @validates_schema
     def relative_min_and_max(self, data: dict, **kwargs):
@@ -116,17 +117,19 @@ class FactorSchema(Schema):
 
         :raises ValidationError: if min >= max or only one is defined.
         """
-        if data["min"] is None and data["max"] is None:
+        min = data.get("min", None)
+        max = data.get("max", None)
+        if min is None and max is None:
             return
-        elif data["min"] is None:
+        elif max is None:
             raise ValidationError(
                 {"max": ["A value for 'max' must be provided when 'min' is present."]}
             )
-        elif data["max"] is None:
+        elif min is None:
             raise ValidationError(
                 {"min": ["A value for 'min' must be provided when 'max' is present."]}
             )
-        elif data["min"] >= data["max"]:
+        elif min >= max:
             raise ValidationError(
                 {"min": ["The value of 'min' must be less than the value of 'max'."]}
             )
@@ -143,7 +146,9 @@ class CostSchema(FactorSchema):
 
         :raises ValidationError: if no min or max parameter is defined
         """
-        if data["min"] is None or data["max"] is None:
+        min = data.get("min", None)
+        max = data.get("max", None)
+        if min is None or max is None:
             raise ValidationError(
                 {"factor": ["Cost factors must include both a min and max."]}
             )
@@ -166,7 +171,7 @@ class StandardOptimizeGoal(BaseGoalSchema):
 
         :raises ValidationError: if no min or max parameter is defined
         """
-        if data["factor"]["min"] is None or data["factor"]["max"] is None:
+        if data["factor"].get("min", None) is None or data["factor"].get("max", None) is None:
             raise ValidationError(
                 {"factor": ["Optimization goal factor must include a min and max."]}
             )
@@ -898,7 +903,7 @@ class Analysis(FeroObject):
         constraints_schema = FactorSchema(many=True)
         constraints_validation = constraints_schema.validate(constraints)
         if constraints_validation:
-            raise FeroError(f"Error validating goal <f{str(constraints_validation)}>")
+            raise FeroError(f"Error validating constraints <f{str(constraints_validation)}>")
 
         if cost_goal:
             self._verify_cost_goal(goal)
