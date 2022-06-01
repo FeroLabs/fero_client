@@ -38,7 +38,7 @@ def analysis_data():
 
 @pytest.fixture
 def v1_interpreted_schema():
-    """Get sample analysis schema"""
+    """Get sample analysis schema."""
     return {
         "kind": "InterpretedSchema",
         "columns": [

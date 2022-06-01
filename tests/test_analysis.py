@@ -401,7 +401,7 @@ def test_has_trained_model_false(analysis_data, patched_fero_client):
 def test_gets_v1_schema_for_v1_correctly(
     analysis_data, v1_interpreted_schema, patched_fero_client
 ):
-    """Test that we fetch the schema with the datasource endpoint for V1 analyses"""
+    """Test that we fetch the schema with the datasource endpoint for V1 analyses."""
     analysis_data["latest_completed_model_schema"] = {}
     ds_uuid = analysis_data["data_source"]
     analysis = Analysis(patched_fero_client, analysis_data)
@@ -415,7 +415,7 @@ def test_gets_v1_schema_for_v1_correctly(
 def test_gets_v1_schema_for_v2_correctly(
     analysis_data, v1_interpreted_schema, patched_fero_client
 ):
-    """Test that we fetch the schema with the process endpoint for V2 analyses"""
+    """Test that we fetch the schema with the process endpoint for V2 analyses."""
     analysis_data["latest_completed_model_schema"] = {}
     dummy_uuid = uuid4()
     analysis_data["process"] = str(dummy_uuid)
