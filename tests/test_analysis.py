@@ -2,6 +2,7 @@
 
 import io
 import datetime
+from uuid import uuid4
 import pytest
 from fero import FeroError
 from unittest import mock
@@ -13,6 +14,7 @@ from pandas.testing import assert_frame_equal
 @pytest.fixture
 def test_analysis(
     analysis_data,
+    v1_interpreted_schema,
     patched_fero_client,
     prediction_request_response,
     prediction_results_response_completed,
@@ -21,7 +23,9 @@ def test_analysis(
     patched_fero_client.post.return_value = prediction_request_response
     patched_fero_client.get.return_value = prediction_results_response_completed
 
-    return Analysis(patched_fero_client, analysis_data)
+    analysis = Analysis(patched_fero_client, analysis_data)
+    analysis._schema_cache = v1_interpreted_schema
+    return analysis
 
 
 @pytest.fixture
@@ -392,6 +396,36 @@ def test_has_trained_model_false(analysis_data, patched_fero_client):
     analysis_data["latest_completed_model"] = None
     analysis = Analysis(patched_fero_client, analysis_data)
     assert analysis.has_trained_model() is False
+
+
+def test_gets_v1_schema_for_v1_correctly(
+    analysis_data, v1_interpreted_schema, patched_fero_client
+):
+    """Test that we fetch the schema with the datasource endpoint for V1 analyses"""
+    analysis_data["latest_completed_model_schema"] = {}
+    ds_uuid = analysis_data["data_source"]
+    analysis = Analysis(patched_fero_client, analysis_data)
+    patched_fero_client.get.return_value = v1_interpreted_schema
+    assert analysis._schema == v1_interpreted_schema
+    patched_fero_client.get.assert_called_with(
+        f"/api/data_sources/{ds_uuid}/latest_interpreted_schema/"
+    )
+
+
+def test_gets_v1_schema_for_v2_correctly(
+    analysis_data, v1_interpreted_schema, patched_fero_client
+):
+    """Test that we fetch the schema with the process endpoint for V2 analyses"""
+    analysis_data["latest_completed_model_schema"] = {}
+    dummy_uuid = uuid4()
+    analysis_data["process"] = str(dummy_uuid)
+    analysis_data["data_source"] = None
+    analysis = Analysis(patched_fero_client, analysis_data)
+    patched_fero_client.get.return_value = v1_interpreted_schema
+    assert analysis._schema == v1_interpreted_schema
+    patched_fero_client.get.assert_called_with(
+        f"/api/processes/{str(dummy_uuid)}/v1_interpreted_schema/"
+    )
 
 
 def test_make_prediction_dictionaries(
