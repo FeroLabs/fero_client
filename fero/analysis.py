@@ -319,6 +319,12 @@ class Analysis(FeroObject):
                 v1_schema = self._client.get(
                     f"/api/processes/{self.process}/v1_interpreted_schema/"
                 )
+            elif (
+                v1_schema is None or len(v1_schema) == 0
+            ) and self.data_source is not None:
+                v1_schema = self._client.get(
+                    f"/api/data_sources/{self.data_source}/latest_interpreted_schema/"
+                )
             self._schema_cache = v1_schema
 
         return self._schema_cache
