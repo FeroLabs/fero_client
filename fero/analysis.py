@@ -107,14 +107,51 @@ class FactorSchema(Schema):
     """A schema to store data related to a factor linked to a fero analysis optimization."""
 
     name = fields.String(required=True)
-    min = fields.Number(required=False)
-    max = fields.Number(required=False)
+    min = fields.Number(required=False, default=None)
+    max = fields.Number(required=False, default=None)
+    cost = fields.Number(required=False)
+
+    @validates_schema
+    def relative_min_and_max(self, data: dict, **kwargs):
+        """Validate that either both min and max or none, or they are both defined, and min < max.
+
+        :raises ValidationError: if min >= max or only one is defined.
+        """
+        min = data.get("min", None)
+        max = data.get("max", None)
+        if min is None and max is None:
+            return
+        elif max is None:
+            raise ValidationError(
+                {"max": ["A value for 'max' must be provided when 'min' is present."]}
+            )
+        elif min is None:
+            raise ValidationError(
+                {"min": ["A value for 'min' must be provided when 'max' is present."]}
+            )
+        elif min >= max:
+            raise ValidationError(
+                {"min": ["The value of 'min' must be less than the value of 'max'."]}
+            )
 
 
 class CostSchema(FactorSchema):
     """A schema to store data related to a cost linked to a fero analysis optimization."""
 
     cost = fields.Float(required=True)
+
+    @validates_schema
+    def numeric_factors(self, data: dict, **kwargs):
+        """Validate that the cost function factors, being numeric, include min and max parameters.
+
+        :raises ValidationError: if no min or max parameter is defined
+        """
+        min = data.get("min", None)
+        max = data.get("max", None)
+        if min is None or max is None:
+            raise ValidationError(
+                {"factor": ["Cost factors must include both a min and max."]}
+            )
 
 
 class BaseGoalSchema(Schema):
@@ -127,6 +164,20 @@ class StandardOptimizeGoal(BaseGoalSchema):
     """A schema to store data related to a goal to min/max some tag in a fero analysis optimization."""
 
     factor = fields.Nested(FactorSchema(), required=True)
+
+    @validates_schema
+    def numeric_goal(self, data: dict, **kwargs):
+        """Validate that the goal, being numeric, includes a min and max parameter.
+
+        :raises ValidationError: if no min or max parameter is defined
+        """
+        if (
+            data["factor"].get("min", None) is None
+            or data["factor"].get("max", None) is None
+        ):
+            raise ValidationError(
+                {"factor": ["Optimization goal factor must include a min and max."]}
+            )
 
 
 class CostOptimizeGoal(BaseGoalSchema):
@@ -143,7 +194,11 @@ class CostOptimizeGoal(BaseGoalSchema):
         """
         if len(data["cost_function"]) > 3:
             raise ValidationError(
-                {"cost_function": ["No more than three costs functions allowed"]}
+                {
+                    "cost_function": [
+                        "No more than three factors allowed in the cost function."
+                    ]
+                }
             )
 
 
@@ -517,13 +572,13 @@ class Analysis(FeroObject):
 
         # The goal label must be a target or factor
         if goal_name not in self.target_names + self.factor_names:
-            raise FeroError(f'"{goal_name}" is not a valid goal')
+            raise FeroError(f'"{goal_name}" is not a target or factor for this model.')
 
         # If this is a factor makes sure it's not a float
         if goal_name not in self.target_names and self._get_factor_dtype(
             goal_name
         ) not in ["factor_float", "factor_int"]:
-            raise FeroError("Goal must be a float or integer")
+            raise FeroError("The data type of the goal must be float or integer.")
 
     def _verify_cost_goal(self, goal: dict):
         """Verify that a cost goal is correct."""
@@ -531,19 +586,46 @@ class Analysis(FeroObject):
             factor_name = factor["name"]
             factor_type = self._get_factor_dtype(factor_name)
             if factor_type is None:
-                raise FeroError(f'"{factor_name}" is not a factor')
+                raise FeroError(f'"{factor_name}" is not a factor in this model.')
             # Implicitly find missing factors
             if factor_type not in ["factor_float", "factor_int"]:
-                raise FeroError("Cost functions factors must be floats or integers")
+                raise FeroError(
+                    "The data type of all cost function factors must be float or integer."
+                )
 
     def _verify_constraints(self, constraints: List[dict]):
         """Verify provided constraints are in the analysis."""
-        all_names = self.factor_names + self.target_names
         for constraint in constraints:
             constraint_name = constraint["name"]
-            if constraint_name not in all_names:
+            constraint_type = (
+                self._get_factor_dtype(constraint_name)
+                if constraint_name in self.factor_names
+                else self._get_target_dtype(constraint_name)
+                if constraint_name in self.target_names
+                else None
+            )
+            if constraint_type is None:
                 raise FeroError(
-                    f'Constraint "{constraint_name}" is not in this analysis'
+                    f'Constraint "{constraint_name}" is not part of this model.'
+                )
+            elif constraint_type == "factor_category" and (
+                constraint.get("min", None) is not None
+                or constraint.get("max", None) is not None
+            ):
+                raise FeroError(
+                    f'Categorical factor "{constraint_name}" should not define a min or max value.'
+                )
+            elif constraint_type in [
+                "factor_int",
+                "factor_float",
+                "target_int",
+                "target_float",
+            ] and (
+                constraint.get("min", None) is None
+                or constraint.get("max", None) is None
+            ):
+                raise FeroError(
+                    f'Numeric constraint "{constraint_name}" requires a min and max value.'
                 )
 
     def _cross_verify_optimization(self, goal: dict, constraints: List[dict]):
@@ -557,7 +639,7 @@ class Analysis(FeroObject):
         constraint_targets = []
 
         if len(constraints) < 1:
-            raise FeroError("A constraint must be specified")
+            raise FeroError("At least one constraint must be specified.")
         if is_cost:
             for factor in goal["cost_function"]:
                 cost_factors.append(factor["name"])
@@ -578,7 +660,7 @@ class Analysis(FeroObject):
 
         if len(constraint_factors + cost_factors + goal_factor) > 3:
             raise FeroError(
-                "A maximum of three factors can be specified in an optimization"
+                "A maximum of three factors can be specified in an optimization."
             )
 
     def _verify_fixed_factors(self, fixed_factors: dict):
@@ -586,7 +668,7 @@ class Analysis(FeroObject):
         all_columns = self.target_names + self.factor_names
         for key in fixed_factors.keys():
             if key not in all_columns:
-                raise FeroError(f'"{key}" is not a valid factor')
+                raise FeroError(f'"{key}" is not part of this model.')
 
     def _get_basis_values(self):
         """Get median fixed values from presentation data."""
@@ -830,7 +912,9 @@ class Analysis(FeroObject):
         constraints_schema = FactorSchema(many=True)
         constraints_validation = constraints_schema.validate(constraints)
         if constraints_validation:
-            raise FeroError(f"Error validating goal <f{str(constraints_validation)}>")
+            raise FeroError(
+                f"Error validating constraints <f{str(constraints_validation)}>"
+            )
 
         if cost_goal:
             self._verify_cost_goal(goal)
