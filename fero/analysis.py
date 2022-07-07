@@ -509,7 +509,8 @@ class Analysis(FeroObject):
         `make_prediction` takes either a data frame or list of dictionaries of values that will be sent to Fero
         to make a prediction of what the targets of the Analysis will be. The results are returned as either a dataframe
         or list of dictionaries with both the original prediction data and the predicted targets in each row or dict.
-        Each target has a `high`, `low`, and `mid` value and these are added to the target variable name with an `_`.
+        Prediction data should not contain any missing values. Each target has a `high`, `low`, and `mid` value and
+        these are added to the target variable name with an `_`.
 
         :param prediction_data:  Either a data frame or list of dictionaries specifying values to be used in the model.
         :type prediction_data: Union[pd.DataFrame, List[dict]]
@@ -846,13 +847,13 @@ class Analysis(FeroObject):
         goal: dict,
         constraints: List[dict],
         fixed_factors: Optional[dict] = None,
-        include_confidence_intervals: bool = False,
+        include_confidence_intervals: bool = True,
         synchronous: bool = True,
     ) -> Prediction:
         """Perform an optimization using the most recent model for the analysis.
 
         By default this function will block until the optimization is complete, however specifying `synchonous=False`
-        will instead return a prediction object referencing the optimization being made.  This prediction will not contain
+        will instead return a prediction object referencing the optimization being made. This prediction will not contain
         results until the `complete` property is true.
 
         The expected config input looks as follows:
@@ -884,14 +885,16 @@ class Analysis(FeroObject):
                 {"name": "target1", "min": 100, "max": 500}
             ]
 
-        :param name: Name for this optimizatino
+        :param name: Name for this optimization
         :type name: str
         :param goal: A dictionary describing the goal of the optimization
         :type goal: dict
-        :param constrains: A dictionary describing the constraints of the optimization
-        :type constrains: dict
+        :param constraints: A dictionary describing the constraints of the optimization
+        :type constraints: dict
         :param fixed_factors: Values of factors to stay fixed if not provided the mean values are used, defaults to None
         :type fixed_factors: dict, optional
+        :param include_confidence_intervals: Whether the optimization should include the lower 5% and upper 95% prediction levels, defaults to True
+        :type include_confidence_intervals: bool, optional
         :param synchronous: Whether the optimization should return only after being complete.  This can take a bit, defaults to True
         :type synchronous: bool, optional
         :return: The results of the optimization
