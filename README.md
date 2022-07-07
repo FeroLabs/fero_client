@@ -8,7 +8,7 @@
 from fero import Fero
 
 # Create a Fero client object
-fero_client = Fero()
+fero_client = Fero(username="<your username>", password="<your password>")
 
 # Get a specific analysis by its unique identifier
 analysis = fero_client.get_analysis("5dfbbb63-8ad4-4638-9fdb-61e39952d3cf")
@@ -55,7 +55,7 @@ The Fero client provides two different methods to find an `Analysis`. The first 
 
 ```python
 from fero import Fero
-fero_client = Fero()
+fero_client = Fero(username="<your username>", password="<your password>")
 
 # Get a specific analysis
 analysis = fero_client.get_analysis("5dfbbb63-8ad4-4638-9fdb-61e39952d3cf")
@@ -113,10 +113,13 @@ print(prediction)
 
 ### Optimize
 
-A more advanced usage of an `Analysis` is to create an optimization which will make a prediction that satistifies a specified `goal` within the context of `constraints` on other factors or targets. For example, if you wanted to the minimize value of `value` while keeping `target` within a set range, you would provide the following goal and constraint configurations.
+A more advanced usage of an `Analysis` is to create an optimization which will make a prediction that satistifies a specified `goal` within the context of `constraints` on other factors or targets. Currently, the Fero optimizer can be used to conduct three different types of optimizations based on an `Analysis`.
+
+#### Example 1: Minimize a factor given constraints
+
+Fero can be used to minimize `value` while keeping `target` within a set range. The following goal and constraint configurations would need to be provided.
 
 ```python
-
 goal = {
   "goal": "minimize",
   "factor": {"name": "value", "min": 50.0, "max": 100.0}
@@ -130,7 +133,6 @@ opt = analysis.make_optimization("example_optimization", goal, constraints)
 By default, Fero will use the median values of fixed factors while computing the optimization. These can be overridden with custom values by passing a dictionary of `factor`:`value` pairs as the `fixed_factors` argument to the optimization function.
 
 ```python
-
 fixed_factors = {
   "value": 10,
   "value2": 20
@@ -139,10 +141,33 @@ fixed_factors = {
 opt = analysis.make_optimization("example_optimization", goal, constraints, fixed_factors)
 ```
 
+#### Example 2: Maximize a target KPI given constraints
+
+Alternatively, a `target` KPI can be maximized while constraining a `value`. Note that the same key, `factor`, is used when defining the target KPI in `goal`.
+
+
+```python
+goal = {
+"goal": "maximize",
+"factor": {"name": "target", "min": 100.0, "max": 200.0}
+}
+
+constraints = [{"name": "value", "min": 50.0, "max": 100.0}]
+
+opt = analysis.make_optimization("example_optimization", goal, constraints)
+```
+
+By default, Fero will not incorporate confidence intervals while optimizing a target. The lower (5%) and upper (95%) bounds of the confidence intervals can be included during optimization by setting argument `include_confidence_intervals` to `True`. This will ensure that the upper or lower prediction level of the optimization result do not exceed the set `min`/`max` values for `target`. (This could have also been set to `True` in the previous example.)
+
+```python
+opt = analysis.make_optimization("example_optimization", goal, constraints, fixed_factors)
+```
+
+#### Example 3: Optimize a cost function over multiple factors
+
 Fero also supports the idea of a cost optimization, which will weight different factors by specified cost multipliers to find the best combination of inputs. For example, to find the minimum combined cost of `value` and `value2` while meeting the expected values of `target`, you could do the following:
 
 ```python
-
 goal = {
   "goal": "minimize",
   "type": "cost",
@@ -159,7 +184,6 @@ In both cases, a `Prediction` object is returned, which will provide access to t
 #### Example
 
 ```python
-
 goal = {
   "goal": "minimize",
   "factor": {"name": "value", "min": 50.0, "max": 100.0}
@@ -184,7 +208,7 @@ The Fero client provides two different methods to find an `Asset`. The first is 
 
 ```python
 from fero import Fero
-fero_client = Fero()
+fero_client = Fero(username="<your username>", password="<your password>")
 
 # Get a specific asset
 asset = fero_client.get_asset("fd57ba36-3c5d-40f5-ae0c-d7b76ab39ee5")
@@ -291,7 +315,7 @@ Processes represent data via two main underlying entities, the `Tag` and the `St
 ```python
 
 from fero import Fero
-fero_client = Fero()
+fero_client = Fero(username="<your username>", password="<your password>")
 
 # Get a single process
 process = fero_client.get_process("c6f69e96-db4d-43ed-8837-d5827cc81112")
