@@ -619,7 +619,7 @@ class Analysis(FeroObject):
                 )
             elif use_adaptive and constraint_type == "factor_category":
                 raise FeroError(
-                    f'Categorical factors are not yet supported for adaptive optimizations.'
+                    "Categorical factors are not yet supported for adaptive optimizations."
                 )
             elif constraint_type in [
                 "factor_int",
