@@ -665,7 +665,10 @@ class Analysis(FeroObject):
         if len(target_factor + constraint_targets) < 1:
             raise FeroError("No Targets specified")
 
-        if len(constraint_factors + cost_factors + goal_factor) > 3 and not use_adaptive:
+        if (
+            len(constraint_factors + cost_factors + goal_factor) > 3
+            and not use_adaptive
+        ):
             raise FeroError(
                 "A maximum of three factors can be specified in an optimization."
             )
@@ -699,7 +702,13 @@ class Analysis(FeroObject):
         return base_values
 
     def _build_optimize_request(
-        self, name, goal, constraints, fixed_factors, include_confidence_intervals, **kwargs
+        self,
+        name,
+        goal,
+        constraints,
+        fixed_factors,
+        include_confidence_intervals,
+        **kwargs,
     ) -> dict:
         """Format the content for an optimization request."""
         is_cost = goal.get("type", None) == "COST"
@@ -721,7 +730,7 @@ class Analysis(FeroObject):
             ],
             "basisSpecifiedColumns": [],  # These appear to just be, uhm, here
             "linearFunctionDefinitions": {},
-            "useAdaptiveGrid": kwargs.get("use_adaptive", False)
+            "useAdaptiveGrid": kwargs.get("use_adaptive", False),
         }
         basis_values = self._get_basis_values()
         basis_values.update(fixed_factors)
@@ -860,7 +869,7 @@ class Analysis(FeroObject):
         fixed_factors: Optional[dict] = None,
         include_confidence_intervals: bool = True,
         synchronous: bool = True,
-        **kwargs
+        **kwargs,
     ) -> Prediction:
         """Perform an optimization using the most recent model for the analysis.
 
@@ -941,6 +950,11 @@ class Analysis(FeroObject):
         self._verify_fixed_factors(fixed_factors)
 
         optimize_request = self._build_optimize_request(
-            name, goal, constraints, fixed_factors, include_confidence_intervals, **kwargs
+            name,
+            goal,
+            constraints,
+            fixed_factors,
+            include_confidence_intervals,
+            **kwargs,
         )
         return self._request_prediction(optimize_request, synchronous)
