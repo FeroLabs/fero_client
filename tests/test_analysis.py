@@ -121,6 +121,7 @@ def expected_optimization_config():
         "input_data": {
             "kind": "OptimizationRequest",
             "version": 1,
+            "useAdaptiveGrid": False,
             "objectives": [{"factor": "Factor 2", "goal": "maximize"}],
             "basisSpecifiedColumns": [],
             "linearFunctionDefinitions": {},
