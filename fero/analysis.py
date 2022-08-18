@@ -594,8 +594,9 @@ class Analysis(FeroObject):
                     "The data type of all cost function factors must be float or integer."
                 )
 
-    def _verify_constraints(self, constraints: List[dict]):
+    def _verify_constraints(self, constraints: List[dict], **kwargs):
         """Verify provided constraints are in the analysis."""
+        use_adaptive = kwargs.get("use_adaptive", False)
         for constraint in constraints:
             constraint_name = constraint["name"]
             constraint_type = (
@@ -616,6 +617,10 @@ class Analysis(FeroObject):
                 raise FeroError(
                     f'Categorical factor "{constraint_name}" should not define a min or max value.'
                 )
+            elif use_adaptive and constraint_type == "factor_category":
+                raise FeroError(
+                    "Categorical factors are not yet supported for adaptive optimizations."
+                )
             elif constraint_type in [
                 "factor_int",
                 "factor_float",
@@ -629,7 +634,7 @@ class Analysis(FeroObject):
                     f'Numeric constraint "{constraint_name}" requires a min and max value.'
                 )
 
-    def _cross_verify_optimization(self, goal: dict, constraints: List[dict]):
+    def _cross_verify_optimization(self, goal: dict, constraints: List[dict], **kwargs):
         """Verify the config has the correct combined targets, costs and factors."""
         is_cost = goal.get("type", None) == "COST"
 
@@ -638,6 +643,7 @@ class Analysis(FeroObject):
         target_factor = []
         constraint_factors = []
         constraint_targets = []
+        use_adaptive = kwargs.get("use_adaptive", False)
 
         if len(constraints) < 1:
             raise FeroError("At least one constraint must be specified.")
@@ -659,9 +665,16 @@ class Analysis(FeroObject):
         if len(target_factor + constraint_targets) < 1:
             raise FeroError("No Targets specified")
 
-        if len(constraint_factors + cost_factors + goal_factor) > 3:
+        if (
+            len(constraint_factors + cost_factors + goal_factor) > 3
+            and not use_adaptive
+        ):
             raise FeroError(
                 "A maximum of three factors can be specified in an optimization."
+            )
+        elif use_adaptive and len(constraint_factors + cost_factors + goal_factor) > 5:
+            raise FeroError(
+                "A maximum of five factors can be specified in an adaptive optimization."
             )
 
     def _verify_fixed_factors(self, fixed_factors: dict):
@@ -689,7 +702,13 @@ class Analysis(FeroObject):
         return base_values
 
     def _build_optimize_request(
-        self, name, goal, constraints, fixed_factors, include_confidence_intervals
+        self,
+        name,
+        goal,
+        constraints,
+        fixed_factors,
+        include_confidence_intervals,
+        **kwargs,
     ) -> dict:
         """Format the content for an optimization request."""
         is_cost = goal.get("type", None) == "COST"
@@ -711,6 +730,7 @@ class Analysis(FeroObject):
             ],
             "basisSpecifiedColumns": [],  # These appear to just be, uhm, here
             "linearFunctionDefinitions": {},
+            "useAdaptiveGrid": kwargs.get("use_adaptive", False),
         }
         basis_values = self._get_basis_values()
         basis_values.update(fixed_factors)
@@ -849,6 +869,7 @@ class Analysis(FeroObject):
         fixed_factors: Optional[dict] = None,
         include_confidence_intervals: bool = True,
         synchronous: bool = True,
+        **kwargs,
     ) -> Prediction:
         """Perform an optimization using the most recent model for the analysis.
 
@@ -924,11 +945,16 @@ class Analysis(FeroObject):
         else:
             self._verify_standard_goal(goal)
 
-        self._verify_constraints(constraints)
-        self._cross_verify_optimization(goal, constraints)
+        self._verify_constraints(constraints, **kwargs)
+        self._cross_verify_optimization(goal, constraints, **kwargs)
         self._verify_fixed_factors(fixed_factors)
 
         optimize_request = self._build_optimize_request(
-            name, goal, constraints, fixed_factors, include_confidence_intervals
+            name,
+            goal,
+            constraints,
+            fixed_factors,
+            include_confidence_intervals,
+            **kwargs,
         )
         return self._request_prediction(optimize_request, synchronous)
