@@ -557,7 +557,7 @@ def test_make_optimization_goal_not_in_analysis(test_analysis_with_data):
                 "goal": "maximize",
                 "factor": {"name": "factor 4", "min": 5.0, "max": 7.0},
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
@@ -583,7 +583,7 @@ def test_make_optimization_bad_goals(test_analysis_with_data):
                 "goal": "circumambulate",
                 "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
@@ -596,7 +596,7 @@ def test_make_optimization_wrong_format_goal_factors(test_analysis_with_data):
                 "goal": "maximize",
                 "factor": {"name": "Factor 1", "smallest": 5.0, "max": 7.0},
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
@@ -612,7 +612,7 @@ def test_make_optimization_type_not_cost(test_analysis_with_data):
                     {"name": "Factor 1", "min": 5.0, "max": 7.0, "cost": 1000}
                 ],
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
@@ -626,7 +626,7 @@ def test_make_optimization_type_cost_no_cost_function(test_analysis_with_data):
                 "goal": "maximize",
                 "factor": {"name": "Factor 1", "smallest": 5.0, "max": 7.0},
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
@@ -642,7 +642,7 @@ def test_make_optimization_type_cost_malformed_cost_function(test_analysis_with_
                     {"name": "Factor 1", "min": 5.0, "max": 7.0, "price": 1000}
                 ],
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
@@ -661,29 +661,14 @@ def test_make_optimization_type_cost_more_than_three(test_analysis_with_data):
                     {"name": "Factor 4", "min": 5.0, "max": 7.0, "cost": 1000},
                 ],
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
-def test_make_optimization_type_cost_target_in_function(test_analysis_with_data):
-    """Test that a type COST optimization raises a Fero Error if a target is in the cost function."""
-    with pytest.raises(FeroError):
-        test_analysis_with_data.make_optimization(
-            "test",
-            {
-                "type": "COST",
-                "goal": "maximize",
-                "cost_function": [
-                    {"name": "Factor 1", "min": 5.0, "max": 7.0, "cost": 1000},
-                    {"name": "Target 2", "min": 5.0, "max": 7.0, "cost": 1000},
-                ],
-            },
-            [{"name": "Target 1", "min": 10, "max": 10}],
-        )
-
-
-def test_make_optimization_type_cost_target_not_in_constraints(test_analysis_with_data):
-    """Test that a type COST optimization raises a Fero Error if a target is not a constraint in a cost optimization."""
+def test_make_optimization_type_cost_target_not_in_function_or_constraints(
+    test_analysis_with_data,
+):
+    """Test that a type COST optimization raises a Fero Error if a target not in either the cost function or the constaints."""
     with pytest.raises(FeroError):
         test_analysis_with_data.make_optimization(
             "test",
@@ -694,7 +679,7 @@ def test_make_optimization_type_cost_target_not_in_constraints(test_analysis_wit
                     {"name": "Factor 1", "min": 5.0, "max": 7.0, "cost": 1000},
                 ],
             },
-            [{"name": "Factor 2", "min": 10, "max": 10}],
+            [{"name": "Factor 2", "min": 10, "max": 11}],
         )
 
 
@@ -707,7 +692,7 @@ def test_make_optimization_constraints_not_in_analysis(test_analysis_with_data):
                 "goal": "maximize",
                 "factor": {"name": "Factor 1", "min": 5.0, "max": 7.0},
             },
-            [{"name": "Target 4", "min": 10, "max": 10}],
+            [{"name": "Target 4", "min": 10, "max": 11}],
         )
 
 
@@ -720,7 +705,7 @@ def test_make_optimization_categorical_goal(test_analysis_with_data):
                 "goal": "maximize",
                 "factor": {"name": "Category 0", "min": 5.0, "max": 7.0},
             },
-            [{"name": "Target 4", "min": 10, "max": 10}],
+            [{"name": "Target 4", "min": 10, "max": 11}],
         )
 
 
@@ -736,7 +721,7 @@ def test_make_optimization_type_cost_categorical_function(test_analysis_with_dat
                     {"name": "Category 0", "min": 5.0, "max": 7.0, "cost": 1000},
                 ],
             },
-            [{"name": "Target 1", "min": 10, "max": 10}],
+            [{"name": "Target 1", "min": 10, "max": 11}],
         )
 
 
