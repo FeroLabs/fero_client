@@ -586,15 +586,14 @@ class Analysis(FeroObject):
         for c in goal["cost_function"]:
             name = c["name"]
             factor_type = self._get_factor_dtype(name)
-            if factor_type is not None:
-                # Implicitly find missing factors
-                if factor_type is not None and factor_type not in [
-                    "factor_float",
-                    "factor_int",
-                ]:
-                    raise FeroError(
-                        "The data type of all cost function factors must be float or integer."
-                    )
+            # Implicitly find missing factors
+            if factor_type is not None and factor_type not in [
+                "factor_float",
+                "factor_int",
+            ]:
+                raise FeroError(
+                    "The data type of all cost function factors must be float or integer."
+                )
             else:
                 target_type = self._get_target_dtype(name)
                 if target_type is None:
@@ -602,7 +601,7 @@ class Analysis(FeroObject):
                         f'"{name}" is not a factor or target in this model.'
                     )
                 # Implicitly find missing factors
-                if target_type is not None and target_type not in [
+                if target_type not in [
                     "target_float",
                     "target_int",
                 ]:
