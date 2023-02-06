@@ -665,7 +665,10 @@ class Analysis(FeroObject):
             raise FeroError("At least one constraint must be specified.")
         if is_cost:
             for factor in goal["cost_function"]:
-                cost_factors.append(factor["name"])
+                if factor["name"] in self.factor_names:
+                    cost_factors.append(factor["name"])
+                else:
+                    target_factor.append(factor["name"])
         else:
             if goal["factor"]["name"] in self.factor_names:
                 goal_factor.append(goal["goal"])
@@ -790,14 +793,15 @@ class Analysis(FeroObject):
 
             for c in goal["cost_function"]:
                 factor_is_target = c["name"] in self.target_names
-                bounds += [
-                    {
-                        "factor": c["name"],
-                        "lowerBound": c["min"],
-                        "upperBound": c["max"],
-                        "dtype": f"{'target' if factor_is_target else 'factor'}_float",
-                    }
-                ]
+                bound = {
+                    "factor": c["name"],
+                    "lowerBound": c["min"],
+                    "upperBound": c["max"],
+                    "dtype": f"{'target' if factor_is_target else 'factor'}_float",
+                }
+                if factor_is_target:
+                    bound["confidenceInterval"] = ci_value
+                bounds.append(bound)
 
             bounds.append(
                 {
