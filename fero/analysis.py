@@ -915,8 +915,8 @@ class Analysis(FeroObject):
                 "type": "COST",
                 "goal": "minimize"
                 "cost_function": [
-                    {"min": 5, "max": 10, "cost": 1000, "factor": "factor1},
-                    {"min": 5, "max": 10, "cost": 500, "factor": "factor1}
+                    {"min": 5, "max": 10, "cost": 1000, "name": "factor1"},
+                    {"min": 5, "max": 10, "cost": 500,  "name": "target2"}
                 ]
             }
 
