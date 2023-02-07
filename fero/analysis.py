@@ -583,16 +583,31 @@ class Analysis(FeroObject):
 
     def _verify_cost_goal(self, goal: dict):
         """Verify that a cost goal is correct."""
-        for factor in goal["cost_function"]:
-            factor_name = factor["name"]
-            factor_type = self._get_factor_dtype(factor_name)
-            if factor_type is None:
-                raise FeroError(f'"{factor_name}" is not a factor in this model.')
+        for c in goal["cost_function"]:
+            name = c["name"]
+            factor_type = self._get_factor_dtype(name)
             # Implicitly find missing factors
-            if factor_type not in ["factor_float", "factor_int"]:
+            if factor_type is not None and factor_type not in [
+                "factor_float",
+                "factor_int",
+            ]:
                 raise FeroError(
                     "The data type of all cost function factors must be float or integer."
                 )
+            else:
+                target_type = self._get_target_dtype(name)
+                if target_type is None:
+                    raise FeroError(
+                        f'"{name}" is not a factor or target in this model.'
+                    )
+                # Implicitly find missing factors
+                if target_type not in [
+                    "target_float",
+                    "target_int",
+                ]:
+                    raise FeroError(
+                        "The data type of all cost function targets must be float or integer."
+                    )
 
     def _verify_constraints(self, constraints: List[dict], **kwargs):
         """Verify provided constraints are in the analysis."""
@@ -649,7 +664,10 @@ class Analysis(FeroObject):
             raise FeroError("At least one constraint must be specified.")
         if is_cost:
             for factor in goal["cost_function"]:
-                cost_factors.append(factor["name"])
+                if factor["name"] in self.factor_names:
+                    cost_factors.append(factor["name"])
+                else:
+                    target_factor.append(factor["name"])
         else:
             if goal["factor"]["name"] in self.factor_names:
                 goal_factor.append(goal["goal"])
@@ -772,15 +790,17 @@ class Analysis(FeroObject):
                 cost_lower_bound += factor["min"] * factor["cost"]
                 cost_upper_bound += factor["max"] * factor["cost"]
 
-            bounds += [
-                {
+            for c in goal["cost_function"]:
+                factor_is_target = c["name"] in self.target_names
+                bound = {
                     "factor": c["name"],
                     "lowerBound": c["min"],
                     "upperBound": c["max"],
-                    "dtype": self._get_factor_dtype(c["name"]),
+                    "dtype": f"{'target' if factor_is_target else 'factor'}_float",
                 }
-                for c in goal["cost_function"]
-            ]
+                if factor_is_target:
+                    bound["confidenceInterval"] = ci_value
+                bounds.append(bound)
 
             bounds.append(
                 {
@@ -894,8 +914,8 @@ class Analysis(FeroObject):
                 "type": "COST",
                 "goal": "minimize"
                 "cost_function": [
-                    {"min": 5, "max": 10, "cost": 1000, "factor": "factor1},
-                    {"min": 5, "max": 10, "cost": 500, "factor": "factor1}
+                    {"min": 5, "max": 10, "cost": 1000, "name": "factor1"},
+                    {"min": 5, "max": 10, "cost": 500,  "name": "target2"}
                 ]
             }
 
