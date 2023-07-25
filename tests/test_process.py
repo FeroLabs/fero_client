@@ -1,6 +1,7 @@
 """A module to test `Process` and related classes."""
 
 import pytest
+import requests
 import pandas as pd
 from pandas.testing import assert_frame_equal
 from unittest import mock
@@ -191,3 +192,30 @@ def test_get_data_unsuccesful(process_with_loaded_data, patched_fero_client):
             ),
         ]
     )
+
+
+def test_get_data_raises_bad_status(
+    monkeypatch, process_with_loaded_data, patched_fero_client
+):
+    """Test that an exception is raised for non-2xx status codes."""
+
+    class MockResponse:
+        status_code = 404
+
+        def raise_for_status(self):
+            if 400 <= self.status_code < 600:
+                raise requests.exceptions.HTTPError(response=self)
+
+    def mock_get(*args, **kwargs):
+        return MockResponse()
+
+    def mock_raise_for_status(*args, **kwargs):
+        mock_response.raise_for_status()
+
+    monkeypatch.setattr(requests, "get", mock_get)
+    monkeypatch.setattr(requests.Response, "raise_for_status", mock_raise_for_status)
+    mock_response = MockResponse()
+
+    with pytest.raises(requests.exceptions.HTTPError) as exc:
+        process_with_loaded_data.get_data(["s1_factor1", "s3_factor1"])
+        assert exc.value.response.status_code in range(400, 500)
