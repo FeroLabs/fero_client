@@ -4,7 +4,9 @@ version: 2.1
 
 jobs:
   lint-and-test:
-    executor: python/3.11
+    executor:
+      name: python/default
+      tag: 3.11
     steps:
       - checkout
       - python/install-packages:
@@ -23,7 +25,9 @@ jobs:
           name: Test
           command: pytest tests
   build-and-deploy:
-    executor: python/3.11
+    executor:
+      name: python/default
+      tag: 3.11
     steps:
       - checkout
       - python/install-packages:
