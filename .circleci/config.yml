@@ -6,7 +6,7 @@ jobs:
   lint-and-test:
     executor:
       name: python/default
-      tag: 3.11
+      tag: "3.11"
     steps:
       - checkout
       - python/install-packages:
@@ -27,7 +27,7 @@ jobs:
   build-and-deploy:
     executor:
       name: python/default
-      tag: 3.11
+      tag: "3.11"
     steps:
       - checkout
       - python/install-packages:
