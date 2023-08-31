@@ -70,6 +70,7 @@ class DataSourceSchema(Schema):
     live_source = fields.Bool(required=True, default=False)
     default_upload_config = fields.Dict(required=False)
     raw_file = fields.Url(required=False, allow_none=True)
+    download_url = fields.Url(required=False, allow_none=True)
 
 
 class DataSource(FeroObject):
@@ -141,6 +142,22 @@ class DataSource(FeroObject):
             else upload_status
         )
 
+    def get_download_status(self) -> Optional[str]:
+        """Get current status of the data source download.
+
+        :return: String if file download is completely processed, None if still processing
+        """
+        data = self._client.get(f"/api/v2/data_source/{self.uuid}/")
+        self._data = self.schema_class().load(data)
+        return self.download_url
+
+    def wait_until_download_complete(self):
+        """Continuously check the status of the download until it succeeds or fails."""
+        status = self.get_download_status()
+        while not status:
+            time.sleep(0.5)
+            status = self.get_download_status()
+
     def download(self, raw=False) -> str:
         """Download data source data as a csv.
 
@@ -153,14 +170,21 @@ class DataSource(FeroObject):
             if url is None:
                 raise FeroError("Raw download for that datasource is not available.")
 
-            # Download the file and write as a stream since it could be large
-            req = requests.get(url, stream=True)
-            download_filename = f"fero-raw-ds-{self.uuid}.csv"
-            with open(download_filename, "wb") as fp:
-                for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
-                    fp.write(chunk)
+        else:
+            url = self.download_url
+            if url is None:
+                self._client.get(f"/api/v2/data_source/{self.uuid}/create_download/")
+                self.wait_until_download_complete()
+                url = self.download_url
 
-            return download_filename
+        # Download the file and write as a stream since it could be large
+        req = requests.get(url, stream=True)
+        download_filename = f'fero{"-raw" if raw else ""}-ds-{self.uuid}.csv'
+        with open(download_filename, "wb") as fp:
+            for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                fp.write(chunk)
+
+        return download_filename
 
 
 class UploadedFilesSchema(Schema):
@@ -233,7 +257,7 @@ class UploadedFileStatus:
     def get_upload_status(self) -> Union[dict, None]:
         """Get current status of the uploaded files object.
 
-        :return: True if file upload is completely processed, false if still processing
+        :return: Dict if it is completely processed, None if still processing
         :raises FeroError: Raised if fero was unable to process the file
         """
         raw_data = self._client.get(
