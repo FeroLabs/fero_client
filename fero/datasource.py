@@ -2,6 +2,8 @@
 
 import os
 import time
+
+import requests
 import fero
 from fero import FeroError
 from typing import Optional, Union
@@ -13,6 +15,9 @@ from marshmallow import (
 )
 
 from .common import FeroObject
+
+# 1 Mb
+CHUNK_SIZE = 1048576
 
 
 class DataSourceSchema(Schema):
@@ -64,6 +69,7 @@ class DataSourceSchema(Schema):
     transformed_source = fields.Bool(required=True, default=False)
     live_source = fields.Bool(required=True, default=False)
     default_upload_config = fields.Dict(required=False)
+    raw_file = fields.Url(required=False, allow_none=True)
 
 
 class DataSource(FeroObject):
@@ -134,6 +140,27 @@ class DataSource(FeroObject):
             if wait_until_complete
             else upload_status
         )
+
+    def download(self, raw=False) -> str:
+        """Download data source data as a csv.
+
+        :param raw: Whether to download the raw data
+        :raises FeroError: Raised if the raw download is not available
+        :return: The local filename of the download
+        """
+        if raw:
+            url = self.raw_file
+            if url is None:
+                raise FeroError("Raw download for that datasource is not available.")
+
+            # Download the file and write as a stream since it could be large
+            req = requests.get(url, stream=True)
+            download_filename = f"fero-raw-ds-{self.uuid}.csv"
+            with open(download_filename, "wb") as fp:
+                for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
+                    fp.write(chunk)
+
+            return download_filename
 
 
 class UploadedFilesSchema(Schema):
