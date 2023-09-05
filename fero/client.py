@@ -153,7 +153,7 @@ class Fero:
             else:
                 raise FeroError("The requested resource was not found.")
         elif response.status_code in [401, 403]:
-            raise FeroError("You are not authorized to access this resourced.")
+            raise FeroError("You are not authorized to access this resource.")
         else:
             raise FeroError(
                 f"There was an issue connecting to Fero. - Status Code: {response.status_code}"
