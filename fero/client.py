@@ -261,7 +261,7 @@ class Fero:
         asset_data = self.get(f"/api/assets/{uuid}/")
         return Asset(self, asset_data)
 
-    def search_processes(self, name: str = None) -> Iterator[Analysis]:
+    def search_processes(self, name: str = None) -> Iterator[Process]:
         """Search available processes by name and return an iterator of matching objects.
 
         :param name: Name of analysis to filter by.
@@ -274,10 +274,10 @@ class Fero:
             params["name"] = name
         return self._paginated_get("/api/processes/", Process, params=params)
 
-    def get_process(self, uuid: str) -> Analysis:
+    def get_process(self, uuid: str) -> Process:
         """Get a Fero Process using the UUID.
 
-        :param uuid: UUID of the analysis
+        :param uuid: UUID of the process
         :type uuid: str
         :return: An Process object
         :rtype: Analysis
