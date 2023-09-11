@@ -1,6 +1,6 @@
 # fero_client
 
-`fero` is a client-side Python library intended to help users interact with [Fero](https://app.ferolabs.com). 
+`fero` is a client-side Python library intended to help users interact with [Fero](https://app.ferolabs.com).
 
 ## Quickstart
 
@@ -71,13 +71,14 @@ plant_A_only =  fero_client.search_analyses(name="plant_A")
 
 Along with associated properties such as `name` and `uuid`, an `Analysis` provides a variety of methods for interacting with Fero.
 
-The first thing to call when working with an Analysis is `Analysis.has_trained_model`, which checks whether the Analysis is ready to use. This will be false if the Analysis is still being configured or if there was an error during configuration. 
+The first thing to call when working with an Analysis is `Analysis.has_trained_model`, which checks whether the Analysis is ready to use. This will be false if the Analysis is still being configured or if there was an error during configuration.
 
 ### Making a simple prediction
 
 The `Analysis.make_prediction` method makes a prediction using the latest revision of the Analysis. This function can take either a pandas `DataFrame` with columns matching the expected factors or a list of dictionaries with each dictionary containing a key/value pairs for each factor. A prediction will be made for each row in the `DataFrame` or each dictionary in the list.
 
 The return value will either be a `DataFrame` or a dictionary, depending on the initial input type. These values will have the suffixes `_lowX`, `_mid`, `_highX` added to each target name to indicate the prediction intervals. Specifically:
+
 - `target_low90` corresponds to the 5% prediction level,
 - `target_low50` corresponds to the 25% prediction level,
 - `target_mid` corresponds to the mean prediction,
@@ -85,6 +86,7 @@ The return value will either be a `DataFrame` or a dictionary, depending on the 
 - `target_high90` corresponds to the 95% prediction level.
 
 The naming convention indicates that:
+
 - 50% of the time, the corresponding measurement should fall between `(target_low50, target_high50)`, and
 - 90% of the time, the corresponding measurement should fall between `(target_low90, target_high90)`.
 
@@ -144,7 +146,6 @@ opt = analysis.make_optimization("example_optimization", goal, constraints, fixe
 #### Example 2: Maximize a target KPI given constraints
 
 Alternatively, a `target` KPI can be maximized while constraining a `value`. Note that the same key, `factor`, is used when defining the target KPI in `goal`.
-
 
 ```python
 goal = {
@@ -382,4 +383,20 @@ df = process.get_data(["s1_factor1", "s3_kpi"], kpis=["s2_factor1"])
 [1999 rows x 3 columns]
 '''
 
+```
+
+## Downloading DataSource Data
+
+The raw and processed data in a `DataSource` can be downloaded via the `.download()` method. It takes a `raw` boolean keyword argument (defaults to `False`) that decides whether to download the raw data. It returns the local csv filename where the data was written.
+
+### Example
+
+```python
+datasource = fero_client.get_datasource("66d2dd0f-2f16-4002-bb3b-445173eedd95")
+
+datasource.download(raw=True)
+'''fero-raw-ds-66d2dd0f-2f16-4002-bb3b-445173eedd95.csv'''
+
+datasource.download()
+'''fero-ds-66d2dd0f-2f16-4002-bb3b-445173eedd95.csv'''
 ```
