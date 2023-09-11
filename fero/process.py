@@ -109,7 +109,7 @@ class TagGroupSchema(Schema):
     category = fields.String(required=True, validate=TagGroupCategory.validator())
     factor_scores = fields.Dict(required=True)
     representative_tag = fields.Integer(required=True)
-    tags = fields.List(fields.Integer(), required=True)
+    tags = fields.List(fields.Integer, required=True)
 
 
 class StageSchema(Schema):
@@ -125,6 +125,7 @@ class StageSchema(Schema):
         unknown = EXCLUDE
 
     id = fields.Integer(required=True)
+    proxy = fields.Integer(required=True)
     name = fields.String(required=True)
     order = fields.Integer(required=True)
     tags = fields.List(fields.Nested(TagSchema), required=True)
@@ -189,7 +190,7 @@ class Tag(FeroObject):
 
     def __repr__(self) -> str:
         """Represent the `Tag` by its name and its `Process`."""
-        return f"<Tag name={self.name} Process name={self._process}>"
+        return f"<Tag name={self.name} Process={self._process}>"
 
     __str__ = __repr__
 
@@ -223,6 +224,15 @@ class TagGroup(FeroObject):
         """
         self._stage = stage
         super().__init__(client, data)
+        self._data["tags"] = [
+            next(tag for tag in self._stage.tags if tag.proxy == tag_proxy)
+            for tag_proxy in self._data["tags"]
+        ]
+        self._data["representative_tag"] = next(
+            tag
+            for tag in self._stage.tags
+            if tag.proxy == self._data["representative_tag"]
+        )
 
     def __repr__(self) -> str:
         """Represent the `Tag Group` by its id and `Stage`."""
@@ -256,7 +266,7 @@ class Stage(FeroObject):
 
     def __repr__(self) -> str:
         """Represent the `Stage` by its name and its `Process`."""
-        return f"<Stage name={self.name} Process name={self._process}>"
+        return f"<Stage name={self.name} Process={self._process}>"
 
     __str__ = __repr__
 
@@ -280,7 +290,9 @@ class Stage(FeroObject):
 
         :return: A List of tag groups
         """
-        url = f"/api/processes/{self._process.api_id}/tag_groups/?stageProxy={self.id}"
+        url = (
+            f"/api/processes/{self._process.api_id}/tag_groups/?stageProxy={self.proxy}"
+        )
         res = self._client.get(url)
         if res.get("computing") and not res.get("error"):
             time.sleep(0.5)
