@@ -1,5 +1,6 @@
 """This module defines classes related to a fero process."""
 
+import time
 import fero
 import requests
 from tempfile import NamedTemporaryFile
@@ -52,6 +53,19 @@ class SnapShotStatus:
         return validate.OneOf([cls.READY, cls.INITIALIZED, cls.PROCESSING, cls.ERROR])
 
 
+class TagGroupCategory:
+    """An Enum class representating the strength of a tag group."""
+
+    STRONG = "s"
+    BORDERLINE = "b"
+    WEAK = "w"
+
+    @classmethod
+    def validator(cls):
+        """Validate that a given tag group strength is one of the possible options."""
+        return validate.OneOf([cls.STRONG, cls.BORDERLINE, cls.WEAK])
+
+
 class TagSchema(Schema):
     """A schema to store data related to a fero process tag."""
 
@@ -79,6 +93,25 @@ class TagSchema(Schema):
     proxy = fields.Integer(required=True)
 
 
+class TagGroupSchema(Schema):
+    """A schema to store data related to fero stage tag groups."""
+
+    class Meta:
+        """
+        Specify that unknown fields included on this schema should be excluded.
+
+        See https://marshmallow.readthedocs.io/en/stable/quickstart.html#handling-unknown-fields.
+        """
+
+        unknown = EXCLUDE
+
+    id = fields.Integer(required=True)
+    category = fields.String(required=True, validate=TagGroupCategory.validator())
+    factor_scores = fields.Dict(required=True)
+    representative_tag = fields.Integer(required=True)
+    tags = fields.List(fields.Integer, required=True)
+
+
 class StageSchema(Schema):
     """A schema to store data related to a fero process stage."""
 
@@ -92,6 +125,7 @@ class StageSchema(Schema):
         unknown = EXCLUDE
 
     id = fields.Integer(required=True)
+    proxy = fields.Integer(required=True)
     name = fields.String(required=True)
     order = fields.Integer(required=True)
     tags = fields.List(fields.Nested(TagSchema), required=True)
@@ -156,7 +190,7 @@ class Tag(FeroObject):
 
     def __repr__(self) -> str:
         """Represent the `Tag` by its name and its `Process`."""
-        return f"<Tag name={self.name} Process name={self._process}>"
+        return f"<Tag name={self.name} Process={self._process}>"
 
     __str__ = __repr__
 
@@ -173,6 +207,38 @@ class Tag(FeroObject):
         :return: The name of the specified tag
         """
         return instance if isinstance(instance, str) else instance.name
+
+
+class TagGroup(FeroObject):
+    """High level object representing a stage tag group."""
+
+    schema_class = TagGroupSchema
+
+    def __init__(self, stage: "Stage", client: "fero.Fero", data: dict):
+        """
+        Create a new representation of a Stage tag group from the given data.
+
+        :param stage: The stage this tag group belongs to
+        :param client: The fero client object that gives access to the `stage`
+        :param data: A dictionary holding values for the fields of a `TagGroupSchema`
+        """
+        self._stage = stage
+        super().__init__(client, data)
+        self._data["tags"] = [
+            next(tag for tag in self._stage.tags if tag.proxy == tag_proxy)
+            for tag_proxy in self._data["tags"]
+        ]
+        self._data["representative_tag"] = next(
+            tag
+            for tag in self._stage.tags
+            if tag.proxy == self._data["representative_tag"]
+        )
+
+    def __repr__(self) -> str:
+        """Represent the `Tag Group` by its id and `Stage`."""
+        return f"<TagGroup id={self.id} Stage={self._stage}>"
+
+    __str__ = __repr__
 
 
 class Stage(FeroObject):
@@ -200,7 +266,7 @@ class Stage(FeroObject):
 
     def __repr__(self) -> str:
         """Represent the `Stage` by its name and its `Process`."""
-        return f"<Stage name={self.name} Process name={self._process}>"
+        return f"<Stage name={self.name} Process={self._process}>"
 
     __str__ = __repr__
 
@@ -215,6 +281,26 @@ class Stage(FeroObject):
         :return: A list of tag names in the stage
         """
         return [Tag.tag_name(t) for t in self.tags]
+
+    @property
+    def tag_groups(self) -> Sequence["TagGroup"]:
+        """Get the tag groups for this process and stage from Fero.
+
+        Request is memoized to avoid unnecessary additional calls.
+
+        :return: A List of tag groups
+        """
+        url = (
+            f"/api/processes/{self._process.api_id}/tag_groups/?stageProxy={self.proxy}"
+        )
+        res = self._client.get(url)
+        if res.get("computing") and not res.get("error"):
+            time.sleep(0.5)
+            res = self._client.get(url)
+
+        return [
+            TagGroup(self, self._client, tg_data) for tg_data in res.get("tag_groups")
+        ]
 
 
 class Process(FeroObject):
