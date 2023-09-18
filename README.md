@@ -307,7 +307,7 @@ print(prediction["index"])
 
 ## Fero Processes
 
-The Fero client provides two different methods to find a `Process`. The first is `Fero.get_process` which takes a single unique identifier string (UUID) and attempts to look up the analysis matching this ID. The second method is `Fero.search_processes` which will return an iterator of available `Process` objects. If no keyword arguments are provided, it will return all processes you have available on Fero. Optionally, `name` can be provided to filter to only processes matching that name.
+The Fero client provides two different methods to find a `Process`. The first is `Fero.get_process` which takes a single unique identifier string (UUID) and attempts to look up the process matching this ID. The second method is `Fero.search_processes` which will return an iterator of available `Process` objects. If no keyword arguments are provided, it will return all processes you have available on Fero. Optionally, `name` can be provided to filter to only processes matching that name.
 
 Processes represent data via two main underlying entities, the `Tag` and the `Stage`. A `Tag` is a column of a specific measurement in the underlying data. A `Stage` is a logical part of a process consisting of various tags and an order relative to the other stages. For example, a steel process might have first stage for melting the steel and a later stage for casting the steel, each with corresponding measurements in the form of tags.
 
@@ -329,6 +329,9 @@ tags = process.tags
 
 # Get stages of the process
 stages = process.stages
+
+# Get tag groups of a stage
+tag_groups = stages[0].tag_groups
 ```
 
 ## Downloading Process Data
