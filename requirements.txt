@@ -8,7 +8,7 @@ azure-core==1.21.1
     # via azure-storage-blob
 azure-storage-blob==12.6.0
     # via -r requirements.in
-certifi==2020.6.20
+certifi==2023.7.22
     # via
     #   msrest
     #   requests
