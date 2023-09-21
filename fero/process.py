@@ -434,6 +434,8 @@ class Process(FeroObject):
 
         # Download the file and write as a stream since it could be large
         req = requests.get(download_data["download_url"], stream=True)
+        req.raise_for_status()
+
         with NamedTemporaryFile() as fp:
             for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
                 fp.write(chunk)
