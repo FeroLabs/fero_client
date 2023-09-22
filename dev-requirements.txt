@@ -71,7 +71,7 @@ pydocstyle==6.1.1
     # via flake8-docstrings
 pyflakes==2.4.0
     # via flake8
-pygments==2.12.0
+pygments==2.15.0
     # via
     #   flake8-rst-docstrings
     #   readme-renderer
