@@ -82,7 +82,7 @@ pytest==7.1.2
     # via -r dev-requirements.in
 readme-renderer==35.0
     # via twine
-requests==2.28.1
+requests==2.31.0
     # via
     #   requests-toolbelt
     #   twine
