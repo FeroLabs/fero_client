@@ -104,7 +104,7 @@ tomli==2.0.1
     # via pytest
 twine==4.0.1
     # via -r dev-requirements.in
-urllib3==1.26.10
+urllib3==1.26.17
     # via
     #   requests
     #   twine
