@@ -60,7 +60,7 @@ six==1.15.0
     #   azure-core
     #   isodate
     #   python-dateutil
-urllib3==1.26.17
+urllib3==1.26.18
     # via
     #   -r requirements.in
     #   requests
