@@ -39,7 +39,7 @@ packaging==23.1
     # via marshmallow
 pandas==1.4.4
     # via -r requirements.in
-pyarrow==12.0.0
+pyarrow==14.0.1
     # via -r requirements.in
 pycparser==2.21
     # via cffi
