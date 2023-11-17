@@ -186,21 +186,6 @@ class CostOptimizeGoal(BaseGoalSchema):
     type = fields.String(validate=validate.OneOf(["COST"]), required=True)
     cost_function = fields.Nested(CostSchema, many=True, required=True)
 
-    @validates_schema
-    def max_functions(self, data: dict, **kwargs):
-        """Validate that there are no more than three cost functions in the `data`.
-
-        :raises ValidationError: when there are more than three cost functions specified in `data`
-        """
-        if len(data["cost_function"]) > 3:
-            raise ValidationError(
-                {
-                    "cost_function": [
-                        "No more than three factors allowed in the cost function."
-                    ]
-                }
-            )
-
 
 class Prediction:
     """Represents the results of a prediction submitted to Fero.
