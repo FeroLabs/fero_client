@@ -143,7 +143,13 @@ def test_get_data_works(process_with_loaded_data, patched_fero_client):
         [
             mock.call(
                 f"/api/processes/{process_with_loaded_data.api_id}/download_process_data/",
-                {"request_data": {"tags": ["s1_factor1", "s3_factor1"], "kpis": None}},
+                {
+                    "request_data": {
+                        "tags": ["s1_factor1", "s3_factor1"],
+                        "kpis": None,
+                        "include_batch_id": False,
+                    }
+                },
             ),
             mock.call(
                 f"/api/processes/{process_with_loaded_data.api_id}/download_process_data/",
@@ -184,7 +190,13 @@ def test_get_data_unsuccesful(process_with_loaded_data, patched_fero_client):
         [
             mock.call(
                 f"/api/processes/{process_with_loaded_data.api_id}/download_process_data/",
-                {"request_data": {"tags": ["s1_factor1", "s3_factor1"], "kpis": None}},
+                {
+                    "request_data": {
+                        "tags": ["s1_factor1", "s3_factor1"],
+                        "kpis": None,
+                        "include_batch_id": False,
+                    }
+                },
             ),
             mock.call(
                 f"/api/processes/{process_with_loaded_data.api_id}/download_process_data/",
