@@ -354,12 +354,12 @@ class Process(FeroObject):
     @property
     @memoized(maxsize=1)
     def lims_feeds_batch_id_column_names(self) -> Sequence[Sequence[str]]:
-        """
-        Get batch ids for LIMS-only processes. Returns a list of lists
-        of composite batch id column names for each LIMS feed, respects
-        the batch id order as initially specified.
+        """Get batch ids for LIMS-only processes.
 
-        If the process is not LIMS-only, an empty list is returned.
+        Returns a list of lists of composite batch id
+        column names for each LIMS feed, respects the
+        batch id order as initially specified.  If the
+        process is not LIMS-only, an empty list is returned.
         """
         config = self.data_config.get("config", {})
         config_kind = config.get("kind")
