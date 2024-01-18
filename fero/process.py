@@ -351,6 +351,38 @@ class Process(FeroObject):
             )
         ]
 
+    @property
+    @memoized(maxsize=1)
+    def lims_feeds_batch_id_column_names(self) -> Sequence[Sequence[str]]:
+        """Get batch ids for LIMS-only processes.
+
+        Returns a list of lists of composite batch id
+        column names for each LIMS feed, respects the
+        batch id order as initially specified.  If the
+        process is not LIMS-only, an empty list is returned.
+        """
+        config = self.data_config.get("config", {})
+        config_kind = config.get("kind")
+        initial_feed = config.get("initialFeed", {})
+        lims_data = config.get("limsData", [])
+
+        def _join_these_tag_names(lf):
+            tag_name = lf.get("joinThisTagName")
+            tag_names = lf.get("additionalJoinTheseTagNames", [])
+            if tag_name is not None:
+                tag_names.insert(0, tag_name)
+            return tag_names
+
+        if (
+            self.process_type != FeroProcessTypes.BATCH
+            or config_kind != "BatchDataConfig"
+        ):
+            return []
+        else:
+            if initial_feed.get("kind") != "InitialFeedDescription":
+                lims_data.insert(0, initial_feed)
+            return [_join_these_tag_names(lf) for lf in lims_data]
+
     def _tag_stage_index(self, tag: Union[Tag, str]) -> Union[int, None]:
         stage_idx = None
         tag_name = Tag.tag_name(tag)
