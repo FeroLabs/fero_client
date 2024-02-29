@@ -16,7 +16,7 @@ cffi==1.15.0
     # via cryptography
 charset-normalizer==2.1.1
     # via requests
-cryptography==41.0.4
+cryptography==42.0.4
     # via azure-storage-blob
 idna==2.10
     # via requests
