@@ -5,6 +5,7 @@ import fero
 import uuid
 import io
 import datetime
+from enum import Enum
 from fero import FeroError
 import pandas as pd
 from marshmallow import (
@@ -15,7 +16,7 @@ from marshmallow import (
     ValidationError,
     EXCLUDE,
 )
-from typing import Any, Union, List, Optional, IO
+from typing import Any, Union, List, Optional, IO, Tuple
 from .common import FeroObject
 
 
@@ -24,6 +25,7 @@ FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
 V1_RESULT_SUFFIXES = ["low", "mid", "high"]
 V2_RESULT_SUFFIXES = ["low90", "low50", "mid", "high50", "high90"]
 BULK_PREDICTION_TYPE = "M"
+VALID_JOINS = ["AND", "OR"]
 
 
 class AnalysisSchema(Schema):
@@ -187,6 +189,61 @@ class CostOptimizeGoal(BaseGoalSchema):
     cost_function = fields.Nested(CostSchema, many=True, required=True)
 
 
+class CombinationConstraintOperandType(Enum):
+    FORMULA = "formula"
+    CONSTANT = "constant"
+    COLUMN = "column"
+
+
+class CombinationConstraintOperator(Enum):
+    GREATER_THAN = ">"
+    GREATER_THAN_OR_EQUAL = ">="
+    LESS_THAN = "<"
+    LESS_THAN_OR_EQUAL = "<="
+    EQUAL = "=="
+    NOT_EQUAL = "!="
+
+
+class CombinationConstraint(object):
+    _operand_a: Tuple[Union[str, int, float], CombinationConstraintOperandType]
+    _operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType]
+    _operator: CombinationConstraintOperator
+
+    def __init__(
+        self,
+        operand_a: Tuple[Union[str, int, float], CombinationConstraintOperandType],
+        operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType],
+        operator: CombinationConstraintOperator,
+    ):
+        self._operand_a = operand_a
+        self._operand_b = operand_b
+        self._operator = operator
+
+    def dump_combination_constraint(self):
+        a_value, a_kind = self._operand_a
+        b_value, b_kind = self._operand_b
+        return {
+            "kind": "condition",
+            "target": {"kind": a_kind.value, "value": a_value},
+            "operation": {
+                "operator": self._operator.value,
+                "operand": {"kind": b_kind.value, "value": b_value},
+            },
+        }
+
+    def verify_combination_constraint(self, analysis):
+        for [value, kind] in [self._operand_a, self._operand_b]:
+            if kind == CombinationConstraintOperandType.COLUMN:
+                if value not in analysis.all_factor_names:
+                    raise FeroError(
+                        f'"{value}" is not a recognized factor in this analysis'
+                    )
+
+
+def join_combination_constraints_with_and(constraints: List[dict]) -> dict:
+    return {"conditions": constraints, "join": "AND", "kind": "clause"}
+
+
 class Prediction:
     """Represents the results of a prediction submitted to Fero.
 
@@ -296,11 +353,12 @@ class Analysis(FeroObject):
     based on provided data or optimizing certain values based on the Fero model of the data.
     """
 
-    _presentation_data_cache: Union[dict, None] = None
-    _reg_factors: Union[List[dict], None] = None
-    _reg_targets: Union[List[dict], None] = None
-    _factor_names: Union[List[str], None] = None
-    _target_names: Union[List[str], None] = None
+    _presentation_data_cache: Optional[dict] = None
+    _reg_factors: Optional[List[dict]] = None
+    _reg_targets: Optional[List[dict]] = None
+    _factor_names: Optional[List[str]] = None
+    _all_factor_names: Optional[List[str]] = None
+    _target_names: Optional[List[str]] = None
 
     schema_class = AnalysisSchema
 
@@ -328,11 +386,19 @@ class Analysis(FeroObject):
 
     @property
     def factor_names(self) -> Optional[List[str]]:
-        """Get the names of the factors associated with the Analysis."""
+        """Get the names of the factors in the model of the Analysis."""
         if self._factor_names is None:
             self._parse_regression_data()
 
         return self._factor_names
+
+    @property
+    def all_factor_names(self) -> Optional[List[str]]:
+        """Get the names of factors associated with the Analysis."""
+        if self._all_factor_names is None:
+            self._parse_regression_data()
+
+        return self._all_factor_names
 
     @property
     def target_names(self) -> Optional[List[str]]:
@@ -446,10 +512,14 @@ class Analysis(FeroObject):
             for d in self._presentation_data["data"]
             if d["id"] == "regression_simulator"
         )
+        factor_data = next(
+            d for d in self._presentation_data["data"] if d["id"] == "factor_report"
+        )
         self._reg_factors = reg_data["content"]["factors"]
         self._reg_targets = reg_data["content"]["targets"]
         self._factor_names = [f["factor"] for f in self._reg_factors]
         self._target_names = [t["name"] for t in self._reg_targets]
+        self._all_factor_names = factor_data["content"]["factor_labels"]
 
     def _flatten_result(self, result: dict, prediction_row: dict) -> dict:
         """Flatten nested results returned by the api into a single dict and combine it with the provided data."""
@@ -602,9 +672,11 @@ class Analysis(FeroObject):
             constraint_type = (
                 self._get_factor_dtype(constraint_name)
                 if constraint_name in self.factor_names
-                else self._get_target_dtype(constraint_name)
-                if constraint_name in self.target_names
-                else None
+                else (
+                    self._get_target_dtype(constraint_name)
+                    if constraint_name in self.target_names
+                    else None
+                )
             )
             if constraint_type is None:
                 raise FeroError(
@@ -634,7 +706,12 @@ class Analysis(FeroObject):
                     f'Numeric constraint "{constraint_name}" requires a min and max value.'
                 )
 
-    def _cross_verify_optimization(self, goal: dict, constraints: List[dict], **kwargs):
+    def _cross_verify_optimization(
+        self,
+        goal: dict,
+        constraints: List[dict],
+        **kwargs,
+    ):
         """Verify the config has the correct combined targets, costs and factors."""
         is_cost = goal.get("type", None) == "COST"
 
@@ -680,9 +757,18 @@ class Analysis(FeroObject):
                 "A maximum of five factors can be specified in an adaptive optimization."
             )
 
+    def _verify_combination_constraints(
+        self, combination_constraints: Optional[List[CombinationConstraint]]
+    ):
+        if combination_constraints is None or len(combination_constraints) < 1:
+            return
+
+        for constraint in combination_constraints:
+            constraint.verify_combination_constraint(self)
+
     def _verify_fixed_factors(self, fixed_factors: dict):
         """Check that the provided fixed factors are in the analysis."""
-        all_columns = self.target_names + self.factor_names
+        all_columns = self.target_names + self.factor_names + self.excluded_factor_names
         for key in fixed_factors.keys():
             if key not in all_columns:
                 raise FeroError(f'"{key}" is not part of this model.')
@@ -711,6 +797,7 @@ class Analysis(FeroObject):
         constraints,
         fixed_factors,
         include_confidence_intervals,
+        combination_constraints,
         **kwargs,
     ) -> dict:
         """Format the content for an optimization request."""
@@ -731,8 +818,16 @@ class Analysis(FeroObject):
                     "goal": goal["goal"],
                 }
             ],
-            "basisSpecifiedColumns": [],  # These appear to just be, uhm, here
+            "basisSpecifiedColumns": [],
             "linearFunctionDefinitions": {},
+            "combinationConstraints": {
+                "conditions": [
+                    constraint.dump_combination_constraint()
+                    for constraint in combination_constraints
+                ],
+                "join": "AND",
+                "kind": "clause",
+            },
             "useAdaptiveGrid": kwargs.get("use_adaptive", False),
         }
         basis_values = self._get_basis_values()
@@ -814,9 +909,11 @@ class Analysis(FeroObject):
                 "factor": goal["factor"]["name"],
                 "lowerBound": goal["factor"]["min"],
                 "upperBound": goal["factor"]["max"],
-                "dtype": dtype
-                if dtype is not None
-                else f"{'target' if goal_is_target else 'factor'}_float",
+                "dtype": (
+                    dtype
+                    if dtype is not None
+                    else f"{'target' if goal_is_target else 'factor'}_float"
+                ),
             }
             if goal_is_target:
                 goal_bound["confidenceInterval"] = ci_value
@@ -874,6 +971,7 @@ class Analysis(FeroObject):
         fixed_factors: Optional[dict] = None,
         include_confidence_intervals: bool = True,
         synchronous: bool = True,
+        combination_constraints: Optional[List[CombinationConstraint]] = None,
         **kwargs,
     ) -> Prediction:
         """Perform an optimization using the most recent model for the analysis.
@@ -891,7 +989,7 @@ class Analysis(FeroObject):
                 "factor": {"name": "factor1", "min": 5, "max": 10}
             }
 
-        Example configuration for a cost optimization:
+        Example configuration for a cost optimization::
         Cost Goal Config
         ::
 
@@ -911,6 +1009,28 @@ class Analysis(FeroObject):
                 {"name": "target1", "min": 100, "max": 500}
             ]
 
+        The combination constraints are a list of additional constraints composed of basic arithmetic and boolean operations::
+        Use helper class CombinationConstraint and Enums to help construct combination constraints:
+        `CombinationConstraint`, `CombinationConstraintOperandType`, `CombinationConstraintOperator`::
+
+            [
+                CombinationConstraint(
+                    ("'Int 2' / 'Lookup Int 1'", CombinationConstraintOperandType.FORMULA),
+                    (3, CombinationConstraintOperandType.CONSTANT),
+                    CombinationConstraintOperator.LESS_THAN,
+                ),
+                CombinationConstraint(
+                    ("'Target 1 (Mean)' + 1", CombinationConstraintOperandType.FORMULA),
+                    (131.0, CombinationConstraintOperandType.CONSTANT),
+                    CombinationConstraintOperator.LESS_THAN,
+                ),
+                CombinationConstraint(
+                    ("abs('Int 2' + 'Other')", CombinationConstraintOperandType.FORMULA),
+                    ("Other", CombinationConstraintOperandType.COLUMN),
+                    CombinationConstraintOperator.GREATER_THAN,
+                )
+            ]
+
         :param name: Name for this optimization
         :type name: str
         :param goal: A dictionary describing the goal of the optimization
@@ -923,6 +1043,8 @@ class Analysis(FeroObject):
         :type include_confidence_intervals: bool, optional
         :param synchronous: Whether the optimization should return only after being complete.  This can take a bit, defaults to True
         :type synchronous: bool, optional
+        :param combination_constraints: A list of additional constraints on the optimization results, typically relating multiple factors or targets.
+        :type combination_constraints: list, optional
         :return: The results of the optimization
         :rtype: Prediction
         """
@@ -951,6 +1073,7 @@ class Analysis(FeroObject):
             self._verify_standard_goal(goal)
 
         self._verify_constraints(constraints, **kwargs)
+        self._verify_combination_constraints(combination_constraints, **kwargs)
         self._cross_verify_optimization(goal, constraints, **kwargs)
         self._verify_fixed_factors(fixed_factors)
 
@@ -960,6 +1083,7 @@ class Analysis(FeroObject):
             constraints,
             fixed_factors,
             include_confidence_intervals,
+            combination_constraints,
             **kwargs,
         )
         return self._request_prediction(optimize_request, synchronous)
