@@ -190,7 +190,7 @@ class CostOptimizeGoal(BaseGoalSchema):
 
 
 class CombinationConstraintOperandType(Enum):
-    """An enum listing all valid types of Combination Constraint Operands"""
+    """An enum listing all valid types of Combination Constraint Operands."""
 
     FORMULA = "formula"
     CONSTANT = "constant"
@@ -198,7 +198,7 @@ class CombinationConstraintOperandType(Enum):
 
 
 class CombinationConstraintOperator(Enum):
-    """An enum listing all valid types of Combination Constraint Operators"""
+    """An enum listing all valid types of Combination Constraint Operators."""
 
     GREATER_THAN = ">"
     GREATER_THAN_OR_EQUAL = ">="
@@ -246,7 +246,7 @@ class CombinationConstraint(object):
         }
 
     def verify_combination_constraint(self, analysis):
-        """Basic confirmation that literal column references are valid for this analysis.
+        """Check that literal column references are valid for this analysis.
 
         Formula verification occurs on Fero's servers. Any errors will be provided in optimization results.
         """
@@ -256,10 +256,6 @@ class CombinationConstraint(object):
                     raise FeroError(
                         f'"{value}" is not a recognized factor in this analysis'
                     )
-
-
-def join_combination_constraints_with_and(constraints: List[dict]) -> dict:
-    return {"conditions": constraints, "join": "AND", "kind": "clause"}
 
 
 class Prediction:
@@ -525,9 +521,6 @@ class Analysis(FeroObject):
             d
             for d in self._presentation_data["data"]
             if d["id"] == "regression_simulator"
-        )
-        factor_data = next(
-            d for d in self._presentation_data["data"] if d["id"] == "factor_report"
         )
         self._reg_factors = reg_data["content"]["factors"]
         self._reg_targets = reg_data["content"]["targets"]
