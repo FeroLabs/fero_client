@@ -168,6 +168,8 @@ def expected_optimization_config():
 def expected_optimization_config_with_combination_constraint(
     expected_optimization_config,
 ):
+    """Add a combination constraint to the sample optimization config."""
+
     config = {**expected_optimization_config}
     config["input_data"]["combinationConstraints"] = {
         "conditions": [
