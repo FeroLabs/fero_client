@@ -190,12 +190,16 @@ class CostOptimizeGoal(BaseGoalSchema):
 
 
 class CombinationConstraintOperandType(Enum):
+    """An enum listing all valid types of Combination Constraint Operands"""
+
     FORMULA = "formula"
     CONSTANT = "constant"
     COLUMN = "column"
 
 
 class CombinationConstraintOperator(Enum):
+    """An enum listing all valid types of Combination Constraint Operators"""
+
     GREATER_THAN = ">"
     GREATER_THAN_OR_EQUAL = ">="
     LESS_THAN = "<"
@@ -205,6 +209,8 @@ class CombinationConstraintOperator(Enum):
 
 
 class CombinationConstraint(object):
+    """A class to facilitate structuring additional optimization constraints. See README for details."""
+
     _operand_a: Tuple[Union[str, int, float], CombinationConstraintOperandType]
     _operator: CombinationConstraintOperator
     _operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType]
@@ -215,11 +221,19 @@ class CombinationConstraint(object):
         operator: CombinationConstraintOperator,
         operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType],
     ):
+        """
+        Create a `Combination Constraint` with two provided operands and an operator.
+
+        :param operand_a: A tuple with the first operand's value and type. (Left side of operator).
+        :param operator: Enum value indicating which a supported operation for the operands.
+        :param operand_b: A tuple with the second operand's value and type. (Right side of operator).
+        """
         self._operand_a = operand_a
         self._operand_b = operand_b
         self._operator = operator
 
-    def dump_combination_constraint(self):
+    def combination_constraint_to_dict(self):
+        """Return valid dictionary representation of this constraint."""
         a_value, a_kind = self._operand_a
         b_value, b_kind = self._operand_b
         return {
@@ -232,6 +246,10 @@ class CombinationConstraint(object):
         }
 
     def verify_combination_constraint(self, analysis):
+        """Basic confirmation that literal column references are valid for this analysis.
+
+        Formula verification occurs on Fero's servers. Any errors will be provided in optimization results.
+        """
         for [value, kind] in [self._operand_a, self._operand_b]:
             if kind == CombinationConstraintOperandType.COLUMN:
                 if value not in analysis.all_factor_names:
@@ -817,7 +835,7 @@ class Analysis(FeroObject):
             "linearFunctionDefinitions": {},
             "combinationConstraints": {
                 "conditions": [
-                    constraint.dump_combination_constraint()
+                    constraint.combination_constraint_to_dict()
                     for constraint in combination_constraints
                 ],
                 "join": "AND",
