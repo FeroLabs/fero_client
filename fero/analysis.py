@@ -357,7 +357,6 @@ class Analysis(FeroObject):
     _reg_factors: Optional[List[dict]] = None
     _reg_targets: Optional[List[dict]] = None
     _factor_names: Optional[List[str]] = None
-    _all_factor_names: Optional[List[str]] = None
     _target_names: Optional[List[str]] = None
 
     schema_class = AnalysisSchema
@@ -393,14 +392,6 @@ class Analysis(FeroObject):
         return self._factor_names
 
     @property
-    def all_factor_names(self) -> Optional[List[str]]:
-        """Get the names of factors associated with the Analysis."""
-        if self._all_factor_names is None:
-            self._parse_regression_data()
-
-        return self._all_factor_names
-
-    @property
     def target_names(self) -> Optional[List[str]]:
         """Get the names of the targets of the Analysis."""
         if self._target_names is None:
@@ -434,6 +425,11 @@ class Analysis(FeroObject):
             self._schema_cache = v1_schema
 
         return self._schema_cache
+
+    @property
+    def all_factor_names(self):
+        """Get all factor names for any column available to the Analysis."""
+        return [column["name"] for column in self._schema["columns"]]
 
     @staticmethod
     def _make_col_name(col_name: str, cols: List[str]) -> str:
@@ -519,7 +515,6 @@ class Analysis(FeroObject):
         self._reg_targets = reg_data["content"]["targets"]
         self._factor_names = [f["factor"] for f in self._reg_factors]
         self._target_names = [t["name"] for t in self._reg_targets]
-        self._all_factor_names = factor_data["content"]["factor_labels"]
 
     def _flatten_result(self, result: dict, prediction_row: dict) -> dict:
         """Flatten nested results returned by the api into a single dict and combine it with the provided data."""
@@ -768,10 +763,10 @@ class Analysis(FeroObject):
 
     def _verify_fixed_factors(self, fixed_factors: dict):
         """Check that the provided fixed factors are in the analysis."""
-        all_columns = self.target_names + self.factor_names + self.excluded_factor_names
+        all_columns = self.all_factor_names
         for key in fixed_factors.keys():
             if key not in all_columns:
-                raise FeroError(f'"{key}" is not part of this model.')
+                raise FeroError(f'"{key}" is not part of this analysis.')
 
     def _get_basis_values(self):
         """Get median fixed values from presentation data."""
