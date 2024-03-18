@@ -206,14 +206,14 @@ class CombinationConstraintOperator(Enum):
 
 class CombinationConstraint(object):
     _operand_a: Tuple[Union[str, int, float], CombinationConstraintOperandType]
-    _operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType]
     _operator: CombinationConstraintOperator
+    _operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType]
 
     def __init__(
         self,
         operand_a: Tuple[Union[str, int, float], CombinationConstraintOperandType],
-        operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType],
         operator: CombinationConstraintOperator,
+        operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType],
     ):
         self._operand_a = operand_a
         self._operand_b = operand_b
