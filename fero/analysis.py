@@ -826,16 +826,17 @@ class Analysis(FeroObject):
             ],
             "basisSpecifiedColumns": [],
             "linearFunctionDefinitions": {},
-            "combinationConstraints": {
+            "useAdaptiveGrid": kwargs.get("use_adaptive", False),
+        }
+        if combination_constraints is not None and len(combination_constraints) > 0:
+            input_data["combinationConstraints"] = {
                 "conditions": [
                     constraint.combination_constraint_to_dict()
                     for constraint in combination_constraints
                 ],
                 "join": "AND",
                 "kind": "clause",
-            },
-            "useAdaptiveGrid": kwargs.get("use_adaptive", False),
-        }
+            }
         basis_values = self._get_basis_values()
         basis_values.update(fixed_factors)
         input_data["basisValues"] = basis_values
