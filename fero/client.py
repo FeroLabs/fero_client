@@ -336,12 +336,12 @@ class Fero:
             )
         )
 
-    def impersonate(self, username: str) -> None:
+    def impersonate(self, username: str):
         """Impersonate a user.  Only available to admin users.
 
         :param user_id: The user id to impersonate
         :type user_id: str
-        :return None
+        :return: None
         """
         impersonated_token = self.post(
             "/api/token/impersonate/", {"user": username}
@@ -350,8 +350,8 @@ class Fero:
         self._fero_token = impersonated_token
         self._impersonated = username
 
-    def end_impersonation(self) -> None:
-        """Ends impersonation."""
+    def end_impersonation(self):
+        """Disable client impersonation."""
         self._fero_token = self._admin_token
         self._admin_token = None
         self._impersonated = None
