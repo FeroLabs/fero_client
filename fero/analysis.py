@@ -208,12 +208,8 @@ class CombinationConstraintOperator(Enum):
     NOT_EQUAL = "!="
 
 
-class CombinationConstraint(object):
+class CombinationConstraint:
     """A class to facilitate structuring additional optimization constraints. See README for details."""
-
-    _operand_a: Tuple[Union[str, int, float], CombinationConstraintOperandType]
-    _operator: CombinationConstraintOperator
-    _operand_b: Tuple[Union[str, int, float], CombinationConstraintOperandType]
 
     def __init__(
         self,
@@ -986,57 +982,6 @@ class Analysis(FeroObject):
         By default this function will block until the optimization is complete, however specifying `synchonous=False`
         will instead return a prediction object referencing the optimization being made. This prediction will not contain
         results until the `complete` property is true.
-
-        The expected config input looks as follows:
-
-        Example configuration for a standard (without cost) optimization::
-
-            {
-                "goal": "maximize",
-                "factor": {"name": "factor1", "min": 5, "max": 10}
-            }
-
-        Example configuration for a cost optimization::
-        Cost Goal Config
-        ::
-
-            {
-                "type": "COST",
-                "goal": "minimize"
-                "cost_function": [
-                    {"min": 5, "max": 10, "cost": 1000, "name": "factor1"},
-                    {"min": 5, "max": 10, "cost": 500,  "name": "target2"}
-                ]
-            }
-
-        The constraints configuration is a list of factors and their constraints::
-
-            [
-                {"name": "factor2",  "min": 10, "max": 10}
-                {"name": "target1", "min": 100, "max": 500}
-            ]
-
-        The combination constraints are a list of additional constraints composed of basic arithmetic and boolean operations::
-        Use helper class CombinationConstraint and Enums to help construct combination constraints:
-        `CombinationConstraint`, `CombinationConstraintOperandType`, `CombinationConstraintOperator`::
-
-            [
-                CombinationConstraint(
-                    ("'Int 2' / 'Lookup Int 1'", CombinationConstraintOperandType.FORMULA),
-                    (3, CombinationConstraintOperandType.CONSTANT),
-                    CombinationConstraintOperator.LESS_THAN,
-                ),
-                CombinationConstraint(
-                    ("'Target 1 (Mean)' + 1", CombinationConstraintOperandType.FORMULA),
-                    (131.0, CombinationConstraintOperandType.CONSTANT),
-                    CombinationConstraintOperator.LESS_THAN,
-                ),
-                CombinationConstraint(
-                    ("abs('Int 2' + 'Other')", CombinationConstraintOperandType.FORMULA),
-                    ("Other", CombinationConstraintOperandType.COLUMN),
-                    CombinationConstraintOperator.GREATER_THAN,
-                )
-            ]
 
         :param name: Name for this optimization
         :type name: str
