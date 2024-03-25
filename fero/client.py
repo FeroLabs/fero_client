@@ -339,7 +339,7 @@ class Fero:
     def impersonate(self, username: str):
         """Impersonate a user.  Only available to admin users.
 
-        :param user_id: The user id to impersonate
+        :param username: The username to impersonate
         :type user_id: str
         :return: None
         """
