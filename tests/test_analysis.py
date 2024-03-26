@@ -6,7 +6,13 @@ from uuid import uuid4
 import pytest
 from fero import FeroError
 from unittest import mock
-from fero.analysis import Analysis, Prediction
+from fero.analysis import (
+    Analysis,
+    Prediction,
+    CombinationConstraint,
+    CombinationConstraintOperandType as operands,
+    CombinationConstraintOperator as operators,
+)
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
@@ -156,6 +162,32 @@ def expected_optimization_config():
             ],
         },
     }
+
+
+@pytest.fixture
+def expected_optimization_config_with_combination_constraint(
+    expected_optimization_config,
+):
+    """Add a combination constraint to the sample optimization config."""
+    config = {**expected_optimization_config}
+    config["input_data"]["combinationConstraints"] = {
+        "conditions": [
+            {
+                "kind": "condition",
+                "target": {
+                    "value": "'Factor 1' + 'Factor 2'",
+                    "kind": "formula",
+                },
+                "operation": {
+                    "operator": ">",
+                    "operand": {"kind": "constant", "value": 150.0},
+                },
+            }
+        ],
+        "join": "AND",
+        "kind": "clause",
+    }
+    return config
 
 
 @pytest.fixture
@@ -725,8 +757,34 @@ def test_make_optimization_type_cost_categorical_function(test_analysis_with_dat
         )
 
 
+def test_make_optimization_combination_constraint_unknown_column(
+    test_analysis_with_data,
+):
+    """Test that a combination constraint raises a Fero Error if it references an unknown column."""
+    with pytest.raises(FeroError):
+        test_analysis_with_data.make_optimization(
+            "test optimization",
+            {
+                "goal": "maximize",
+                "factor": {"name": "Factor 2", "min": 70.0, "max": 100.0},
+            },
+            [
+                {"name": "Factor 1", "min": 60.0, "max": 200.0},
+                {"name": "Target 1", "min": 600.0, "max": 700.0},
+            ],
+            include_confidence_intervals=False,
+            combination_constraints=[
+                CombinationConstraint(
+                    ("'Factor 1' + 'Factor 2'", operands.FORMULA),
+                    operators.GREATER_THAN,
+                    ("Unknown Column", operands.COLUMN),
+                )
+            ],
+        )
+
+
 def test_analysis_make_optimization_simple_case(
-    test_analysis_with_data, expected_optimization_config
+    test_analysis_with_data, expected_optimization_config_with_combination_constraint
 ):
     """Test that make_optimzation makes expected requests and returns a prediction."""
     pred = test_analysis_with_data.make_optimization(
@@ -740,12 +798,22 @@ def test_analysis_make_optimization_simple_case(
             {"name": "Target 1", "min": 600.0, "max": 700.0},
         ],
         include_confidence_intervals=False,
+        combination_constraints=[
+            CombinationConstraint(
+                ("'Factor 1' + 'Factor 2'", operands.FORMULA),
+                operators.GREATER_THAN,
+                (150.0, operands.CONSTANT),
+            )
+        ],
     )
 
     assert pred.result_id == "f0123ab1-c6f4-4bd1-b1a6-02896ba57fc7"
     test_analysis_with_data._client.post.assert_called_with(
         f"/api/analyses/{str(test_analysis_with_data.uuid)}/workspaces/",
-        {"request": expected_optimization_config, "visible": False},
+        {
+            "request": expected_optimization_config_with_combination_constraint,
+            "visible": False,
+        },
     )
     test_analysis_with_data._client.get.assert_called()
 

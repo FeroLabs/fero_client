@@ -182,23 +182,59 @@ opt = analysis.make_optimization("example_cost_optimization", goal, constraints)
 
 In both cases, a `Prediction` object is returned, which will provide access to the results of the optimization. By default, the result will be a `DataFrame` but it can also be configured to be a list of dictionaries by specifying `format="record"` in `get_results`.
 
-#### Example
+#### Example 4: Optimize a target subject to combination constriants
+
+Fero also supports combination constraints, which allow us to find optima subject to more complex relationships between different factors and targets. For example, we can find the maximum tensile strength while ensuring that the tensile/yield strength ratio does not exceed some threshold, and that the mass of carbon plus silicon meets some minimum threshold. Provided methods can assist in structuring these constraints.
 
 ```python
+from fero.analysis import (
+  CombinationConstraintOperandType as operands,
+  CombinationConstraintOperator as operators
+)
 goal = {
-  "goal": "minimize",
-  "factor": {"name": "value", "min": 50.0, "max": 100.0}
+  "goal": "maximimze",
+  "factor": {"name": "Tensile Strength", "min": 10000.0, "max": 20000.0}
 }
 
-constraints = [{"name": "target", "min": 100.0, "max": 200}]
+constraints = [
+  {"name": "Carbon", "min": 0.0, "max": 50.0},
+  {"name": "Vanadium", "min": 0.0, "max": 25.0},
+  {"name": "Yield Strength", "min": 1000.0, "max" 5000.0},
+  {"name": "Copper", "min": 10.0, "max": 15.0}
+]
 
-opt = analysis.make_optimization("example_optimization", goal, constraints)
+fixed_factors = {
+  "Product Type": "Type 1",
+  "Product Grade": "Grade B",
+  "Silicon": 14.0,
+  "STRENGTH_RATIO": 12.5,
+  "CARBON_MASS": 12.011,
+  "SILICON_MASS": 28.05,
+  "Iron": 4501.12,
+  "Temperature": 350.1,
+  "test_time": "2024-01-01T00:00"
+}
 
-print(opt.get_results())
-'''
-   value   value2   target (5%)   target (Mean)   target (95%)
-0     60       40           100             150            175
-'''
+combination_constraints = [
+  CombinationConstraint(
+    ("'Tensile Strength' / 'Yield Strength'", operands.FORMULA),
+    operators.LESS_THAN_OR_EQUAL,
+    ("STRENGTH_RATIO", operands.COLUMN)
+  ),
+  CombinationConstraint(
+    ("'CARBON_MASS' * 'CARBON' + 'SILICON_MASS' * 'Silicon'", operands.FORMULA),
+    operators.GREATER_THAN,
+    (134.23, operands.CONSTANT)
+  )
+]
+
+opt = analysis.make_optimization(
+  "example_cost_optimization",
+  goal,
+  constraints,
+  fixed_factors,
+  combination_constraints=combination_constraints
+)
 ```
 
 ## Finding a Fero Asset
