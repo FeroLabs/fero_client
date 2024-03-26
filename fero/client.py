@@ -58,6 +58,7 @@ class Fero:
         self._password = None
         self._username = None
         self._verify = verify
+        self._impersonated = None
 
         self._hostname = hostname.rstrip("/")
 
@@ -85,6 +86,11 @@ class Fero:
             self._get_fero_conf_contents()
 
         return self._fero_conf_content
+
+    @property
+    def current_user(self) -> str:
+        """Return the username of the current user."""
+        return self._impersonated or self._username
 
     def _get_token_string_from_local(self) -> Union[str, None]:
         """Check the local system for the JWT token string."""
@@ -329,3 +335,23 @@ class Fero:
                 verify=self._verify,
             )
         )
+
+    def impersonate(self, username: str):
+        """Impersonate a user.  Only available to admin users.
+
+        :param username: The username to impersonate
+        :type user_id: str
+        :return: None
+        """
+        impersonated_token = self.post(
+            "/api/token/impersonate/", {"user": username}
+        ).get("token")
+        self._admin_token = self._fero_token
+        self._fero_token = impersonated_token
+        self._impersonated = username
+
+    def end_impersonation(self):
+        """Disable client impersonation."""
+        self._fero_token = self._admin_token
+        self._admin_token = None
+        self._impersonated = None
