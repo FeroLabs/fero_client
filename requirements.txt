@@ -18,7 +18,7 @@ charset-normalizer==2.1.1
     # via requests
 cryptography==42.0.4
     # via azure-storage-blob
-idna==2.10
+idna==3.7
     # via requests
 isodate==0.6.1
     # via msrest
