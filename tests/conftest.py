@@ -1,8 +1,55 @@
 """A Module to hold pytest fixtures for tests."""
 
+import numpy as np
+import pandas as pd
 import pytest
+import datetime
 from unittest import mock
 from fero.client import Fero
+
+
+@pytest.fixture
+def workspace_data():
+    """Get sample data matching the Workspace schema."""
+    return {
+        "uuid": "03d76555-1b7b-4e8e-8425-0779d5710345",
+        "name": "Grain Analysis",
+        "description": None,
+        "modified": "2022-02-18T15:01:02.900782Z",
+        "created_by": {"id": 1, "username": "admin"},
+        "processes": [
+            {
+                "api_id": "04d9b4ff-0133-4842-9936-d99202a9f089",
+                "name": "LIMS LONG",
+                "modified": "2024-04-29T17:46:30.255605Z",
+                "process_type": "B",
+            }
+        ],
+        "analyses": [
+            {
+                "uuid": "75cd1f7f-92ae-4680-b902-d377d311d4fe",
+                "name": "LIMS LONG",
+                "modified": "2024-04-17T18:15:01.398146Z",
+                "target_labels": [
+                    "super_long_prefix_thats_so_long_it_should_not_be_allowedtarget_1"
+                ],
+            }
+        ],
+        "datasources": [
+            {
+                "uuid": "12ef3001-3cd8-4e54-abcc-707aab57ede6",
+                "name": "batch_lims.csv",
+                "modified": "2024-04-16T14:58:41.992953Z",
+                "live_source": False,
+            },
+            {
+                "uuid": "44288636-652e-44d4-a63d-d8ad6f713140",
+                "name": "LIMS LONG",
+                "modified": "2024-04-15T19:40:14.096580Z",
+                "live_source": False,
+            },
+        ],
+    }
 
 
 @pytest.fixture
@@ -163,6 +210,30 @@ def datasource_data():
         "progress": 92,
         "live_source": False,
     }
+
+
+@pytest.fixture
+def datasource_csv(tmp_path):
+    """Get sample CSV matching the Datasource schema."""
+    rows = 30000
+    start = datetime.datetime(2022, 1, 1)
+    end = start + datetime.timedelta(seconds=rows - 1)
+    date_rng = pd.date_range(start=start, end=end, freq="S")
+
+    df = pd.DataFrame(
+        {
+            "s1_factor1": np.random.rand(rows),
+            "s1_factor2": np.random.rand(rows),
+            "s2_factor1": np.random.rand(rows),
+            "s3_factor1": np.random.rand(rows),
+            "s3_factor2": np.random.rand(rows),
+            "s3_kpi": np.random.rand(rows),
+            "dt": date_rng,
+        }
+    )
+    temp_csv = tmp_path / "sample.csv"
+    df.to_csv(temp_csv, index=False)
+    return temp_csv
 
 
 @pytest.fixture
@@ -440,3 +511,56 @@ def patched_fero_client():
     with mock.patch.object(Fero, "post"):
         with mock.patch.object(Fero, "get"):
             yield Fero(fero_token="fakeToken")
+
+
+@pytest.fixture
+def me_response():
+    return {
+        "id": 2,
+        "username": "fero",
+        "profile": {
+            "company": {
+                "name": "Farro",
+                "allow_replace_datasource": True,
+                "display_timezone": None,
+                "allow_new_datasource": True,
+                "allow_new_module": True,
+                "allow_new_asset": True,
+                "allow_process_datasource": True,
+                "allow_create_cost_module": True,
+                "allow_create_quality_module": True,
+                "allow_create_yield_module": True,
+                "allow_create_softsensor_module": True,
+                "allow_create_emission_module": True,
+                "allow_create_fault_module": True,
+                "sidebar_data": False,
+                "sidebar_data_v2": True,
+                "sidebar_modules": True,
+                "sidebar_analyses": True,
+                "sidebar_assets": True,
+                "sidebar_processes": True,
+                "allow_aux_processes": True,
+                "allow_live_processes": True,
+                "feature_flags": {"workspaces": True},
+            },
+            "can_provision_users": False,
+            "site_acl": ["access_control"],
+            "write_accesses": [
+                {
+                    "readable_name": "Grain Analysis",
+                    "name": "grain_analysis",
+                    "access_type": "w",
+                }
+            ],
+            "default_upload_ac": {
+                "name": "grain_analysis",
+                "readable_name": "Grain Analysis",
+                "uuid": "03d76555-1b7b-4e8e-8425-0779d5710345",
+            },
+        },
+        "impersonator_id": 1,
+        "is_superuser": False,
+        "email": "fero@ferolabs.com",
+        "last_name": "",
+        "first_name": "",
+    }

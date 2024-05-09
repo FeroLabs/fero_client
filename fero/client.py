@@ -8,11 +8,12 @@ import requests
 from urllib.parse import urlparse
 from azure.storage.blob import BlobClient
 from pathlib import Path
-from typing import Dict, Iterator, Optional, Union, Type
+from typing import Any, Dict, Iterator, Optional, Union, TextIO, Type, Sequence
 from . import FeroError
 from .analysis import Analysis
 from .asset import Asset
 from .process import Process
+from .workspace import Workspace
 from .common import FeroObject
 
 FERO_CONF_FILE = ".fero"
@@ -126,7 +127,6 @@ class Fero:
             self._password = os.environ.get("FERO_PASSWORD")
 
         if self._username is None or self._password is None:
-
             username_match = re.search(
                 r"FERO_USERNAME=([^\n]+)\n", self.fero_conf_contents
             )
@@ -160,13 +160,16 @@ class Fero:
                 raise FeroError("The requested resource was not found.")
         elif response.status_code in [401, 403]:
             raise FeroError("You are not authorized to access this resource.")
+        elif response.headers.get("content-type") == "application/json":
+            raise FeroError(
+                f"There was an issue connecting to Fero: {response.json()}. - Status Code: {response.status_code}"
+            )
         else:
             raise FeroError(
-                f"There was an issue connecting to Fero. - Status Code: {response.status_code}"
+                f"There was an issue connecting to Fero: {response.reason}. - Status Code: {response.status_code}"
             )
 
     def _s3_upload(self, inbox_response, file_name, fp) -> None:
-
         files = {
             "file": (
                 file_name,
@@ -193,7 +196,6 @@ class Fero:
     def _paginated_get(
         self, url: str, object_class: Type[FeroObject], params: Dict[str, str]
     ) -> Iterator[FeroObject]:
-
         next_url = url
 
         while next_url is not None:
@@ -280,6 +282,17 @@ class Fero:
             params["name"] = name
         return self._paginated_get("/api/processes/", Process, params=params)
 
+    def get_workspace(self, uuid: str) -> Workspace:
+        """Get a Fero Workspace using the UUID.
+
+        :param uuid: UUID of the workspace
+        :type uuid: str
+        :return: An Workspace object
+        :rtype: Workspace
+        """
+        workspace_data = self.get(f"/api/workspaces/{uuid}/")
+        return Workspace(self, workspace_data)
+
     def get_process(self, uuid: str) -> Process:
         """Get a Fero Process using the UUID.
 
@@ -355,3 +368,140 @@ class Fero:
         self._fero_token = self._admin_token
         self._admin_token = None
         self._impersonated = None
+
+
+class UnsafeFeroForScripting(Fero):
+    def create_live_datasource(self, ds_name, ds_schema):
+        """SCRIPT USE ONLY: Create a live data source."""
+        me = self.get("/api/me/")
+        upload_ac = me["profile"]["default_upload_ac"]["name"]
+        return DataSource(
+            self,
+            self.post(
+                "/api/v2/data_source/",
+                {
+                    "name": ds_name,
+                    "description": "",
+                    "access_control": upload_ac,
+                    "live_configuration": ds_schema,
+                    "default_upload_config": {
+                        "upload_format_configuration": {
+                            "format_type": "tabular",
+                            "file_options": {"kind": "CsvFileOptions"},
+                        }
+                    },
+                },
+            ),
+        )
+
+    def create_datasource_from_file(
+        self,
+        ds_name: str,
+        file_name: str,
+        file_schema: Dict[str, Any],
+        file: TextIO,
+        primary_datetime: Optional[str] = None,
+        primary_keys: Optional[Sequence[str]] = None,
+    ) -> DataSource:
+        """SCRIPT USE ONLY: Create a data source from a CSV file."""
+
+        # TODO: Get from endpoint
+        data = {
+            "name": file_name,
+            "uploaded_data_configuration": {
+                "upload_format_configuration": {
+                    "format_type": "tabular",
+                    "file_options": {"kind": "CsvFileOptions"},
+                }
+            },
+            "parsed_schema": file_schema,
+        }
+
+        if primary_datetime is not None:
+            data["uploaded_data_configuration"][
+                "primary_datetime_col"
+            ] = primary_datetime
+
+        elif primary_keys is not None:
+            data["uploaded_data_configuration"]["primary_key_col"] = primary_keys
+
+        uf_res = self.post(
+            "/api/v2/uploaded_files/",
+            data,
+        )
+
+        files_uuid = uf_res["uuid"]
+        inbox_response = self.get(
+            f"/api/v2/uploaded_files/{files_uuid}/inbox_url/?file_name={file_name}"
+        )
+        self.upload_file(inbox_response, file_name, file)
+
+        me = self.get("/api/me/")
+        upload_ac = me["profile"]["default_upload_ac"]["name"]
+
+        return DataSource(
+            self,
+            self.post(
+                "/api/v2/data_source/",
+                {
+                    "name": ds_name,
+                    "access_control": upload_ac,
+                    "uploaded_files_uuid": files_uuid,
+                },
+            ),
+        )
+
+    def create_process_from_json_string(
+        self, process_name, process_json_str
+    ) -> Process:
+        """SCRIPT USE ONLY: Create a process from a JSON string."""
+        # can't pass a file through without modifying the client post
+        api_id = self._handle_response(
+            requests.post(
+                f"{self._hostname}/api/process_upload/from_json/",
+                data={"process_name": process_name},
+                files={"process_revision_json": io.StringIO(process_json_str)},
+                headers={"Authorization": f"JWT {self._fero_token}"},
+                verify=False,
+            ),
+            allow_404=False,
+        ).get("process_id")
+        return self.get_process(api_id)
+
+    def create_analysis(self, analysis_data):
+        """SCRIPT USE ONLY: Create an analysis from a JSON string."""
+        return Analysis(self, self.post("/api/analyses/", analysis_data))
+
+    def create_workspace(self, name: str, description: str = ""):
+        """SCRIPT USE ONLY: Create a workspace."""
+
+        response = self.post(
+            "/api/workspaces/", {"name": name, "description": description}
+        )
+        return Workspace(self, {**response, "description": description})
+
+    def add_objects_to_workspace(
+        self,
+        workspace: Workspace,
+        objects: list[Union[DataSource, Process, Analysis]],
+    ) -> Workspace:
+        """SCRIPT USE ONLY: Add objects to a workspace."""
+        datasources = [str(obj.uuid) for obj in objects if isinstance(obj, DataSource)]
+        processes = [str(obj.api_id) for obj in objects if isinstance(obj, Process)]
+        analyses = [str(obj.uuid) for obj in objects if isinstance(obj, Analysis)]
+
+        def _add_objects(object_name, object_uuids):
+            data = self.post(
+                f"/api/workspaces/{workspace.uuid}/update_objects/",
+                {"uuids": object_uuids, "object_name": object_name, "remove": False},
+            )
+            return data
+
+        data = None
+        if datasources:
+            data = _add_objects("DataSourceV2", datasources)
+        if processes:
+            data = _add_objects("Process", processes)
+        if analyses:
+            data = _add_objects("Analysis", analyses)
+        return Workspace(self, data)
