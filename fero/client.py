@@ -1,11 +1,10 @@
 """This Module holds the Fero client class, which is used to communicate with the Fero API."""
 
-from fero.datasource import DataSource
 import os
 import io
 import re
-import time
 import requests
+import backoff
 from urllib.parse import urlparse
 from azure.storage.blob import BlobClient
 from pathlib import Path
@@ -13,6 +12,7 @@ from typing import Any, Dict, Iterator, Optional, Union, TextIO, Type, Sequence
 from . import FeroError
 from .analysis import Analysis
 from .asset import Asset
+from .datasource import DataSource
 from .process import Process
 from .workspace import Workspace
 from .common import FeroObject
@@ -374,17 +374,11 @@ class Fero:
 class UnsafeFeroForScripting(Fero):
     """SCRIPT USE ONLY: An unsafe client for scripting purposes."""
 
+    @backoff.on_predicate(
+        backoff.fibo, predicate=lambda ds: ds.status != "R", max_time=600
+    )
     def _wait_until_datasource_is_ready(self, ds: DataSource) -> DataSource:
-        backoffs = [1, 1, 1, 10, 10, 10, 10, 10, 10, 10, 10, 10]
-        while ds.status != "R" and backoffs:
-            backoff = backoffs.pop(0)
-            time.sleep(backoff)
-            ds = DataSource(self, self.get(f"/api/v2/data_source/{str(ds.uuid)}/"))
-            if ds.status == "E":
-                raise FeroError(f"Failed to create data source: {str(ds.uuid)}")
-        if ds.status != "R":
-            raise FeroError(f"Failed to create data source (timeout): {str(ds.uuid)}")
-        return ds
+        return DataSource(self, self.get(f"/api/v2/data_source/{str(ds.uuid)}/"))
 
     def create_live_datasource(self, ds_name, ds_schema):
         """SCRIPT USE ONLY: Create a live data source."""
