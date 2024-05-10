@@ -1,7 +1,5 @@
 import json
 import os
-import sys
-import time
 from tempfile import NamedTemporaryFile
 from typing import Optional
 from urllib.parse import urlparse

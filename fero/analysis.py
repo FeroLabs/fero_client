@@ -16,7 +16,7 @@ from marshmallow import (
     ValidationError,
     EXCLUDE,
 )
-from typing import Any, Union, List, Optional, IO, Tuple, Dict
+from typing import Any, Union, List, Optional, IO, Tuple
 from .common import FeroObject
 
 
