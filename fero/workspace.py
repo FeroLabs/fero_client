@@ -34,6 +34,7 @@ class Workspace(FeroObject):
     schema_class = WorkspaceSchema
 
     def __repr__(self):
+        """Represent the `Workspace` object by its name"""
         return f"<Workspace name={self.name}>"
 
     __str__ = __repr__

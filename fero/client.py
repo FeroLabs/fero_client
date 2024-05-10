@@ -372,7 +372,9 @@ class Fero:
 
 
 class UnsafeFeroForScripting(Fero):
-    def wait_until_datasource_is_ready(self, ds: DataSource) -> DataSource:
+    """SCRIPT USE ONLY: An unsafe client for scripting purposes."""
+
+    def _wait_until_datasource_is_ready(self, ds: DataSource) -> DataSource:
         backoffs = [1, 1, 1, 10, 10, 10, 10, 10, 10, 10, 10, 10]
         while ds.status != "R" and backoffs:
             backoff = backoffs.pop(0)
@@ -406,7 +408,7 @@ class UnsafeFeroForScripting(Fero):
                 },
             ),
         )
-        return self.wait_until_datasource_is_ready(ds)
+        return self._wait_until_datasource_is_ready(ds)
 
     def create_datasource_from_file(
         self,
@@ -471,7 +473,7 @@ class UnsafeFeroForScripting(Fero):
             ),
         )
 
-        ds = self.wait_until_datasource_is_ready(ds)
+        ds = self._wait_until_datasource_is_ready(ds)
 
         if overwrites is not None:
             ds = DataSource(
@@ -480,7 +482,7 @@ class UnsafeFeroForScripting(Fero):
                     f"/api/v2/data_source/{str(ds.uuid)}/overwrite_schema/", overwrites
                 ),
             )
-            ds = self.wait_until_datasource_is_ready(ds)
+            ds = self._wait_until_datasource_is_ready(ds)
 
         return ds
 
@@ -507,7 +509,6 @@ class UnsafeFeroForScripting(Fero):
 
     def create_workspace(self, name: str, description: str = ""):
         """SCRIPT USE ONLY: Create a workspace."""
-
         response = self.post(
             "/api/workspaces/", {"name": name, "description": description}
         )

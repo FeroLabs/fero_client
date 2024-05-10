@@ -31,7 +31,7 @@ def patch_unsafe_fero_get():
 
 
 def test_get_workspace_success(patch_unsafe_fero_get, workspace_data):
-    """Test that a workspace is returned by `get_workspace"""
+    """Test that a workspace is returned by `get_workspace`."""
     patch_unsafe_fero_get.return_value = workspace_data
     client = UnsafeFeroForScripting(fero_token="fakeToken", hostname="http://test.com")
     ws = client.get_workspace("9f79206e-94fc-4834-8f52-84008b12df86")
@@ -48,6 +48,7 @@ def test_get_workspace_success(patch_unsafe_fero_get, workspace_data):
 def test_create_datasource_from_csv(
     me_response, datasource_data, datasource_csv, v1_interpreted_schema
 ):
+    """Test that a datasource is created from a CSV file."""
     client = UnsafeFeroForScripting(fero_token="fakeToken", hostname="http://test.com")
 
     def _mck(verb):
@@ -147,6 +148,8 @@ def test_add_objects_to_workspace(
     process_data,
     analysis_data,
 ):
+    """Test that objects are added to a workspace."""
+
     def _call(uuid, object_name):
         return call(
             f"/api/workspaces/{workspace_fixture.uuid}/update_objects/",

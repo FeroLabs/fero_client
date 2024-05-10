@@ -1,3 +1,5 @@
+"""This script copies a demo workspace to a user."""
+
 import sys
 from argparse import ArgumentParser
 from pydantic_settings import BaseSettings
@@ -8,6 +10,8 @@ from scripts.common import copy_demo_workspace
 
 
 class Settings(BaseSettings):
+    """Settings for the script."""
+
     copy_demo_source_admin_username: Optional[str] = None
     copy_demo_source_admin_password: Optional[str] = None
     copy_demo_source_hostname: str = "https://app.ferolabs.com"
@@ -15,6 +19,7 @@ class Settings(BaseSettings):
 
 
 def load_settings(env_file_name):
+    """Load settings from an environment file."""
     settings = Settings(_env_file=env_file_name)
     source_vars = {
         k: v for k, v in dict(settings).items() if k.startswith("copy_demo_source_")

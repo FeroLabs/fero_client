@@ -515,6 +515,7 @@ def patched_fero_client():
 
 @pytest.fixture
 def me_response():
+    """Response from /api/me"""
     return {
         "id": 2,
         "username": "fero",
