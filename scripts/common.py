@@ -34,7 +34,6 @@ def copy_demo_workspace(
         for api_id in demo_processes
     }
 
-    # Add confirmation
     demo_analyses = [
         source_client.get_analysis(a["uuid"]) for a in demo_workspace.analyses
     ]
@@ -63,11 +62,24 @@ def copy_demo_workspace(
     for ds in demo_datasources.values():
         if ds.transformed_source:
             raise ValueError(f"Transformed datasource: {ds.name} cannot be copied")
-        # TODO: combined sources may be easier to handle than validate for
-        # TODO: test what happens if datasource is XLSX
 
     source_client.end_impersonation()
     target_client = target_client or source_client
+    print(
+        f"About to copy Workspace: {demo_workspace.name} to account {target_user} on {target_client._hostname}"
+    )
+    for ds in demo_datasources.values():
+        print(f"Datasource: {ds.name}")
+
+    for p in demo_processes.values():
+        print(f"Process: {p.name}")
+
+    for a in demo_analyses:
+        print(f"Analysis: {a.name}")
+
+    response = input("Confirm copy? (y/n) > ")
+    if response.lower() != "y":
+        return
     target_client.impersonate(target_user)
 
     def _copy_ds(ds):
