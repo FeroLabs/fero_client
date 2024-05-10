@@ -83,36 +83,12 @@ def copy_demo_workspace(
                 file_name,
                 ds.schema,
                 raw_file,
+                ds.overwrites,
                 ds.primary_datetime_column,
                 ds.primary_key_columns or ds.primary_key_column,
             )
 
     new_demo_datasources = {uuid: _copy_ds(ds) for uuid, ds in demo_datasources.items()}
-
-    unready_datasources = [
-        ds for ds in new_demo_datasources.values() if ds.status != "R"
-    ]
-    while unready_datasources:
-        failed_to_copy = [
-            str(ds.uuid) for ds in unready_datasources if ds.status == "E"
-        ]
-        if failed_to_copy:
-            raise ValueError(
-                f"The following DataSources failed to copy: {failed_to_copy}"
-            )
-        sys.stdout.flush()
-        print(
-            f"Waiting for {len(unready_datasources)} datasources to be ready.", end="\r"
-        )
-        time.sleep(1.0)
-        new_demo_datasources = {
-            uuid: target_client.get_datasource(ds.uuid)
-            for uuid, ds in new_demo_datasources.items()
-        }
-        unready_datasources = [
-            ds for ds in new_demo_datasources.values() if ds.status != "R"
-        ]
-    print("")
 
     def _copy_process(process):
         process_json = process_for_copy[process.api_id]

@@ -26,7 +26,6 @@ def mock_response():
 def patch_requests_post(mock_response):
     """Create a mocked successful POST response."""
     with mock.patch("fero.client.requests.post") as post_function:
-
         post_function.return_value = mock_response
         yield post_function
 
@@ -35,7 +34,6 @@ def patch_requests_post(mock_response):
 def patch_requests_get(mock_response):
     """Create a mocked successful GET response."""
     with mock.patch("fero.client.requests.get") as get_function:
-
         get_function.return_value = mock_response
         yield get_function
 

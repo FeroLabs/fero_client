@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 from fero.client import UnsafeFeroForScripting
-from .common import copy_demo_workspace
+from scripts.common import copy_demo_workspace
 
 
 class Settings(BaseSettings):

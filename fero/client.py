@@ -4,6 +4,7 @@ from fero.datasource import DataSource
 import os
 import io
 import re
+import time
 import requests
 from urllib.parse import urlparse
 from azure.storage.blob import BlobClient
@@ -371,11 +372,23 @@ class Fero:
 
 
 class UnsafeFeroForScripting(Fero):
+    def wait_until_datasource_is_ready(self, ds: DataSource) -> DataSource:
+        backoffs = [1, 1, 1, 10, 10, 10, 10, 10, 10, 10, 10, 10]
+        while ds.status != "R" and backoffs:
+            backoff = backoffs.pop(0)
+            time.sleep(backoff)
+            ds = DataSource(self, self.get(f"/api/v2/data_source/{str(ds.uuid)}/"))
+            if ds.status == "E":
+                raise FeroError(f"Failed to create data source: {str(ds.uuid)}")
+        if ds.status != "R":
+            raise FeroError(f"Failed to create data source (timeout): {str(ds.uuid)}")
+        return ds
+
     def create_live_datasource(self, ds_name, ds_schema):
         """SCRIPT USE ONLY: Create a live data source."""
         me = self.get("/api/me/")
         upload_ac = me["profile"]["default_upload_ac"]["name"]
-        return DataSource(
+        ds = DataSource(
             self,
             self.post(
                 "/api/v2/data_source/",
@@ -393,6 +406,7 @@ class UnsafeFeroForScripting(Fero):
                 },
             ),
         )
+        return self.wait_until_datasource_is_ready(ds)
 
     def create_datasource_from_file(
         self,
@@ -400,18 +414,24 @@ class UnsafeFeroForScripting(Fero):
         file_name: str,
         file_schema: Dict[str, Any],
         file: TextIO,
+        overwrites: Optional[Dict[str, Any]] = None,
         primary_datetime: Optional[str] = None,
         primary_keys: Optional[Sequence[str]] = None,
     ) -> DataSource:
         """SCRIPT USE ONLY: Create a data source from a CSV file."""
 
-        # TODO: Get from endpoint
+        def _guess_file_type(file_name):
+            if file_name.lower().endswith(".csv"):
+                return "CsvFileOptions"
+            return "ExcelFileOptions"
+
         data = {
             "name": file_name,
             "uploaded_data_configuration": {
+                # TODO: Get from an endpoint
                 "upload_format_configuration": {
                     "format_type": "tabular",
-                    "file_options": {"kind": "CsvFileOptions"},
+                    "file_options": {"kind": _guess_file_type(file_name)},
                 }
             },
             "parsed_schema": file_schema,
@@ -439,7 +459,7 @@ class UnsafeFeroForScripting(Fero):
         me = self.get("/api/me/")
         upload_ac = me["profile"]["default_upload_ac"]["name"]
 
-        return DataSource(
+        ds = DataSource(
             self,
             self.post(
                 "/api/v2/data_source/",
@@ -450,6 +470,19 @@ class UnsafeFeroForScripting(Fero):
                 },
             ),
         )
+
+        ds = self.wait_until_datasource_is_ready(ds)
+
+        if overwrites is not None:
+            ds = DataSource(
+                self,
+                self.post(
+                    f"/api/v2/data_source/{str(ds.uuid)}/overwrite_schema/", overwrites
+                ),
+            )
+            ds = self.wait_until_datasource_is_ready(ds)
+
+        return ds
 
     def create_process_from_json_string(
         self, process_name, process_json_str
