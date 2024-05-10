@@ -1,3 +1,5 @@
+"""This module holds the `Workspace` class and its schema."""
+
 from marshmallow import (
     Schema,
     fields,
@@ -34,7 +36,7 @@ class Workspace(FeroObject):
     schema_class = WorkspaceSchema
 
     def __repr__(self):
-        """Represent the `Workspace` object by its name"""
+        """Represent the `Workspace` object by its name."""
         return f"<Workspace name={self.name}>"
 
     __str__ = __repr__

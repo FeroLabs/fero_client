@@ -1,3 +1,5 @@
+"""Test the `UnsafeFeroForScripting` class."""
+
 import pytest
 from requests import Response
 from unittest import mock

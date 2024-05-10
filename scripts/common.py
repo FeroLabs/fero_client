@@ -1,3 +1,5 @@
+"""Code that can be shared by multiple scripts."""
+
 import json
 import os
 from tempfile import NamedTemporaryFile
