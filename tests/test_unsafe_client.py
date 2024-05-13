@@ -47,7 +47,7 @@ def test_get_workspace_success(patch_unsafe_fero_get, workspace_data):
     )
 
 
-def test_create_datasource_from_csv(
+def test_create_datasource_from_file(
     me_response, datasource_data, datasource_csv, v1_interpreted_schema
 ):
     """Test that a datasource is created from a CSV file."""

@@ -378,6 +378,8 @@ class UnsafeFeroForScripting(Fero):
         backoff.fibo, predicate=lambda ds: ds.status != "R", max_time=600
     )
     def _wait_until_datasource_is_ready(self, ds: DataSource) -> DataSource:
+        if ds.status == "R":
+            return ds
         return DataSource(self, self.get(f"/api/v2/data_source/{str(ds.uuid)}/"))
 
     def create_live_datasource(self, ds_name, ds_schema):
