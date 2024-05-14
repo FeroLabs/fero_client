@@ -158,7 +158,7 @@ class DataSource(FeroObject):
             time.sleep(0.5)
             status = self.get_download_status()
 
-    def download(self, raw=False) -> str:
+    def download(self, raw=False, file=None) -> str:
         """Download data source data as a csv.
 
         :param raw: Whether to download the raw data
@@ -179,10 +179,19 @@ class DataSource(FeroObject):
 
         # Download the file and write as a stream since it could be large
         req = requests.get(url, stream=True)
-        download_filename = f'fero{"-raw" if raw else ""}-ds-{self.uuid}.csv'
-        with open(download_filename, "wb") as fp:
+
+        def _write_chunks(fp):
             for chunk in req.iter_content(chunk_size=CHUNK_SIZE):
                 fp.write(chunk)
+
+        if file is None:
+            download_filename = f'fero{"-raw" if raw else ""}-ds-{self.uuid}.csv'
+            with open(download_filename, "wb") as fp:
+                _write_chunks(fp)
+        else:
+            download_filename = file.name
+            _write_chunks(file)
+            file.seek(0)
 
         return download_filename
 
@@ -242,7 +251,6 @@ class UploadedFileStatus:
             return False
 
         if status["status"] == UploadedFilesSchema.ERROR:
-
             errors = [
                 f'"{str(e)}"'
                 for e in status["error_notices"]["global_notices"]

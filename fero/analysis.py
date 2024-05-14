@@ -1039,3 +1039,13 @@ class Analysis(FeroObject):
             **kwargs,
         )
         return self._request_prediction(optimize_request, synchronous)
+
+    @property
+    def configured_blueprint(self) -> dict:
+        """Return the configured blueprint for this analysis."""
+        if self._configured_blueprint is None:
+            revision = self._client.get(
+                f"/api/analyses/{self.uuid}/revisions/{self.latest_revision}"
+            )
+            self._configured_blueprint = revision["configured_blueprint"]
+        return self._configured_blueprint

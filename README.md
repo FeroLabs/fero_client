@@ -439,3 +439,6 @@ datasource.download(raw=True)
 datasource.download()
 '''fero-ds-66d2dd0f-2f16-4002-bb3b-445173eedd95.csv'''
 ```
+
+## Copying Workspaces
+See: [Copy Demo Workspaces](https://www.notion.so/ferolabs/Copy-Demo-Workspaces-9dbddce1a9024b709aeba9217d3235a8)
