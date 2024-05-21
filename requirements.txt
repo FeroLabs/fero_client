@@ -59,7 +59,7 @@ python-dotenv==1.0.1
     # via pydantic-settings
 pytz==2020.1
     # via pandas
-requests==2.31.0
+requests==2.32.0
     # via
     #   -r requirements.in
     #   azure-core
