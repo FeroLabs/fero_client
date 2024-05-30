@@ -382,27 +382,63 @@ class UnsafeFeroForScripting(Fero):
             return ds
         return DataSource(self, self.get(f"/api/v2/data_source/{str(ds.uuid)}/"))
 
-    def create_live_datasource(self, ds_name, ds_schema):
+    def _upload_config(
+        self,
+        format_type=None,
+        file_type=None,
+        primary_datetime=None,
+        primary_keys=None,
+    ):
+        # TODO: Get from an endpoint
+        data = {
+            "upload_format_configuration": {
+                "format_type": format_type or "tabular",
+                "file_options": {"kind": file_type or "CsvFileOptions"},
+            }
+        }
+
+        if primary_datetime is not None:
+            data["primary_datetime_col"] = primary_datetime
+        if primary_keys is not None:
+            data["primary_key_col"] = primary_keys
+
+        return data
+
+    def create_live_datasource(
+        self,
+        ds_name,
+        ds_schema,
+        format_type=None,
+        file_type=None,
+        primary_datetime=None,
+        primary_keys=None,
+    ):
         """SCRIPT USE ONLY: Create a live data source."""
         me = self.get("/api/me/")
         upload_ac = me["profile"]["default_upload_ac"]["name"]
+
+        data = {
+            "name": ds_name,
+            "description": "",
+            "access_control": upload_ac,
+            "live_configuration": ds_schema,
+            "default_upload_config": self._upload_config(
+                file_type=file_type,
+                format_type=format_type,
+                primary_datetime=primary_datetime,
+                primary_keys=primary_keys,
+            ),
+        }
+
+        if primary_datetime is not None:
+            data["primary_datetime_column"] = primary_datetime
+
+        if primary_keys is not None:
+            data["primary_keys"] = primary_keys
+
         ds = DataSource(
             self,
-            self.post(
-                "/api/v2/data_source/",
-                {
-                    "name": ds_name,
-                    "description": "",
-                    "access_control": upload_ac,
-                    "live_configuration": ds_schema,
-                    "default_upload_config": {
-                        "upload_format_configuration": {
-                            "format_type": "tabular",
-                            "file_options": {"kind": "CsvFileOptions"},
-                        }
-                    },
-                },
-            ),
+            self.post("/api/v2/data_source/", data),
         )
         return self._wait_until_datasource_is_ready(ds)
 
@@ -412,36 +448,23 @@ class UnsafeFeroForScripting(Fero):
         file_name: str,
         file_schema: Dict[str, Any],
         file: TextIO,
+        file_type: Optional[str] = "CsvFileOptions",
+        format_type: Optional[str] = "tabular",
         overwrites: Optional[Dict[str, Any]] = None,
         primary_datetime: Optional[str] = None,
         primary_keys: Optional[Sequence[str]] = None,
     ) -> DataSource:
         """SCRIPT USE ONLY: Create a data source from a CSV file."""
-
-        def _guess_file_type(file_name):
-            if file_name.lower().endswith(".csv"):
-                return "CsvFileOptions"
-            return "ExcelFileOptions"
-
         data = {
             "name": file_name,
-            "uploaded_data_configuration": {
-                # TODO: Get from an endpoint
-                "upload_format_configuration": {
-                    "format_type": "tabular",
-                    "file_options": {"kind": _guess_file_type(file_name)},
-                }
-            },
+            "uploaded_data_configuration": self._upload_config(
+                file_type=file_type,
+                format_type=format_type,
+                primary_datetime=primary_datetime,
+                primary_keys=primary_keys,
+            ),
             "parsed_schema": file_schema,
         }
-
-        if primary_datetime is not None:
-            data["uploaded_data_configuration"][
-                "primary_datetime_col"
-            ] = primary_datetime
-
-        elif primary_keys is not None:
-            data["uploaded_data_configuration"]["primary_key_col"] = primary_keys
 
         uf_res = self.post(
             "/api/v2/uploaded_files/",

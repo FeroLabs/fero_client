@@ -91,13 +91,18 @@ def copy_demo_workspace(
             file_name = os.path.basename(urlparse(ds.raw_file).path)
             print(f"Copying datasource: {ds.name}")
             return target_client.create_datasource_from_file(
-                ds.name,
-                file_name,
-                ds.schema,
-                raw_file,
-                ds.overwrites,
-                ds.primary_datetime_column,
-                ds.primary_key_columns or ds.primary_key_column,
+                ds_name=ds.name,
+                file_name=file_name,
+                file_schema=ds.schema,
+                file=raw_file,
+                file_type=(
+                    "CsvFileOptions"
+                    if file_name.lower().endswith(".csv")
+                    else "ExcelFileOptions"
+                ),
+                overwrites=ds.overwrites,
+                primary_datetime=ds.primary_datetime_column,
+                primary_keys=ds.primary_key_columns or ds.primary_key_column,
             )
 
     new_demo_datasources = {uuid: _copy_ds(ds) for uuid, ds in demo_datasources.items()}
