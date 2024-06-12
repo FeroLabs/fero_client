@@ -71,6 +71,7 @@ class DataSourceSchema(Schema):
     default_upload_config = fields.Dict(required=False)
     raw_file = fields.Url(required=False, allow_none=True)
     download_url = fields.Url(required=False, allow_none=True)
+    hidden = fields.Boolean(required=False)
 
 
 class DataSource(FeroObject):

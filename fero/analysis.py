@@ -87,6 +87,7 @@ class AnalysisSchema(Schema):
     created = fields.DateTime(require=True)
     modified = fields.DateTime(require=True)
     blueprint_name = fields.String(required=True)
+    hidden = fields.Boolean(required=False)
 
 
 class RevisionSchema(Schema):
