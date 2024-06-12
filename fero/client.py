@@ -574,6 +574,6 @@ class UnsafeFeroForScripting(Fero):
     def set_hidden(self, object_name: str, uuid: str, hidden: bool):
         """SCRIPT USE ONLY: Set the hidden status of an object."""
         return self.patch(
-            f"/api/hide_objects/",
+            "/api/hide_objects/",
             {"hidden": hidden, "object_name": object_name, "uuid": uuid},
         )
