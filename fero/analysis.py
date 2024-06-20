@@ -248,7 +248,7 @@ class CombinationConstraint:
         """
         for [value, kind] in [self._operand_a, self._operand_b]:
             if kind == CombinationConstraintOperandType.COLUMN:
-                if value not in analysis.all_factor_names:
+                if value not in analysis.factor_names:
                     raise FeroError(
                         f'"{value}" is not a recognized factor in this analysis'
                     )
@@ -437,8 +437,8 @@ class Analysis(FeroObject):
         return self._schema_cache
 
     @property
-    def all_factor_names(self):
-        """Get all factor names for any column available to the Analysis."""
+    def all_tag_names(self):
+        """Get names for any tag available to the Analysis."""
         return [column["name"] for column in self._schema["columns"]]
 
     @staticmethod
@@ -770,7 +770,7 @@ class Analysis(FeroObject):
 
     def _verify_fixed_factors(self, fixed_factors: dict):
         """Check that the provided fixed factors are in the analysis."""
-        all_columns = self.all_factor_names
+        all_columns = self.factor_names
         for key in fixed_factors.keys():
             if key not in all_columns:
                 raise FeroError(f'"{key}" is not part of this analysis.')
