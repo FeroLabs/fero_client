@@ -166,6 +166,7 @@ class ProcessSchema(Schema):
     latest_ready_snapshot = fields.Nested(NestedSnapshotSchema, allow_none=True)
     # TODO update this to a nested schema once the configuration settles more
     data_config = fields.Dict(required=True)
+    hidden = fields.Boolean(required=False)
 
 
 class Tag(FeroObject):

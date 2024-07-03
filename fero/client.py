@@ -328,6 +328,18 @@ class Fero:
             allow_404=False,
         )
 
+    def patch(self, url: str, data: dict) -> Union[dict, bytes]:
+        """Do a PATCH request with headers set."""
+        return self._handle_response(
+            requests.patch(
+                f"{self._hostname}{url}",
+                json=data,
+                headers={"Authorization": f"JWT {self._fero_token}"},
+                verify=self._verify,
+            ),
+            allow_404=False,
+        )
+
     def get(self, url: str, params=None, allow_404=False) -> Union[dict, bytes]:
         """Do a GET request with headers set."""
         return self._handle_response(
@@ -563,3 +575,10 @@ class UnsafeFeroForScripting(Fero):
         if analyses:
             data = _add_objects("Analysis", analyses)
         return Workspace(self, data)
+
+    def set_hidden(self, object_name: str, uuid: str, hidden: bool):
+        """SCRIPT USE ONLY: Set the hidden status of an object."""
+        return self.patch(
+            "/api/hide_objects/",
+            {"hidden": hidden, "object_name": object_name, "uuid": uuid},
+        )
