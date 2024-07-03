@@ -558,7 +558,12 @@ class UnsafeFeroForScripting(Fero):
         def _add_objects(object_name, object_uuids):
             data = self.post(
                 f"/api/workspaces/{workspace.uuid}/update_objects/",
-                {"uuids": object_uuids, "object_name": object_name, "remove": False},
+                {
+                    "uuids": object_uuids,
+                    "object_name": object_name,
+                    "remove": False,
+                    "add_dependencies": False,
+                },
             )
             return data
 
