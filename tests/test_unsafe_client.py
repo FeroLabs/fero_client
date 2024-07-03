@@ -159,6 +159,7 @@ def test_add_objects_to_workspace(
                 "uuids": [str(uuid)],
                 "object_name": object_name,
                 "remove": False,
+                "add_dependencies": False,
             },
         )
 
