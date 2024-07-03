@@ -108,7 +108,7 @@ def copy_demo_workspace(
     new_demo_datasources = {uuid: _copy_ds(ds) for uuid, ds in demo_datasources.items()}
     for old_ds, new_ds in zip(demo_datasources.values(), new_demo_datasources.values()):
         if not old_ds.hidden:
-            target_client.set_hidden("DataSourceV2", new_ds.uuid, False)
+            target_client.set_hidden("DataSourceV2", str(new_ds.uuid), False)
 
     def _copy_process(process):
         process_json = process_for_copy[process.api_id]
@@ -129,7 +129,7 @@ def copy_demo_workspace(
         new_demo_processes.values(), demo_processes.values()
     ):
         if not old_process.hidden:
-            target_client.set_hidden("Process", new_process.api_id, False)
+            target_client.set_hidden("Process", str(new_process.api_id), False)
 
     def _copy_analysis(analysis):
         analysis_json = {
@@ -147,7 +147,7 @@ def copy_demo_workspace(
 
     for old_analysis, new_analysis in zip(new_demo_analyses, demo_analyses):
         if not old_analysis.hidden:
-            target_client.set_hidden("Analysis", new_analysis.uuid, False)
+            target_client.set_hidden("Analysis", str(new_analysis.uuid), False)
 
     new_workspace = target_client.create_workspace(
         name=demo_workspace.name, description=demo_workspace.description
