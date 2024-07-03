@@ -6,9 +6,9 @@
 #
 annotated-types==0.6.0
     # via pydantic
-azure-core==1.21.1
+azure-core==1.30.1
     # via azure-storage-blob
-azure-storage-blob==12.6.0
+azure-storage-blob==12.13.0
     # via -r requirements.in
 backoff==2.2.1
     # via -r requirements.in
@@ -22,7 +22,7 @@ charset-normalizer==2.1.1
     # via requests
 cryptography==42.0.4
     # via azure-storage-blob
-idna==2.10
+idna==3.7
     # via requests
 isodate==0.6.1
     # via msrest
@@ -59,7 +59,7 @@ python-dotenv==1.0.1
     # via pydantic-settings
 pytz==2020.1
     # via pandas
-requests==2.31.0
+requests==2.32.2
     # via
     #   -r requirements.in
     #   azure-core
@@ -74,6 +74,7 @@ six==1.15.0
     #   python-dateutil
 typing-extensions==4.11.0
     # via
+    #   azure-core
     #   pydantic
     #   pydantic-core
 urllib3==1.26.19
