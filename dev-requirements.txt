@@ -10,7 +10,7 @@ black==24.3.0
     # via -r dev-requirements.in
 bleach==5.0.1
     # via readme-renderer
-certifi==2023.7.22
+certifi==2024.7.4
     # via requests
 cffi==1.15.1
     # via cryptography
