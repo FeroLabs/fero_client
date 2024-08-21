@@ -41,7 +41,7 @@ oauthlib==3.2.2
     #   requests-oauthlib
 packaging==23.1
     # via marshmallow
-pandas==1.4.4
+pandas==2.2.2
     # via -r requirements.in
 pyarrow==14.0.1
     # via -r requirements.in
@@ -53,7 +53,7 @@ pydantic-core==2.18.2
     # via pydantic
 pydantic-settings==2.2.1
     # via -r requirements.in
-python-dateutil==2.8.1
+python-dateutil==2.9.0.post0
     # via pandas
 python-dotenv==1.0.1
     # via pydantic-settings
@@ -77,6 +77,8 @@ typing-extensions==4.11.0
     #   azure-core
     #   pydantic
     #   pydantic-core
+tzdata==2024.1
+    # via pandas
 urllib3==1.26.19
     # via
     #   -r requirements.in
