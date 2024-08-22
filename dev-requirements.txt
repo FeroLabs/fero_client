@@ -10,7 +10,7 @@ black==24.3.0
     # via -r dev-requirements.in
 bleach==5.0.1
     # via readme-renderer
-certifi==2023.7.22
+certifi==2024.7.4
     # via requests
 cffi==1.15.1
     # via cryptography
@@ -110,5 +110,5 @@ urllib3==1.26.19
     #   twine
 webencodings==0.5.1
     # via bleach
-zipp==3.8.0
+zipp==3.19.1
     # via importlib-metadata

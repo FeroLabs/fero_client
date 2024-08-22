@@ -12,7 +12,7 @@ azure-storage-blob==12.13.0
     # via -r requirements.in
 backoff==2.2.1
     # via -r requirements.in
-certifi==2023.7.22
+certifi==2024.7.4
     # via
     #   msrest
     #   requests
@@ -41,7 +41,7 @@ oauthlib==3.2.2
     #   requests-oauthlib
 packaging==23.1
     # via marshmallow
-pandas==1.4.4
+pandas==1.5.0
     # via -r requirements.in
 pyarrow==14.0.1
     # via -r requirements.in
@@ -53,7 +53,7 @@ pydantic-core==2.18.2
     # via pydantic
 pydantic-settings==2.2.1
     # via -r requirements.in
-python-dateutil==2.8.1
+python-dateutil==2.9.0.post0
     # via pandas
 python-dotenv==1.0.1
     # via pydantic-settings
