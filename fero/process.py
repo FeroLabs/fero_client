@@ -140,6 +140,7 @@ class NestedSnapshotSchema(Schema):
         required=True,
         validate=SnapShotStatus.validator(),
     )
+    process_revisions = fields.List(fields.Integer, required=False)
 
 
 class ProcessSchema(Schema):
