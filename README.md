@@ -171,7 +171,7 @@ Fero also supports the idea of a cost optimization, which will weight different 
 ```python
 goal = {
   "goal": "minimize",
-  "type": "cost",
+  "type": "COST",
   "cost_function": [{"name": "value", "min": 50.0, "max": 100.0, "cost": 5.0}, {"name": "value2", "min": 70.0, "max": 80.0, "cost": 9.0}]
 }
 
