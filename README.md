@@ -172,7 +172,7 @@ Fero also supports the idea of a cost optimization, which will weight different 
 goal = {
   "goal": "minimize",
   "type": "cost",
-  "cost_function": [{"name": "value", "min": 50.0, "max": 100.0, "cost": 5.0}, {"name": "value2", "min": 70.0, "max": 80.0.0, "cost": 9.0}]
+  "cost_function": [{"name": "value", "min": 50.0, "max": 100.0, "cost": 5.0}, {"name": "value2", "min": 70.0, "max": 80.0, "cost": 9.0}]
 }
 
 constraints = [{"name": "target", "min": 100.0, "max": 200}]
@@ -441,4 +441,5 @@ datasource.download()
 ```
 
 ## Copying Workspaces
+
 See: [Copy Demo Workspaces](https://www.notion.so/ferolabs/Copy-Demo-Workspaces-9dbddce1a9024b709aeba9217d3235a8)
