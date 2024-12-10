@@ -725,8 +725,18 @@ class Analysis(FeroObject):
         constraint_targets = []
         use_adaptive = kwargs.get("use_adaptive", False)
 
-        if len(constraints) < 1:
-            raise FeroError("At least one constraint must be specified.")
+        if len(constraints) == 0:
+            # Verify target and factor are included in the cost function
+            if not is_cost:
+                raise FeroError("At least one constraint must be specified.")
+            if not any(
+                addend["name"] in self.factor_names for addend in goal["cost_function"]
+            ) or not any(
+                addend["name"] in self.target_names for addend in goal["cost_function"]
+            ):
+                raise FeroError(
+                    "At least one target and factor must be specified in the cost function or as a separate constraint."
+                )
         if is_cost:
             for factor in goal["cost_function"]:
                 if factor["name"] in self.factor_names:
