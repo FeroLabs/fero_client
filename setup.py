@@ -62,4 +62,5 @@ setup(
     cmdclass={
         "verify": VerifyVersionCommand,
     },
+    license_files=[],
 )
