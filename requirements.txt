@@ -6,7 +6,7 @@
 #
 annotated-types==0.6.0
     # via pydantic
-azure-core==1.30.1
+azure-core==1.38.0
     # via azure-storage-blob
 azure-storage-blob==12.27.1
     # via -r requirements.in
@@ -59,7 +59,6 @@ requests==2.32.2
     #   azure-core
 six==1.15.0
     # via
-    #   azure-core
     #   isodate
     #   python-dateutil
 typing-extensions==4.11.0
