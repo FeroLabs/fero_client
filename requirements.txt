@@ -14,11 +14,11 @@ backoff==2.2.1
     # via -r requirements.in
 certifi==2024.7.4
     # via requests
-cffi==1.15.0
+cffi==2.0.0
     # via cryptography
 charset-normalizer==2.1.1
     # via requests
-cryptography==43.0.1
+cryptography==46.0.5
     # via azure-storage-blob
 idna==3.7
     # via requests
