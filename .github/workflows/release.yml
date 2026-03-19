@@ -1,5 +1,6 @@
-# Publishes to PyPI when a version tag is pushed (replaces CircleCI build-and-deploy).
-# Add repository secret PYPI_API_TOKEN (PyPI → Account settings → API tokens).
+# Publishes to PyPI when a version tag is pushed.
+# Repository secret: PYPI_API_TOKEN (PyPI → Account settings → API tokens).
+# setup.py verify reads GITHUB_REF_NAME — set automatically by GitHub Actions for the ref that triggered the run.
 
 name: Release
 
@@ -47,8 +48,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r dev-requirements.txt build
       - name: Verify Git tag matches package version
-        env:
-          GITHUB_REF_NAME: ${{ github.ref_name }}
         run: python setup.py verify
       - name: Build sdist and wheel
         run: python -m build
