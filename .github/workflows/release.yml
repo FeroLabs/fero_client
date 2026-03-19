@@ -1,0 +1,58 @@
+# Publishes to PyPI when a version tag is pushed (replaces CircleCI build-and-deploy).
+# Add repository secret PYPI_API_TOKEN (PyPI → Account settings → API tokens).
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            dev-requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r dev-requirements.txt
+      - name: Flake8
+        run: flake8 .
+      - name: Black
+        run: black --check .
+      - name: Test
+        run: pytest tests
+
+  publish:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r dev-requirements.txt build
+      - name: Verify Git tag matches package version
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+        run: python setup.py verify
+      - name: Build sdist and wheel
+        run: python -m build
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
