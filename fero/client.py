@@ -192,7 +192,10 @@ class Fero:
         blob_client = BlobClient.from_blob_url(
             f"https://{inbox_response['storage_name']}.blob.core.windows.net/{inbox_response['container']}/{inbox_response['blob']}?{inbox_response['sas_token']}"
         )
-        blob_client.upload_blob(io.BytesIO(fp.read().encode()))
+        data = fp.read()
+        if isinstance(data, str):
+            data = data.encode()
+        blob_client.upload_blob(io.BytesIO(data))
 
     def _paginated_get(
         self, url: str, object_class: Type[FeroObject], params: Dict[str, str]
