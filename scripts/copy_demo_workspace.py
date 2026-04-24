@@ -4,7 +4,6 @@ from argparse import ArgumentParser
 from fero.client import UnsafeFeroForScripting
 from scripts.common import copy_demo_workspace
 
-
 if __name__ == "__main__":
     parser = ArgumentParser(
         prog="copy_demo_workspace",
