@@ -4,8 +4,6 @@
 #
 #    pip-compile --output-file=dev-requirements.txt dev-requirements.in
 #
-attrs==21.4.0
-    # via pytest
 black==24.3.0
     # via -r dev-requirements.in
 bleach==5.0.1
@@ -61,9 +59,7 @@ pkginfo==1.8.3
     # via twine
 platformdirs==2.5.2
     # via black
-pluggy==1.0.0
-    # via pytest
-py==1.11.0
+pluggy==1.6.0
     # via pytest
 pycodestyle==2.8.0
     # via flake8
@@ -76,9 +72,10 @@ pyflakes==2.4.0
 pygments==2.15.0
     # via
     #   flake8-rst-docstrings
+    #   pytest
     #   readme-renderer
     #   rich
-pytest==7.1.2
+pytest==9.0.3
     # via -r dev-requirements.in
 readme-renderer==35.0
     # via twine
@@ -100,8 +97,6 @@ six==1.16.0
     # via bleach
 snowballstemmer==2.2.0
     # via pydocstyle
-tomli==2.0.1
-    # via pytest
 twine==4.0.1
     # via -r dev-requirements.in
 urllib3==2.6.3
