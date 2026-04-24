@@ -19,7 +19,6 @@ from marshmallow import (
 from typing import Any, Union, List, Optional, IO, Tuple
 from .common import FeroObject
 
-
 VALID_GOALS = ["minimize", "maximize"]
 FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
 V1_RESULT_SUFFIXES = ["low", "mid", "high"]
