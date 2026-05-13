@@ -101,7 +101,7 @@ snowballstemmer==2.2.0
     # via pydocstyle
 twine==4.0.1
     # via -r dev-requirements.in
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   requests
     #   twine
