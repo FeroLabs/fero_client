@@ -157,12 +157,12 @@ class ProcessSchema(Schema):
 
     api_id = fields.String(required=True)
     name = fields.String(required=True)
-    created = fields.DateTime(require=True)
-    modified = fields.DateTime(require=True)
+    created = fields.DateTime(required=True)
+    modified = fields.DateTime(required=True)
     latest_revision_version = fields.Integer(required=True)
     username = fields.String(required=True)
     process_type = fields.String(required=True, validate=FeroProcessTypes.validator())
-    product_type = fields.String(Required=False, allow_none=True)
+    product_type = fields.String(required=False, allow_none=True)
     kind = fields.String(required=True, validate=validate.OneOf(["process"]))
     latest_ready_snapshot = fields.Nested(NestedSnapshotSchema, allow_none=True)
     # TODO update this to a nested schema once the configuration settles more
