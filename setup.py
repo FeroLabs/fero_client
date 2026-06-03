@@ -11,7 +11,7 @@ import pathlib
 here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.md").read_text(encoding="utf-8")
-VERSION = "2.2.10"
+VERSION = "2.2.11"
 
 
 class VerifyVersionCommand(install):
@@ -43,16 +43,18 @@ setup(
         "Topic :: Software Development :: Build Tools",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3 :: Only",
     ],
     packages=["fero"],
-    python_requires=">=3.7, <4",
+    python_requires=">=3.9, <4",
     install_requires=[
         "requests",
         "pandas>=2.2.0,<3",
-        "marshmallow>=3.8.0,<3.27.0",
+        "marshmallow>=3.26.2,<4",
         "azure-storage-blob",
         "pyarrow>=12.0.0,<20.0.0",
     ],

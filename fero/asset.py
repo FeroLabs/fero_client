@@ -73,9 +73,9 @@ class AssetSchema(Schema):
 
     uuid = fields.UUID(required=True)
     name = fields.String(required=True)
-    created = fields.DateTime(require=True)
+    created = fields.DateTime(required=True)
     created_by = fields.Dict(required=True)
-    modified = fields.DateTime(require=True)
+    modified = fields.DateTime(required=True)
 
 
 class Asset(FeroObject):
