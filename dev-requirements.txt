@@ -53,7 +53,7 @@ packaging==24.1
     # via
     #   black
     #   pytest
-pathspec==1.1.0
+pathspec==1.1.1
     # via black
 pkginfo==1.8.3
     # via twine
