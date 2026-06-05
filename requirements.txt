@@ -6,9 +6,9 @@
 #
 annotated-types==0.6.0
     # via pydantic
-azure-core==1.38.0
+azure-core==1.41.0
     # via azure-storage-blob
-azure-storage-blob==12.27.1
+azure-storage-blob==12.29.0
     # via -r requirements.in
 backoff==2.2.1
     # via -r requirements.in
