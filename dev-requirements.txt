@@ -45,7 +45,7 @@ jeepney==0.9.0
     #   secretstorage
 keyring==23.6.0
     # via twine
-mccabe==0.6.1
+mccabe==0.7.0
     # via flake8
 mypy-extensions==0.4.4
     # via black
