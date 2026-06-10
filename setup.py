@@ -11,7 +11,7 @@ import pathlib
 here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.md").read_text(encoding="utf-8")
-VERSION = "2.2.11"
+VERSION = "2.2.12"
 
 
 class VerifyVersionCommand(install):
@@ -56,7 +56,7 @@ setup(
         "pandas>=2.2.0,<3",
         "marshmallow>=3.26.2,<4",
         "azure-storage-blob",
-        "pyarrow>=12.0.0,<20.0.0",
+        "pyarrow>=12.0.0,<24.0.0",
     ],
     project_urls={
         "Bug Reports": "https://github.com/pypa/sampleproject/issues",
