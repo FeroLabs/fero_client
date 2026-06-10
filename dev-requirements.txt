@@ -39,7 +39,7 @@ importlib-metadata==4.13.0
     # via twine
 iniconfig==1.1.1
     # via pytest
-jeepney==0.8.0
+jeepney==0.9.0
     # via
     #   keyring
     #   secretstorage
