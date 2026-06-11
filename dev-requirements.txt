@@ -61,7 +61,7 @@ platformdirs==2.5.2
     # via black
 pluggy==1.6.0
     # via pytest
-pycodestyle==2.8.0
+pycodestyle==2.14.0
     # via flake8
 pycparser==2.21
     # via cffi
