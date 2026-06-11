@@ -41,7 +41,7 @@ pyarrow==14.0.2
     # via -r requirements.in
 pycparser==2.21
     # via cffi
-pydantic==2.7.1
+pydantic==2.13.4
     # via pydantic-settings
 pydantic-core==2.18.2
     # via pydantic
