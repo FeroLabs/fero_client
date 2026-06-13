@@ -43,7 +43,7 @@ pycparser==2.21
     # via cffi
 pydantic==2.7.1
     # via pydantic-settings
-pydantic-core==2.18.2
+pydantic-core==2.47.0
     # via pydantic
 pydantic-settings==2.2.1
     # via -r requirements.in
