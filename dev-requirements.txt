@@ -6,7 +6,7 @@
 #
 black==26.5.1
     # via -r dev-requirements.in
-bleach==5.0.1
+bleach==6.4.0
     # via readme-renderer
 certifi==2024.12.14
     # via requests
