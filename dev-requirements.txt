@@ -36,9 +36,13 @@ flake8-rst-docstrings==0.4.0
 idna==3.18
     # via requests
 importlib-metadata==4.13.0
-    # via twine
+    # via
+    #   keyring
+    #   twine
 iniconfig==1.1.1
     # via pytest
+jaraco-classes==3.4.0
+    # via keyring
 jeepney==0.9.0
     # via
     #   keyring
@@ -47,6 +51,8 @@ keyring==23.13.1
     # via twine
 mccabe==0.6.1
     # via flake8
+more-itertools==11.1.0
+    # via jaraco-classes
 mypy-extensions==0.4.4
     # via black
 packaging==24.1
@@ -95,8 +101,6 @@ rich==12.4.4
     # via twine
 secretstorage==3.3.3
     # via keyring
-six==1.16.0
-    # via bleach
 snowballstemmer==2.2.0
     # via pydocstyle
 twine==4.0.2
