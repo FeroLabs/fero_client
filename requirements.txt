@@ -39,7 +39,7 @@ pandas==2.3.3
     # via -r requirements.in
 pyarrow==14.0.2
     # via -r requirements.in
-pycparser==2.21
+pycparser==2.23
     # via cffi
 pydantic==2.7.1
     # via pydantic-settings
