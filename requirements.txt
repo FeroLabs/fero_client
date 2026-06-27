@@ -51,7 +51,7 @@ python-dateutil==2.9.0.post0
     # via pandas
 python-dotenv==1.2.2
     # via pydantic-settings
-pytz==2020.1
+pytz==2020.5
     # via pandas
 requests==2.33.0
     # via
