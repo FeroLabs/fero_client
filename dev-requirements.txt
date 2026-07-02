@@ -91,7 +91,7 @@ requests==2.34.2
     # via
     #   requests-toolbelt
     #   twine
-requests-toolbelt==0.9.1
+requests-toolbelt==0.10.1
     # via twine
 restructuredtext-lint==1.4.1
     # via flake8-rst-docstrings
