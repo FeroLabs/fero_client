@@ -57,7 +57,7 @@ requests==2.33.0
     # via
     #   -r requirements.in
     #   azure-core
-six==1.15.0
+six==1.17.0
     # via
     #   isodate
     #   python-dateutil
