@@ -81,7 +81,7 @@ pygments==2.20.0
     #   pytest
     #   readme-renderer
     #   rich
-pytest==9.0.3
+pytest==9.1.1
     # via -r dev-requirements.in
 pytokens==0.4.1
     # via black
