@@ -99,7 +99,7 @@ rfc3986==2.0.0
     # via twine
 rich==12.6.0
     # via twine
-secretstorage==3.3.3
+secretstorage==3.5.0
     # via keyring
 snowballstemmer==2.2.0
     # via pydocstyle
