@@ -61,7 +61,7 @@ six==1.17.0
     # via
     #   isodate
     #   python-dateutil
-typing-extensions==4.11.0
+typing-extensions==4.16.0
     # via
     #   azure-core
     #   azure-storage-blob
