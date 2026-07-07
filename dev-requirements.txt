@@ -10,7 +10,7 @@ bleach==6.4.0
     # via readme-renderer
 certifi==2024.12.14
     # via requests
-cffi==2.0.0
+cffi==2.1.0
     # via cryptography
 charset-normalizer==2.1.1
     # via requests

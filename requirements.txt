@@ -14,7 +14,7 @@ backoff==2.2.1
     # via -r requirements.in
 certifi==2024.12.14
     # via requests
-cffi==2.0.0
+cffi==2.1.0
     # via cryptography
 charset-normalizer==2.1.1
     # via requests
