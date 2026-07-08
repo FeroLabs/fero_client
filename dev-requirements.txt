@@ -18,7 +18,7 @@ click==8.4.2
     # via black
 commonmark==0.9.2
     # via rich
-cryptography==48.0.1
+cryptography==49.0.0
     # via secretstorage
 docutils==0.23
     # via
