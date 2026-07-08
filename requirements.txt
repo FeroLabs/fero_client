@@ -16,7 +16,7 @@ certifi==2026.6.17
     # via requests
 cffi==2.1.0
     # via cryptography
-charset-normalizer==2.1.1
+charset-normalizer==3.4.9
     # via requests
 cryptography==49.0.0
     # via azure-storage-blob
