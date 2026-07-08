@@ -24,7 +24,7 @@ idna==3.18
     # via requests
 isodate==0.7.2
     # via azure-storage-blob
-marshmallow==3.26.2
+marshmallow==4.3.0
     # via -r requirements.in
 numpy==2.4.6
     # via
