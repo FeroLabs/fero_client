@@ -1,10 +1,10 @@
 azure-storage-blob>=12.25.1
 backoff==2.2.1
 marshmallow>=3.26.2,<4
-pandas>=2.2.0,<3
-pyarrow>=12.0.0,<15.0
+pandas>=3,<4
+pyarrow>=16,<24
 requests>=2.33.0
-numpy>=1.24.3,<2.0
+numpy>=1.26,<3
 oauthlib>=3.2.1,<4
 urllib3>=2.7.0,<3
 pydantic-settings==2.2.1
