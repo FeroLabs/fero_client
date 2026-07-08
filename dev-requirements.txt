@@ -39,7 +39,7 @@ importlib-metadata==4.13.0
     # via
     #   keyring
     #   twine
-iniconfig==1.1.1
+iniconfig==2.3.0
     # via pytest
 jaraco-classes==3.4.0
     # via keyring
