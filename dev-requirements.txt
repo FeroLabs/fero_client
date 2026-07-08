@@ -53,7 +53,7 @@ mccabe==0.7.0
     # via flake8
 more-itertools==11.1.0
     # via jaraco-classes
-mypy-extensions==0.4.4
+mypy-extensions==1.1.0
     # via black
 packaging==24.2
     # via
