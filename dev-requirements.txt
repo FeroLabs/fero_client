@@ -85,7 +85,7 @@ pytest==9.1.1
     # via -r dev-requirements.in
 pytokens==0.4.1
     # via black
-readme-renderer==35.0
+readme-renderer==45.0
     # via twine
 requests==2.34.2
     # via
