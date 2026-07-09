@@ -8,17 +8,17 @@ black==26.5.1
     # via -r dev-requirements.in
 bleach==6.4.0
     # via readme-renderer
-certifi==2024.12.14
+certifi==2026.6.17
     # via requests
-cffi==2.0.0
+cffi==2.1.0
     # via cryptography
-charset-normalizer==2.1.1
+charset-normalizer==3.4.9
     # via requests
 click==8.4.2
     # via black
 commonmark==0.9.2
     # via rich
-cryptography==48.0.1
+cryptography==49.0.0
     # via secretstorage
 docutils==0.23
     # via
@@ -35,11 +35,11 @@ flake8-rst-docstrings==0.4.0
     # via -r dev-requirements.in
 idna==3.18
     # via requests
-importlib-metadata==4.13.0
+importlib-metadata==9.0.0
     # via
     #   keyring
     #   twine
-iniconfig==1.1.1
+iniconfig==2.3.0
     # via pytest
 jaraco-classes==3.4.0
     # via keyring
@@ -47,15 +47,15 @@ jeepney==0.9.0
     # via
     #   keyring
     #   secretstorage
-keyring==23.13.1
+keyring==25.7.0
     # via twine
 mccabe==0.7.0
     # via flake8
 more-itertools==11.1.0
     # via jaraco-classes
-mypy-extensions==0.4.4
+mypy-extensions==1.1.0
     # via black
-packaging==24.2
+packaging==26.2
     # via
     #   black
     #   pytest
@@ -63,15 +63,15 @@ pathspec==1.1.1
     # via black
 pkginfo==1.12.1.2
     # via twine
-platformdirs==2.6.2
+platformdirs==4.10.0
     # via black
 pluggy==1.6.0
     # via pytest
 pycodestyle==2.14.0
     # via flake8
-pycparser==2.23
+pycparser==3.0
     # via cffi
-pydocstyle==6.1.1
+pydocstyle==6.3.0
     # via flake8-docstrings
 pyflakes==3.4.0
     # via flake8
@@ -81,25 +81,25 @@ pygments==2.20.0
     #   pytest
     #   readme-renderer
     #   rich
-pytest==9.0.3
+pytest==9.1.1
     # via -r dev-requirements.in
 pytokens==0.4.1
     # via black
 readme-renderer==35.0
     # via twine
-requests==2.33.0
+requests==2.34.2
     # via
     #   requests-toolbelt
     #   twine
-requests-toolbelt==0.9.1
+requests-toolbelt==0.10.1
     # via twine
 restructuredtext-lint==1.4.1
     # via flake8-rst-docstrings
 rfc3986==2.0.0
     # via twine
-rich==12.4.4
+rich==12.6.0
     # via twine
-secretstorage==3.3.3
+secretstorage==3.5.0
     # via keyring
 snowballstemmer==2.2.0
     # via pydocstyle
@@ -111,5 +111,5 @@ urllib3==2.7.0
     #   twine
 webencodings==0.5.1
     # via bleach
-zipp==3.19.1
+zipp==3.23.1
     # via importlib-metadata
