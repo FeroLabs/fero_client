@@ -54,7 +54,7 @@ setup(
     install_requires=[
         "requests",
         "pandas>=2.2.0,<4",
-        "marshmallow>=3.26.2,<4",
+        "marshmallow>=4.3,<5",
         "azure-storage-blob",
         "pyarrow>=24.0.0,<24.1.0",
     ],

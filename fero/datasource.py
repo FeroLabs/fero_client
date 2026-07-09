@@ -61,13 +61,13 @@ class DataSourceSchema(Schema):
         validate=validate.OneOf(["I", "P", "L", "A", "W", "C", "R", "E"]), required=True
     )
 
-    error_notices = fields.Dict(required=True, default=lambda: {"errors": []})
-    progress = fields.Integer(required=True, default=0)
+    error_notices = fields.Dict(required=True, dump_default=lambda: {"errors": []})
+    progress = fields.Integer(required=True, dump_default=0)
 
     overwrites = fields.Dict(required=True, allow_none=True)
 
-    transformed_source = fields.Bool(required=True, default=False)
-    live_source = fields.Bool(required=True, default=False)
+    transformed_source = fields.Bool(required=True, dump_default=False)
+    live_source = fields.Bool(required=True, dump_default=False)
     default_upload_config = fields.Dict(required=False)
     raw_file = fields.Url(required=False, allow_none=True)
     download_url = fields.Url(required=False, allow_none=True)
@@ -225,7 +225,8 @@ class UploadedFilesSchema(Schema):
     )
 
     error_notices = fields.Dict(
-        required=True, default=lambda: {"global_notices": [], "parsing_notices": []}
+        required=True,
+        dump_default=lambda: {"global_notices": [], "parsing_notices": []},
     )
 
 
