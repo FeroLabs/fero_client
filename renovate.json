@@ -1,6 +1,60 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:recommended"
+    "config:best-practices",
+    "mergeConfidence:all-badges"
+  ],
+  "internalChecksFilter": "strict",
+  "minimumReleaseAge": "14 days",
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security"],
+    "minimumReleaseAge": null
+  },
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "pip-compile": {
+    "managerFilePatterns": [
+      "/^requirements\\.txt$/",
+      "/^dev-requirements\\.txt$/"
+    ]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update python-version in GitHub Actions workflow files",
+      "managerFilePatterns": ["/^\\.github/workflows/.*\\.ya?ml$/"],
+      "matchStrings": ["python-version:\\s*[\"']?(?<currentValue>[\\d.]+)[\"']?"],
+      "depNameTemplate": "python",
+      "datasourceTemplate": "docker"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Soak major updates 30 days before raising a PR — the most breakage-prone, so give them the longest bake. CVE remediation is unaffected (vulnerabilityAlerts ignores the soak).",
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "30 days"
+    },
+    {
+      "description": "requirements.txt and dev-requirements.txt are pip-compile lockfiles generated from setup.py (install_requires, and install_requires + the dev extra respectively). The pip-compile manager owns them and applies bumps to the constraints in setup.py, then regenerates the lockfiles. Disable the default pip_requirements manager on the lockfiles and the pip_setup manager on setup.py so they don't emit competing, drifting PRs against the compile source.",
+      "matchManagers": ["pip_requirements", "pip_setup"],
+      "matchFileNames": [
+        "requirements.txt",
+        "dev-requirements.txt",
+        "setup.py"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "The python-version regex manager tracks a bare X.Y.Z version with no digest slot, so digest pinning (enabled repo-wide by config:best-practices) would fail with 'Digest is not updated'. Disable it for regex-managed docker deps.",
+      "matchManagers": ["custom.regex"],
+      "matchDatasources": ["docker"],
+      "pinDigests": false
+    },
+    {
+      "description": "Group all Python version updates together so the CI/CD workflows bump in a single PR",
+      "matchDepNames": ["python"],
+      "groupName": "python"
+    }
   ]
 }

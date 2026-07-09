@@ -1,6 +1,0 @@
-pytest
-flake8
-black
-twine
-flake8-docstrings
-flake8-rst-docstrings
