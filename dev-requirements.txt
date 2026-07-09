@@ -69,7 +69,7 @@ pluggy==1.6.0
     # via pytest
 pycodestyle==2.14.0
     # via flake8
-pycparser==2.23
+pycparser==3.0
     # via cffi
 pydocstyle==6.3.0
     # via flake8-docstrings
