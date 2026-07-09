@@ -103,7 +103,7 @@ secretstorage==3.5.0
     # via keyring
 snowballstemmer==2.2.0
     # via pydocstyle
-twine==4.0.2
+twine==6.2.0
     # via -r dev-requirements.in
 urllib3==2.7.0
     # via
