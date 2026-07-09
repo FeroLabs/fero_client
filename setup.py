@@ -56,7 +56,7 @@ setup(
         "pandas>=2.2.0,<4",
         "marshmallow>=3.26.2,<4",
         "azure-storage-blob",
-        "pyarrow>=12.0.0,<24.0.0",
+        "pyarrow>=24.0.0,<24.1.0",
     ],
     project_urls={
         "Bug Reports": "https://github.com/pypa/sampleproject/issues",
