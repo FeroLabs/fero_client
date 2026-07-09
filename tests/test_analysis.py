@@ -1204,9 +1204,16 @@ def test_revise_makes_expected_calls(analysis_data, patched_fero_client, revisio
     ]
     patched_fero_client.post.return_value = revision_data
 
-    with mock.patch("datetime.datetime") as dt:
-        now = datetime.datetime(2021, 8, 4, 0, 0, 1)
-        dt.now.return_value = now
+    now = datetime.datetime(2021, 8, 4, 0, 0, 1)
+
+    # A real subclass (not a MagicMock) so marshmallow's isinstance(value, datetime.datetime)
+    # checks during schema loading still pass while `now()` is patched.
+    class FrozenDateTime(datetime.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return now
+
+    with mock.patch("datetime.datetime", FrozenDateTime):
         analysis.revise()
 
         patched_fero_client.get.assert_has_calls(

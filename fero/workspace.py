@@ -22,12 +22,12 @@ class WorkspaceSchema(Schema):
 
     uuid = fields.UUID(required=True)
     name = fields.Str(required=True)
-    description = fields.Str(default="", allow_none=True)
+    description = fields.Str(dump_default="", allow_none=True)
     modified = fields.DateTime(required=True)
     created_by = fields.Dict(required=True)
-    analyses = fields.List(fields.Dict(), default=list)
-    processes = fields.List(fields.Dict(), default=list)
-    datasources = fields.List(fields.Dict(), default=list)
+    analyses = fields.List(fields.Dict(), dump_default=list)
+    processes = fields.List(fields.Dict(), dump_default=list)
+    datasources = fields.List(fields.Dict(), dump_default=list)
 
 
 class Workspace(FeroObject):

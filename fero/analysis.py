@@ -72,11 +72,11 @@ class AnalysisSchema(Schema):
 
     latest_completed_model_modified = fields.DateTime(required=False, allow_none=True)
 
-    latest_completed_model_schema = fields.Dict(default=dict, missing=dict)
+    latest_completed_model_schema = fields.Dict(dump_default=dict, load_default=dict)
 
-    schema_overrides = fields.Dict(default=dict, missing=dict)
+    schema_overrides = fields.Dict(dump_default=dict, load_default=dict)
 
-    display_options = fields.Dict(allow_none=True, default=dict, missing=dict)
+    display_options = fields.Dict(allow_none=True, dump_default=dict, load_default=dict)
     ac_name = fields.String(required=True)
 
     uuid = fields.UUID(required=True)
@@ -109,9 +109,9 @@ class FactorSchema(Schema):
     """A schema to store data related to a factor linked to a fero analysis optimization."""
 
     name = fields.String(required=True)
-    min = fields.Number(required=False, default=None)
-    max = fields.Number(required=False, default=None)
-    cost = fields.Number(required=False)
+    min = fields.Float(required=False, dump_default=None)
+    max = fields.Float(required=False, dump_default=None)
+    cost = fields.Float(required=False)
 
     @validates_schema
     def relative_min_and_max(self, data: dict, **kwargs):

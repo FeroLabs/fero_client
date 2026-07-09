@@ -27,7 +27,7 @@ class AssetSchema(Schema):
 
     process_deleted = fields.Boolean()
 
-    current_bound = fields.Dict(allow_none=True, default=dict, missing=dict)
+    current_bound = fields.Dict(allow_none=True, dump_default=dict, load_default=dict)
 
     latest_configuration = fields.Integer()
 
