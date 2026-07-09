@@ -218,7 +218,7 @@ def datasource_csv(tmp_path):
     rows = 30000
     start = datetime.datetime(2022, 1, 1)
     end = start + datetime.timedelta(seconds=rows - 1)
-    date_rng = pd.date_range(start=start, end=end, freq="S")
+    date_rng = pd.date_range(start=start, end=end, freq="s")
 
     df = pd.DataFrame(
         {
