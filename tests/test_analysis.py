@@ -1241,5 +1241,7 @@ def test_revise_does_not_revise_if_training(analysis_data, patched_fero_client):
     patched_fero_client.get.return_value = analysis_data
 
     analysis.revise()
-    patched_fero_client.get.called_once_with(f"/api/analyses/{analysis_data['uuid']}/")
+    patched_fero_client.get.assert_called_once_with(
+        f"/api/analyses/{analysis_data['uuid']}/"
+    )
     patched_fero_client.post.assert_not_called()
