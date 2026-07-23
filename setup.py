@@ -1,34 +1,12 @@
 """File to define installation of the `fero` package."""
 
-import os
-import sys
-
-
 from setuptools import setup
-from setuptools.command.install import install
 import pathlib
 
 here = pathlib.Path(__file__).parent.resolve()
 
 long_description = (here / "README.md").read_text(encoding="utf-8")
 VERSION = "2.3.0"
-
-
-class VerifyVersionCommand(install):
-    """Custom command to verify that the git tag matches our version."""
-
-    description = "verify that the git tag matches our version"
-
-    def run(self):
-        """Verify that the git tag matches our version with this custom command."""
-        tag = os.getenv("CIRCLE_TAG") or os.getenv("GITHUB_REF_NAME")
-        if not tag:
-            sys.exit(
-                "Set CIRCLE_TAG or GITHUB_REF_NAME to the release tag (e.g. v1.2.3) to verify."
-            )
-        if tag.lstrip("v") != VERSION:
-            info = f"Git tag: {tag} does not match the version of this app: {VERSION}"
-            sys.exit(info)
 
 
 setup(
@@ -73,8 +51,5 @@ setup(
     project_urls={
         "Bug Reports": "https://github.com/pypa/sampleproject/issues",
         "Source": "https://github.com/pypa/sampleproject/",
-    },
-    cmdclass={
-        "verify": VerifyVersionCommand,
     },
 )
