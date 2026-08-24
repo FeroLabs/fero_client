@@ -237,6 +237,142 @@ opt = analysis.make_optimization(
 )
 ```
 
+### Retrieving live predictions
+
+Fero continuously runs *live* predictions and optimizations against an Analysis as new process data arrives. `Analysis.get_live_predictions` retrieves the most recent of these.
+
+Four kinds of live prediction are available, selected with the `type` argument using the `LivePredictionType` enum:
+
+| `LivePredictionType` | Returns | Description |
+| --- | --- | --- |
+| `PREDICTION` (default) | `LivePrediction` | A prediction of the Analysis targets against a single basis. |
+| `FLEXIBLE_PREDICTION` | `FlexibleLivePrediction` | A prediction evaluated against several scenarios at once. |
+| `OPTIMIZATION` | `LiveOptimization` | An optimization of the Analysis factors against a single basis. |
+| `FLEXIBLE_OPTIMIZATION` | `FlexibleLiveOptimization` | An optimization evaluated against several scenarios at once. |
+
+The ordering is controlled with the `sort` argument using the `LivePredictionSort` enum:
+
+| `LivePredictionSort` | Description |
+| --- | --- |
+| `NEWEST_FIRST` (default) | Most recently created first. |
+| `OLDEST_FIRST` | Oldest created first. |
+| `LIVE_ORDER_DESCENDING` | Ordered by the live data's own ordering value, highest first. |
+| `LIVE_ORDER_ASCENDING` | Ordered by the live data's own ordering value, lowest first. |
+
+Prefer the `LIVE_ORDER_*` options over `NEWEST_FIRST`/`OLDEST_FIRST` when your live data can arrive out of order, as they sort by the ordering value carried on the source data rather than by when Fero recorded the prediction.
+
+Finally, `limit` sets how many predictions to return. It defaults to 10 and is capped at 1000; this method is intended for reading recent live activity rather than for bulk export.
+
+All three arguments are validated before the request is made, so an invalid `type`, `sort` or `limit` raises a `FeroError` locally. Plain strings are accepted in place of the enum members if you would rather not import them.
+
+#### Example 1: The latest live predictions
+
+Every returned object provides a `to_dataframe` method along with the metadata of the prediction itself.
+
+```python
+from fero import Fero, LivePredictionType, LivePredictionSort
+
+fero_client = Fero()
+analysis = fero_client.get_analysis("<analysis uuid>")
+
+predictions = analysis.get_live_predictions(limit=5)
+
+latest = predictions[0]
+print(latest.created, latest.prediction_tag, latest.complete)
+# 2026-08-24 12:00:00.123456+00:00 gc-p-1234 True
+
+# The basis the prediction was made against
+print(latest.basis)
+# {'CARBON': 0.21, 'SILICON': 0.18}
+
+# The predicted distribution for each target
+print(latest.targets["TENSILE_STRENGTH"].mid)
+# 190.24
+
+print(latest.to_dataframe())
+#                    low90   low50     mid   high50   high90
+# TENSILE_STRENGTH  162.48  178.86  190.24   201.63   218.01
+```
+
+A live prediction that is still running, or that failed, is still included in the results. Check `complete` and `status` before using one; calling `to_dataframe` on a prediction that is incomplete or failed raises a `FeroError`.
+
+```python
+for prediction in analysis.get_live_predictions():
+    if not prediction.complete:
+        print(f"{prediction.uuid} is still running")
+    elif prediction.status == "FAILURE":
+        print(f"{prediction.uuid} failed: {prediction.message}")
+    else:
+        print(prediction.to_dataframe())
+```
+
+#### Example 2: Live optimizations
+
+A `LiveOptimization` reports the optimal values Fero found as a `DataFrame`. It returns `None` if the optimization produced no values.
+
+```python
+optimizations = analysis.get_live_predictions(
+    type=LivePredictionType.OPTIMIZATION,
+    sort=LivePredictionSort.LIVE_ORDER_DESCENDING,
+    limit=3,
+)
+
+print(optimizations[0].to_dataframe())
+#    CARBON  SILICON  TENSILE_STRENGTH
+# 0    0.19     0.22            201.63
+```
+
+#### Example 3: Flexible predictions and optimizations
+
+A flexible prediction evaluates the same request against several scenarios at once. It is returned as a *single* object holding a `scenarios` list, so `limit` always counts predictions rather than scenarios. Each scenario reports the `basis` it was evaluated against.
+
+`default_scenario` is the scenario Fero considers most representative. For a flexible optimization this is the riskiest scenario, which is usually the one worth acting on.
+
+```python
+prediction = analysis.get_live_predictions(
+    type=LivePredictionType.FLEXIBLE_PREDICTION,
+    limit=1,
+)[0]
+
+print(len(prediction.scenarios))
+# 3
+
+# Each scenario carries the basis it was evaluated against
+print(prediction.scenarios[0].basis)
+# {'CARBON': 0.21, 'SILICON': 0.18, 'GRADE': 'A'}
+
+print(prediction.default_scenario.targets["TENSILE_STRENGTH"].mid)
+# 190.24
+
+# Every scenario in a single frame, indexed by scenario and target
+print(prediction.to_dataframe())
+#                              low90   low50     mid   high50   high90
+# scenario target
+# 0        TENSILE_STRENGTH   162.48  178.86  190.24   201.63   218.01
+# 1        TENSILE_STRENGTH   155.00  171.53  183.01   194.50   211.02
+# 2        TENSILE_STRENGTH   160.63  175.88  186.48   197.08   212.32
+```
+
+A `FlexibleLiveOptimization` works the same way, with each scenario holding its own optimal values.
+
+```python
+optimization = analysis.get_live_predictions(
+    type=LivePredictionType.FLEXIBLE_OPTIMIZATION,
+    limit=1,
+)[0]
+
+# The riskiest scenario Fero identified
+print(optimization.default_scenario.to_dataframe())
+#    CARBON  SILICON  TENSILE_STRENGTH
+# 0    0.19     0.22            201.63
+
+# Or every scenario at once, tagged with a scenario column
+print(optimization.to_dataframe())
+#    scenario  CARBON  SILICON  TENSILE_STRENGTH
+# 0         0    0.19     0.22            201.63
+# 1         1    0.20     0.21            194.50
+```
+
 ## Finding a Fero Asset
 
 The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single unique identifier string (UUID) and attempts to look up the asset matching this ID. The second method is `Fero.search_assets`, which will return an iterator of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
