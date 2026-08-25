@@ -18,6 +18,15 @@ from marshmallow import (
 )
 from typing import Any, Union, List, Optional, IO, Tuple
 from .common import FeroObject
+from .live_predictions import (
+    DEFAULT_LIMIT,
+    LivePredictionBase,
+    LivePredictionSort,
+    LivePredictionType,
+    coerce_enum_value,
+    validate_limit,
+    live_prediction_from_data,
+)
 
 VALID_GOALS = ["minimize", "maximize"]
 FERO_COST_FUNCTION = "FERO_COST_FUNCTION"
@@ -1049,6 +1058,56 @@ class Analysis(FeroObject):
             **kwargs,
         )
         return self._request_prediction(optimize_request, synchronous)
+
+    def get_live_predictions(
+        self,
+        type: Union[LivePredictionType, str] = LivePredictionType.PREDICTION,
+        sort: Union[LivePredictionSort, str] = LivePredictionSort.NEWEST_FIRST,
+        limit: int = DEFAULT_LIMIT,
+    ) -> List[LivePredictionBase]:
+        """Get the most recent live predictions or optimizations for this analysis.
+
+        Fero runs four kinds of live prediction, selected with `type`. Each returns a
+        different object, all of which expose a `to_dataframe` method:
+
+        - `LivePredictionType.PREDICTION` returns `LivePrediction` objects, whose `targets`
+          hold the predicted distribution for each analysis target.
+        - `LivePredictionType.FLEXIBLE_PREDICTION` returns `FlexibleLivePrediction` objects,
+          which evaluate several scenarios at once and expose them as `scenarios`.
+        - `LivePredictionType.OPTIMIZATION` returns `LiveOptimization` objects holding the
+          optimal factor values Fero found.
+        - `LivePredictionType.FLEXIBLE_OPTIMIZATION` returns `FlexibleLiveOptimization`
+          objects, which likewise expose their per-scenario results as `scenarios`.
+
+        This is intended for reading recent live activity, not for bulk export, so `limit`
+        is capped at 1000. Predictions that are still running or that failed are included
+        in the result; check `complete` and `status` before using their results.
+
+        :param type: The kind of live prediction to retrieve, defaults to
+            `LivePredictionType.PREDICTION`
+        :type type: Union[LivePredictionType, str], optional
+        :param sort: The order to return predictions in, defaults to
+            `LivePredictionSort.NEWEST_FIRST` (most recently created first)
+        :type sort: Union[LivePredictionSort, str], optional
+        :param limit: How many predictions to return, from 1 to 1000, defaults to 10
+        :type limit: int, optional
+        :raises FeroError: Raised if any argument is invalid or the request fails
+        :return: The matching live predictions, ordered by `sort`
+        :rtype: List[LivePredictionBase]
+        """
+        params = {
+            "type": coerce_enum_value(type, LivePredictionType, "type"),
+            "sort": coerce_enum_value(sort, LivePredictionSort, "sort"),
+            "limit": validate_limit(limit),
+        }
+
+        response = self._client.get(
+            f"/api/analyses/{str(self.uuid)}/get_live_predictions/", params=params
+        )
+
+        return [
+            live_prediction_from_data(result) for result in response.get("results", [])
+        ]
 
     @property
     def configured_blueprint(self) -> dict:

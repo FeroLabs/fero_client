@@ -237,6 +237,333 @@ opt = analysis.make_optimization(
 )
 ```
 
+### Retrieving live predictions
+
+Fero continuously runs *live* predictions and optimizations against an Analysis as new process data arrives. `Analysis.get_live_predictions` retrieves the most recent of these.
+
+Four kinds of live prediction are available, selected with the `type` argument using the `LivePredictionType` enum:
+
+| `LivePredictionType` | Returns | Description |
+| --- | --- | --- |
+| `PREDICTION` (default) | `LivePrediction` | A prediction of the Analysis targets against a single basis. |
+| `FLEXIBLE_PREDICTION` | `FlexibleLivePrediction` | A prediction evaluated against several scenarios at once. |
+| `OPTIMIZATION` | `LiveOptimization` | An optimization of the Analysis factors against a single basis. |
+| `FLEXIBLE_OPTIMIZATION` | `FlexibleLiveOptimization` | An optimization evaluated against several scenarios at once. |
+
+The ordering is controlled with the `sort` argument using the `LivePredictionSort` enum:
+
+| `LivePredictionSort` | Description |
+| --- | --- |
+| `NEWEST_FIRST` (default) | Most recently created first. |
+| `OLDEST_FIRST` | Oldest created first. |
+| `LIVE_ORDER_DESCENDING` | Ordered by the live data's own ordering value, highest first. |
+| `LIVE_ORDER_ASCENDING` | Ordered by the live data's own ordering value, lowest first. |
+
+Prefer the `LIVE_ORDER_*` options over `NEWEST_FIRST`/`OLDEST_FIRST` when your live data can arrive out of order, as they sort by the ordering value carried on the source data rather than by when Fero recorded the prediction.
+
+Finally, `limit` sets how many predictions to return. It defaults to 10 and is capped at 1000; this method is intended for reading recent live activity rather than for bulk export.
+
+All three arguments are validated before the request is made, so an invalid `type`, `sort` or `limit` raises a `FeroError` locally. Plain strings are accepted in place of the enum members if you would rather not import them.
+
+#### Example 1: The latest live predictions
+
+Along with the metadata of the prediction itself, a `LivePrediction` exposes its results through `targets` — a dictionary keyed by target name, where each value carries the predicted distribution as plain attributes.
+
+`mid` is the expected value. The `low50`/`high50` and `low90`/`high90` pairs bound the 50% and 90% confidence intervals around it, so the measurement should fall between `low50` and `high50` half the time, and between `low90` and `high90` nine times out of ten.
+
+```python
+from fero import Fero, LivePredictionType, LivePredictionSort
+
+fero_client = Fero()
+analysis = fero_client.get_analysis("<analysis uuid>")
+
+predictions = analysis.get_live_predictions(limit=5)
+
+latest = predictions[0]
+print(latest.created, latest.prediction_tag, latest.complete)
+# 2026-08-24 12:00:00.123456+00:00 gc-p-1234 True
+
+# The basis the prediction was made against
+print(latest.basis)
+# {'CARBON': 0.21, 'SILICON': 0.18}
+
+# Which targets were predicted
+print(list(latest.targets))
+# ['TENSILE_STRENGTH', 'ELONGATION']
+
+# The expected value for one target, and its 90% interval
+strength = latest.targets["TENSILE_STRENGTH"]
+print(strength.mid)
+# 190.24
+
+print(strength.low90, strength.high90)
+# 167.46 213.02
+
+# Or the whole distribution as a plain dictionary
+print(strength.to_dict())
+# {'low90': 167.46, 'low50': 178.85, 'mid': 190.24, 'high50': 201.63, 'high90': 213.02}
+```
+
+Because `targets` is an ordinary dictionary, you can loop over it to report every target at once.
+
+```python
+for name, target in latest.targets.items():
+    print(f"{name}: {target.mid} (90% between {target.low90} and {target.high90})")
+# TENSILE_STRENGTH: 190.24 (90% between 167.46 and 213.02)
+# ELONGATION: 22.1 (90% between 19.62 and 24.58)
+```
+
+A live prediction that is still running, or that failed, is still included in the results, so check `complete` and `status` before using one. An unfinished or failed prediction simply has an empty `targets` dictionary.
+
+```python
+for prediction in analysis.get_live_predictions():
+    if not prediction.complete:
+        print(f"{prediction.uuid} is still running")
+    elif prediction.status == "FAILURE":
+        print(f"{prediction.uuid} failed: {prediction.message}")
+    else:
+        print(prediction.targets["TENSILE_STRENGTH"].mid)
+```
+
+#### Example 2: Live optimizations
+
+A `LiveOptimization` reports the optimal factor and target values Fero found through `optimal_values`, as one dictionary per solution. It is a list because an optimization can return several equally optimal solutions; it is empty if the optimization found none.
+
+```python
+optimizations = analysis.get_live_predictions(
+    type=LivePredictionType.OPTIMIZATION,
+    sort=LivePredictionSort.LIVE_ORDER_DESCENDING,
+    limit=3,
+)
+
+optimization = optimizations[0]
+
+# How many solutions this optimization found
+print(len(optimization.optimal_values))
+# 2
+
+# Each solution is a plain dictionary keyed by factor and target name
+print(optimization.optimal_values[0])
+# {'CARBON': 0.19, 'SILICON': 0.22, 'TENSILE_STRENGTH': 201.63}
+
+print(optimization.optimal_values[0]["CARBON"])
+# 0.19
+```
+
+Loop over the list to see every solution.
+
+```python
+for index, solution in enumerate(optimization.optimal_values):
+    print(f"Solution {index}: CARBON={solution['CARBON']}, TENSILE_STRENGTH={solution['TENSILE_STRENGTH']}")
+# Solution 0: CARBON=0.19, TENSILE_STRENGTH=201.63
+# Solution 1: CARBON=0.2, TENSILE_STRENGTH=199.84
+```
+
+Every result object also provides a `to_dataframe` method, which returns the same data as a pandas `DataFrame` for filtering, sorting and CSV export. See Example 4 below.
+
+#### Example 3: Flexible predictions and optimizations
+
+A flexible prediction evaluates the same request against several scenarios at once. It is returned as a *single* object holding a `scenarios` list, so `limit` always counts predictions rather than scenarios. Each scenario reports the `basis` it was evaluated against.
+
+`default_scenario` is the scenario Fero considers most representative. For a flexible optimization this is the riskiest scenario, which is usually the one worth acting on.
+
+```python
+prediction = analysis.get_live_predictions(
+    type=LivePredictionType.FLEXIBLE_PREDICTION,
+    limit=1,
+)[0]
+
+print(len(prediction.scenarios))
+# 3
+
+# Each scenario carries the basis it was evaluated against
+print(prediction.scenarios[0].basis)
+# {'CARBON': 0.21, 'SILICON': 0.18, 'GRADE': 'A'}
+
+print(prediction.default_scenario.targets["TENSILE_STRENGTH"].mid)
+# 190.24
+
+# Every scenario in a single frame, indexed by scenario and target
+print(prediction.to_dataframe())
+#                             low90   low50     mid  high50  high90
+# scenario target
+# 0        TENSILE_STRENGTH  167.46  178.85  190.24  201.63  213.02
+#          ELONGATION         19.62   20.86   22.10   23.34   24.58
+# 1        TENSILE_STRENGTH  160.23  171.62  183.01  194.40  205.79
+#          ELONGATION         21.87   23.11   24.35   25.59   26.83
+# 2        TENSILE_STRENGTH  163.70  175.09  186.48  197.87  209.26
+#          ELONGATION         20.54   21.78   23.02   24.26   25.50
+```
+
+Example 4 below walks through working with that frame.
+
+A `FlexibleLiveOptimization` works the same way, with each scenario holding its own optimal values.
+
+```python
+optimization = analysis.get_live_predictions(
+    type=LivePredictionType.FLEXIBLE_OPTIMIZATION,
+    limit=1,
+)[0]
+
+# The riskiest scenario Fero identified -- here scenario 1, not the first one
+print(optimization.default_scenario.to_dataframe())
+#    CARBON  SILICON  TENSILE_STRENGTH
+# 0     0.2     0.21             194.5
+
+# Or every scenario at once, tagged with a scenario column
+print(optimization.to_dataframe())
+#    scenario  CARBON  SILICON  TENSILE_STRENGTH
+# 0         0    0.19     0.22            201.63
+# 1         1    0.20     0.21            194.50
+```
+
+#### Example 4: Working with flexible results as DataFrames
+
+`to_dataframe` returns a pandas `DataFrame`. If you have not used pandas before, the short version is that a `DataFrame` is a table: it has named columns, a labelled index identifying each row, and methods for selecting, filtering and exporting.
+
+The frame from a `FlexibleLivePrediction` is indexed by **two** labels rather than one — the scenario number and the target name — because each scenario predicts every target. Rows are the (scenario, target) pairs and columns are the confidence intervals.
+
+```python
+frame = prediction.to_dataframe()
+
+print(frame)
+#                             low90   low50     mid  high50  high90
+# scenario target
+# 0        TENSILE_STRENGTH  167.46  178.85  190.24  201.63  213.02
+#          ELONGATION         19.62   20.86   22.10   23.34   24.58
+# 1        TENSILE_STRENGTH  160.23  171.62  183.01  194.40  205.79
+#          ELONGATION         21.87   23.11   24.35   25.59   26.83
+# 2        TENSILE_STRENGTH  163.70  175.09  186.48  197.87  209.26
+#          ELONGATION         20.54   21.78   23.02   24.26   25.50
+```
+
+**Selecting columns.** Index the frame with a column name to get a single column, or with a list of names to get a narrower frame.
+
+```python
+# One column, as a pandas Series
+print(frame["mid"])
+# scenario  target
+# 0         TENSILE_STRENGTH    190.24
+#           ELONGATION           22.10
+# 1         TENSILE_STRENGTH    183.01
+#           ELONGATION           24.35
+# 2         TENSILE_STRENGTH    186.48
+#           ELONGATION           23.02
+# Name: mid, dtype: float64
+
+# Several columns, as a DataFrame
+print(frame[["mid", "high90"]])
+#                              mid  high90
+# scenario target
+# 0        TENSILE_STRENGTH  190.24  213.02
+#          ELONGATION         22.10   24.58
+# ...
+```
+
+**Selecting rows.** Use `.loc[scenario]` for everything predicted by one scenario, and `.xs(target, level="target")` to pull one target across every scenario. The latter is usually what you want, since it gives a plain one-row-per-scenario table.
+
+```python
+# Everything scenario 0 predicted
+print(frame.loc[0])
+#                    low90   low50     mid  high50  high90
+# target
+# TENSILE_STRENGTH  167.46  178.85  190.24  201.63  213.02
+# ELONGATION         19.62   20.86   22.10   23.34   24.58
+
+# One target across every scenario
+strength = frame.xs("TENSILE_STRENGTH", level="target")
+print(strength)
+#            low90   low50     mid  high50  high90
+# scenario
+# 0         167.46  178.85  190.24  201.63  213.02
+# 1         160.23  171.62  183.01  194.40  205.79
+# 2         163.70  175.09  186.48  197.87  209.26
+```
+
+**Filtering rows by a condition.** Compare a column against a value to get a mask of `True`/`False`, then index the frame with it to keep only the matching rows. Do this on a single target's table rather than on the whole frame — different targets are measured in different units, so a threshold that means something for one is meaningless for another.
+
+```python
+# Which scenarios could fall below a 165 MPa minimum spec?
+print(strength[strength["low90"] < 165])
+#            low90   low50     mid  high50  high90
+# scenario
+# 1         160.23  171.62  183.01  194.40  205.79
+# 2         163.70  175.09  186.48  197.87  209.26
+```
+
+**Finding the highest or lowest row.** `idxmax` and `idxmin` give the index label of the largest or smallest value in a column, which you can pass straight to `.loc`. Wrapping the label in a list keeps the result a `DataFrame` rather than collapsing it to a `Series`.
+
+```python
+# Which scenario has the highest expected strength?
+print(strength["mid"].idxmax())
+# 0
+
+print(strength.loc[[strength["mid"].idxmax()]])
+#            low90   low50     mid  high50  high90
+# scenario
+# 0         167.46  178.85  190.24  201.63  213.02
+```
+
+`describe` summarises a column if you just want the spread across scenarios.
+
+```python
+print(strength["mid"].describe())
+# count      3.000000
+# mean     186.576667
+# std        3.615969
+# min      183.010000
+# 25%      184.745000
+# 50%      186.480000
+# 75%      188.360000
+# max      190.240000
+# Name: mid, dtype: float64
+```
+
+**Exporting to CSV.** `to_csv` writes the frame to a file, including both index levels as their own columns. Pass no filename to get the CSV back as a string instead.
+
+```python
+frame.to_csv("live_prediction.csv")
+
+# scenario,target,low90,low50,mid,high50,high90
+# 0,TENSILE_STRENGTH,167.46,178.85,190.24,201.63,213.02
+# 0,ELONGATION,19.62,20.86,22.1,23.34,24.58
+# 1,TENSILE_STRENGTH,160.23,171.62,183.01,194.4,205.79
+# ...
+
+# Leave the row labels out entirely
+frame.to_csv("live_prediction.csv", index=False)
+```
+
+If you would rather work with the scenario and target as ordinary columns — which some tools and spreadsheets prefer — `reset_index` flattens the two index levels into columns and numbers the rows instead.
+
+```python
+print(frame.reset_index())
+#    scenario            target   low90   low50     mid  high50  high90
+# 0         0  TENSILE_STRENGTH  167.46  178.85  190.24  201.63  213.02
+# 1         0        ELONGATION   19.62   20.86   22.10   23.34   24.58
+# 2         1  TENSILE_STRENGTH  160.23  171.62  183.01  194.40  205.79
+# 3         1        ELONGATION   21.87   23.11   24.35   25.59   26.83
+# 4         2  TENSILE_STRENGTH  163.70  175.09  186.48  197.87  209.26
+# 5         2        ELONGATION   20.54   21.78   23.02   24.26   25.50
+```
+
+**Flexible optimizations.** A `FlexibleLiveOptimization` frame is simpler: it has ordinary numbered rows and a `scenario` column, so every operation above works without the `.xs` step.
+
+```python
+values = optimization.to_dataframe()
+
+print(values[values["TENSILE_STRENGTH"] > 200])
+#    scenario  CARBON  SILICON  TENSILE_STRENGTH
+# 0         0    0.19     0.22            201.63
+
+# The scenario needing the least carbon
+print(values.loc[[values["CARBON"].idxmin()]])
+#    scenario  CARBON  SILICON  TENSILE_STRENGTH
+# 0         0    0.19     0.22            201.63
+
+values.to_csv("live_optimization.csv", index=False)
+```
+
 ## Finding a Fero Asset
 
 The Fero client provides two different methods to find an `Asset`. The first is `Fero.get_asset`, which takes a single unique identifier string (UUID) and attempts to look up the asset matching this ID. The second method is `Fero.search_assets`, which will return an iterator of available `Asset` objects. If no keyword arguments are provided, it will return all assets you have available on the Fero website. Optionally, `name` can be provided to filter to only assets matching that name.
