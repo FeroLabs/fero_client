@@ -91,6 +91,19 @@ def _parse_datetime(value: Optional[str]) -> Optional[datetime.datetime]:
         return None
 
 
+def _records_from_split(values: Optional[dict]) -> List[Dict[str, Any]]:
+    """Build one dictionary per row from the split-orient frame the API returns.
+
+    This is the pandas-free view of an optimization's results; `_frame_from_split` returns
+    the same data as a `DataFrame`.
+    """
+    if not values:
+        return []
+
+    columns = values.get("columns", [])
+    return [dict(zip(columns, row)) for row in values.get("data", [])]
+
+
 def _frame_from_split(values: Optional[dict]) -> Optional[pd.DataFrame]:
     """Build a `DataFrame` from the split-orient frame the API returns."""
     if not values:
@@ -185,6 +198,11 @@ class OptimizationScenario:
         return f"<OptimizationScenario index={self.index}>"
 
     __str__ = __repr__
+
+    @property
+    def optimal_values(self) -> List[Dict[str, Any]]:
+        """Get this scenario's optimal values as one dictionary per solution."""
+        return _records_from_split(self._data.get("values"))
 
     def to_dataframe(self) -> Optional[pd.DataFrame]:
         """Return this scenario's optimal values, or `None` if it produced none."""
@@ -322,6 +340,17 @@ class FlexibleLivePrediction(LivePredictionBase):
 
 class LiveOptimization(LivePredictionBase):
     """A live optimization of an analysis' factors against a single basis."""
+
+    @property
+    def optimal_values(self) -> List[Dict[str, Any]]:
+        """Get the optimal factor and target values found, one dictionary per solution.
+
+        An optimization may return several equally optimal solutions, so this is always a
+        list. It is empty if the optimization found none, or has not finished; unlike
+        `to_dataframe` it reports what is there rather than raising, matching how `targets`
+        and `basis` behave.
+        """
+        return _records_from_split(self._data.get("values"))
 
     def to_dataframe(self) -> Optional[pd.DataFrame]:
         """Return the optimal factor and target values found by the optimization.

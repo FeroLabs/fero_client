@@ -344,6 +344,124 @@ def test_optimization_to_dataframe(live_analysis):
     )
 
 
+def test_optimization_exposes_optimal_values_without_pandas(live_analysis):
+    """An optimization's results are reachable as plain dictionaries."""
+    respond_with(
+        live_analysis, [envelope("optimization", values=optimization_values(3.0))]
+    )
+
+    optimization = live_analysis.get_live_predictions(
+        type=LivePredictionType.OPTIMIZATION
+    )[0]
+
+    assert optimization.optimal_values == [{"Factor 1": 3.0, "Target 1": 6.0}]
+
+
+def test_optimization_exposes_every_optimal_solution(live_analysis):
+    """An optimization with several equally optimal solutions reports all of them."""
+    respond_with(
+        live_analysis,
+        [
+            envelope(
+                "optimization",
+                values={
+                    "columns": ["Factor 1", "Target 1"],
+                    "index": [0, 1],
+                    "data": [[3.0, 6.0], [4.0, 8.0]],
+                },
+            )
+        ],
+    )
+
+    optimization = live_analysis.get_live_predictions(
+        type=LivePredictionType.OPTIMIZATION
+    )[0]
+
+    assert optimization.optimal_values == [
+        {"Factor 1": 3.0, "Target 1": 6.0},
+        {"Factor 1": 4.0, "Target 1": 8.0},
+    ]
+
+
+@pytest.mark.parametrize("values", [None, {"columns": [], "index": [], "data": []}])
+def test_optimization_without_values_has_no_optimal_values(live_analysis, values):
+    """An optimization that produced no solution reports an empty list, not an error."""
+    respond_with(live_analysis, [envelope("optimization", values=values)])
+
+    optimization = live_analysis.get_live_predictions(
+        type=LivePredictionType.OPTIMIZATION
+    )[0]
+
+    assert optimization.optimal_values == []
+
+
+def test_incomplete_optimization_reports_empty_optimal_values(live_analysis):
+    """Unlike `to_dataframe`, direct access reports what is there rather than raising."""
+    respond_with(
+        live_analysis,
+        [envelope("optimization", complete=False, status=None, state="P", values=None)],
+    )
+
+    optimization = live_analysis.get_live_predictions(
+        type=LivePredictionType.OPTIMIZATION
+    )[0]
+
+    assert optimization.optimal_values == []
+    with pytest.raises(FeroError, match="is not complete"):
+        optimization.to_dataframe()
+
+
+def test_flexible_optimization_scenarios_expose_optimal_values(live_analysis):
+    """Each scenario of a flexible optimization exposes its own plain results."""
+    respond_with(
+        live_analysis,
+        [
+            envelope(
+                "flexible_optimization",
+                scenarios=[
+                    {
+                        "index": 0,
+                        "basis": {"Grade": "A"},
+                        "values": optimization_values(3.0),
+                    },
+                    {
+                        "index": 1,
+                        "basis": {"Grade": "B"},
+                        "values": optimization_values(4.0),
+                    },
+                ],
+                default_scenario_index=1,
+            )
+        ],
+    )
+
+    optimization = live_analysis.get_live_predictions(
+        type=LivePredictionType.FLEXIBLE_OPTIMIZATION
+    )[0]
+
+    assert optimization.scenarios[0].optimal_values == [
+        {"Factor 1": 3.0, "Target 1": 6.0}
+    ]
+    assert optimization.default_scenario.optimal_values == [
+        {"Factor 1": 4.0, "Target 1": 8.0}
+    ]
+
+
+def test_prediction_targets_convert_to_plain_dictionaries(live_analysis):
+    """A prediction's targets are reachable as plain dictionaries."""
+    respond_with(live_analysis, [envelope("prediction", targets=targets(100))])
+
+    prediction = live_analysis.get_live_predictions()[0]
+
+    assert prediction.targets["Target 1"].to_dict() == {
+        "low90": 80,
+        "low50": 90,
+        "mid": 100,
+        "high50": 110,
+        "high90": 120,
+    }
+
+
 def test_optimization_without_values_returns_none(live_analysis):
     """An optimization that produced no values converts to `None`, not an error."""
     respond_with(live_analysis, [envelope("optimization", values=None)])
