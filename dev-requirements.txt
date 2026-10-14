@@ -140,7 +140,7 @@ typing-extensions==4.16.0
     # via
     #   azure-core
     #   azure-storage-blob
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   id
     #   requests
