@@ -6,33 +6,33 @@
 #
 azure-core==1.41.0
     # via azure-storage-blob
-azure-storage-blob==12.30.0
+azure-storage-blob==12.31.0
     # via fero (setup.py)
 backoff==2.2.1
     # via fero (setup.py)
-certifi==2026.7.22
+certifi==2026.10.23
     # via requests
-cffi==2.1.0
+cffi==2.1.1
     # via cryptography
-charset-normalizer==3.4.9
+charset-normalizer==3.5.2
     # via requests
-cryptography==50.0.0
+cryptography==50.0.2
     # via azure-storage-blob
-idna==3.18
+idna==3.20
     # via requests
 isodate==0.7.2
     # via azure-storage-blob
-marshmallow==4.3.0
+marshmallow==4.3.1
     # via fero (setup.py)
-numpy==2.5.1
+numpy==2.5.4
     # via pandas
-pandas==3.0.5
+pandas==3.1.0
     # via fero (setup.py)
-pyarrow==25.0.0
+pyarrow==26.0.0
     # via fero (setup.py)
-pycparser==3.0
+pycparser==3.12
     # via cffi
-python-dateutil==2.9.0.post0
+python-dateutil==3.0.0
     # via pandas
 requests==2.34.2
     # via
@@ -44,5 +44,7 @@ typing-extensions==4.16.0
     # via
     #   azure-core
     #   azure-storage-blob
-urllib3==2.7.0
+tzdata==2026.5
+    # via python-dateutil
+urllib3==2.8.0
     # via requests
