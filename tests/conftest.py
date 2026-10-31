@@ -134,45 +134,6 @@ def revision_data():
 
 
 @pytest.fixture
-def asset_data():
-    """Get sample data matching the Asset schema."""
-    return {
-        "uuid": "fdf0918b-98f3-4e25-978d-83caba7aebf6",
-        "url": "/api/assets/fdf0918b-98f3-4e25-978d-83caba7aebf6/",
-        "configurations_url": "/api/assets/fdf0918b-98f3-4e25-978d-83caba7aebf6/configurations/",
-        "created": "2022-02-18T15:01:02.900782Z",
-        "modified": "2022-02-18T15:58:01.826762Z",
-        "created_by": {"id": 1, "username": "admin"},
-        "name": "TEST ASSET",
-        "data_source": None,
-        "process": "8c4be5cc-cb92-4b46-b8bd-b9f29fb2a415",
-        "process_name": "asset example continuous",
-        "process_deleted": False,
-        "current_bound": {"type": "boundary", "direction": "lower", "value": 4},
-        "latest_configuration": 12,
-        "latest_configuration_model": "ab86526f-60af-4626-9459-8b276b2c3ebd",
-        "latest_configuration_model_state": "I",
-        "latest_trained_configuration": 12,
-        "latest_trained_configuration_model": "ab86526f-60af-4626-9459-8b276b2c3ebd",
-        "latest_completed_model": "ab86526f-60af-4626-9459-8b276b2c3ebd",
-        "latest_completed_model_score": None,
-        "latest_completed_model_score_qualifier": None,
-        "latest_completed_model_modified": "2022-02-18T15:58:01.697792Z",
-        "stability_warning": 40,
-        "stability_warning_display": "Strong Warning",
-        "time_to_threshold_lower": "00:00:00",
-        "time_to_threshold_mean": "00:00:00",
-        "time_to_threshold_upper": "00:00:00",
-        "prediction_horizon": "05:00:00",
-        "prediction_at_horizon_lower": -4.826867616656165,
-        "prediction_at_horizon_mean": -3.3494622633010933,
-        "prediction_at_horizon_upper": -1.7714730482893926,
-        "ac_name": "grain_analysis",
-        "username": "admin",
-    }
-
-
-@pytest.fixture
 def datasource_data():
     """Get sample data matching the Datasource schema."""
     return {
@@ -526,7 +487,6 @@ def me_response():
                 "display_timezone": None,
                 "allow_new_datasource": True,
                 "allow_new_module": True,
-                "allow_new_asset": True,
                 "allow_process_datasource": True,
                 "allow_create_cost_module": True,
                 "allow_create_quality_module": True,
@@ -538,7 +498,6 @@ def me_response():
                 "sidebar_data_v2": True,
                 "sidebar_modules": True,
                 "sidebar_analyses": True,
-                "sidebar_assets": True,
                 "sidebar_processes": True,
                 "allow_aux_processes": True,
                 "allow_live_processes": True,
