@@ -79,7 +79,7 @@ class DataSource(FeroObject):
 
     Adding data to a Data Source allows Fero to interface with that data.
     This data can then be added to a Fero Process and later analyzed in
-    an Asset or Analysis.
+    an Analysis.
     """
 
     schema_class = DataSourceSchema

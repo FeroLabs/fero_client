@@ -2,7 +2,6 @@
 
 from fero.datasource import DataSource
 from fero.analysis import Analysis
-from fero.asset import Asset
 from fero.process import Process
 import pytest
 from unittest import mock
@@ -222,53 +221,6 @@ def test_search_analyses_paginated(patch_fero_get, analysis_data):
         [
             mock.call("/api/analyses/", params={"name": analysis_data["name"]}),
             mock.call("/api/analyses/?token=1234", params=None),
-        ]
-    )
-
-
-def test_get_asset_success(patch_fero_get, asset_data):
-    """Test that an asset is returned by `get_asset`."""
-    patch_fero_get.return_value = asset_data
-    client = Fero(fero_token="fakeToken", hostname="http://test.com")
-    asset = client.get_asset("some-uuid")
-    assert isinstance(asset, Asset)
-    assert asset.name == asset_data["name"]
-    patch_fero_get.assert_called_with("/api/assets/some-uuid/")
-
-
-def test_search_assets(patch_fero_get, asset_data):
-    """Test that an iterator of assets is returned by `search_assets`."""
-    patch_fero_get.return_value = {"next": None, "results": [asset_data]}
-    client = Fero(fero_token="fakeToken", hostname="http://test.com")
-    assets = [a for a in client.search_assets(asset_data["name"])]
-    assert len(assets) == 1
-    assert isinstance(assets[0], Asset)
-    assert assets[0].name == asset_data["name"]
-    patch_fero_get.assert_called_with(
-        "/api/assets/", params={"name": asset_data["name"]}
-    )
-
-
-def test_search_assets_paginated(patch_fero_get, asset_data):
-    """Test that an iterator of assets is returned by `search_assets`."""
-    patch_fero_get.side_effect = [
-        {
-            "next": "http://test.com/api/assets/?token=1234",
-            "results": [asset_data],
-        },
-        {"next": None, "results": [asset_data]},
-    ]
-    client = Fero(fero_token="fakeToken", hostname="http://test.com")
-    assets = [a for a in client.search_assets(asset_data["name"])]
-    assert len(assets) == 2
-    assert isinstance(assets[0], Asset)
-    assert assets[0].name == asset_data["name"]
-    assert isinstance(assets[1], Asset)
-    assert assets[1].name == asset_data["name"]
-    patch_fero_get.assert_has_calls(
-        [
-            mock.call("/api/assets/", params={"name": asset_data["name"]}),
-            mock.call("/api/assets/?token=1234", params=None),
         ]
     )
 

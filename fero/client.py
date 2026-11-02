@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import Any, Dict, Iterator, Optional, Union, TextIO, Type, Sequence
 from . import FeroError
 from .analysis import Analysis
-from .asset import Asset
 from .datasource import DataSource
 from .process import Process
 from .workspace import Workspace
@@ -248,30 +247,6 @@ class Fero:
         """
         analysis_data = self.get(f"/api/analyses/{uuid}/")
         return Analysis(self, analysis_data)
-
-    def search_assets(self, name: str = None) -> Iterator[Asset]:
-        """Search available assets by name and return an iterator of matching objects.
-
-        :param name: Name of asset to filter by.
-        :type name: str, optional
-        :return: a list of assets
-        :rtype: Iterator[Asset]
-        """
-        params = {}
-        if name is not None:
-            params["name"] = name
-        return self._paginated_get("/api/assets/", Asset, params=params)
-
-    def get_asset(self, uuid: str) -> Asset:
-        """Get a Fero Asset using the UUID.
-
-        :param uuid: UUID of the asset
-        :type uuid: str
-        :return: An Asset object
-        :rtype: Asset
-        """
-        asset_data = self.get(f"/api/assets/{uuid}/")
-        return Asset(self, asset_data)
 
     def search_processes(self, name: str = None) -> Iterator[Process]:
         """Search available processes by name and return an iterator of matching objects.
