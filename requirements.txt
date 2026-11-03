@@ -10,7 +10,7 @@ azure-storage-blob==12.30.0
     # via fero (setup.py)
 backoff==2.2.1
     # via fero (setup.py)
-certifi==2026.7.22
+certifi==2026.10.18
     # via requests
 cffi==2.1.0
     # via cryptography
