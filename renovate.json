@@ -12,7 +12,9 @@
     "minimumReleaseAge": null
   },
   "osvVulnerabilityAlerts": true,
-  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "dependencyDashboard": {
+    "osvVulnerabilitySummary": "unresolved"
+  },
   "pip-compile": {
     "managerFilePatterns": [
       "/^requirements\\.txt$/",
